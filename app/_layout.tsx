@@ -14,12 +14,6 @@ export default function RootLayout() {
             headerShown: false,
           }}
         />
-        {/*<Stack.Screen*/}
-        {/*  name="movie/[id]"*/}
-        {/*  options={{*/}
-        {/*    headerShown: false,*/}
-        {/*  }}*/}
-        {/*/>*/}
       </Stack>
     </>
   );

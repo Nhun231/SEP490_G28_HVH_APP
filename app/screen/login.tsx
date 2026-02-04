@@ -1,6 +1,7 @@
-import { supabase } from '@/lib/supabase'
 import React, { useState } from 'react'
-import { Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native'
+import { Alert, StyleSheet, TextInput, View } from 'react-native'
+import Button from '../components/Button'
+import { signInWithEmail as signInAPI, signUpWithEmail as signUpAPI } from '../services/login-service'
 
 
 export default function Auth() {
@@ -10,27 +11,22 @@ export default function Auth() {
 
     async function signInWithEmail() {
         setLoading(true)
-        const { error } = await supabase.auth.signInWithPassword({
-            email: email,
-            password: password,
-        })
-
-        if (error) Alert.alert(error.message)
+        try {
+            await signInAPI({ email, password })
+        } catch (error) {
+            Alert.alert((error as Error).message)
+        }
         setLoading(false)
     }
 
     async function signUpWithEmail() {
         setLoading(true)
-        const {
-            data: { session },
-            error,
-        } = await supabase.auth.signUp({
-            email: email,
-            password: password,
-        })
-
-        if (error) Alert.alert(error.message)
-        if (!session) Alert.alert('Please check your inbox for email verification!')
+        try {
+            const { session } = await signUpAPI({ email, password })
+            if (!session) Alert.alert('Please check your inbox for email verification!')
+        } catch (error) {
+            Alert.alert((error as Error).message)
+        }
         setLoading(false)
     }
 
@@ -61,22 +57,24 @@ export default function Auth() {
                 />
             </View>
             <View style={[styles.verticallySpaced, styles.mt20]}>
-                <TouchableOpacity
-                    style={[styles.button, loading && styles.buttonDisabled]}
-                    disabled={loading}
-                    onPress={() => signInWithEmail()}
-                >
-                    <Text style={styles.buttonText}>{loading ? 'Loading...' : 'Sign in'}</Text>
-                </TouchableOpacity>
+                <Button
+                    text="Sign in"
+                    onPress={signInWithEmail}
+                    variant="primary"
+                    size="large"
+                    fullWidth
+                    loading={loading}
+                />
             </View>
             <View style={styles.verticallySpaced}>
-                <TouchableOpacity
-                    style={[styles.button, styles.buttonSecondary, loading && styles.buttonDisabled]}
-                    disabled={loading}
-                    onPress={() => signUpWithEmail()}
-                >
-                    <Text style={[styles.buttonText, styles.buttonTextSecondary]}>{loading ? 'Loading...' : 'Sign up'}</Text>
-                </TouchableOpacity>
+                <Button
+                    text="Sign up"
+                    onPress={signUpWithEmail}
+                    variant="outline"
+                    size="large"
+                    fullWidth
+                    loading={loading}
+                />
             </View>
         </View>
     )
@@ -104,27 +102,5 @@ const styles = StyleSheet.create({
         fontSize: 16,
         backgroundColor: '#fff',
     },
-    button: {
-        height: 50,
-        backgroundColor: '#007AFF',
-        borderRadius: 8,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    buttonSecondary: {
-        backgroundColor: '#fff',
-        borderWidth: 1,
-        borderColor: '#007AFF',
-    },
-    buttonDisabled: {
-        opacity: 0.5,
-    },
-    buttonText: {
-        color: '#fff',
-        fontSize: 16,
-        fontWeight: '600',
-    },
-    buttonTextSecondary: {
-        color: '#007AFF',
-    },
+
 })
