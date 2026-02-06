@@ -13,7 +13,7 @@ export default function SectionHeader({ title, onSeeMore, showSeeMore = true }: 
             <Text className="text-xl font-bold text-gray-800">{title}</Text>
             {showSeeMore && (
                 <TouchableOpacity onPress={onSeeMore}>
-                    <Text className="text-cyan-500 font-semibold">
+                    <Text className="text-[#42A5F5] font-semibold">
                         Xem thêm  ›
                     </Text>
                 </TouchableOpacity>
