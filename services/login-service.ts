@@ -11,7 +11,7 @@ export interface SignUpParams {
 }
 
 export const signInWithEmail = async ({ email, password }: SignInParams) => {
-    const { error } = await supabase.auth.signInWithPassword({
+    const { data, error } = await supabase.auth.signInWithPassword({
         email: email,
         password: password,
     })
@@ -19,7 +19,13 @@ export const signInWithEmail = async ({ email, password }: SignInParams) => {
     if (error) {
         throw new Error(error.message)
     }
+
+    // Supabase automatically persists the session (access_token + refresh_token)
+    // to AsyncStorage via the adapter configured in lib/supabase.ts.
+    // AuthContext picks it up via onAuthStateChange — no manual storage needed.
+    return { session: data.session }
 }
+
 
 export const signUpWithEmail = async ({ email, password }: SignUpParams) => {
     const {
