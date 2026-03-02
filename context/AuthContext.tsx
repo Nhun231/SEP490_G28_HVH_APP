@@ -18,9 +18,9 @@ interface AuthContextValue {
 const AuthContext = createContext<AuthContextValue | undefined>(undefined)
 
 export const useAuth = () => {
-    const ctx = useContext(AuthContext)
-    if (!ctx) throw new Error('useAuth must be used within AuthProvider')
-    return ctx
+    const context = useContext(AuthContext)
+    if (!context) throw new Error('useAuth must be used within AuthProvider')
+    return context
 }
 
 // ==================== Provider ====================
@@ -31,7 +31,7 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const isRefreshing = useRef(false)
     const alertShownRef = useRef(false)
 
-    // ── 1. Boot: load session from Supabase (it reads from AsyncStorage internally) ──
+    // Load session from Supabase (it reads from AsyncStorage internally)
     useEffect(() => {
         supabase.auth.getSession().then(({ data: { session } }) => {
             setSession(session)
@@ -46,7 +46,7 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         return () => subscription.unsubscribe()
     }, [])
 
-    // ── 2. Request interceptor: inject access_token into every baseAxios request ──
+    // Request interceptor: inject AT into every baseAxios request
     useEffect(() => {
         const requestInterceptor = baseAxios.interceptors.request.use(async (config) => {
             // Always read the latest session from Supabase (handles refresh automatically)
@@ -61,7 +61,7 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         return () => baseAxios.interceptors.request.eject(requestInterceptor)
     }, [])
 
-    // ── 3. Response interceptor: handle 401 → try Supabase refresh → retry request ──
+    // Response interceptor: handle 401 → try Supabase refresh → retry request
     useEffect(() => {
         const responseInterceptor = baseAxios.interceptors.response.use(
             (response) => response,
@@ -118,7 +118,7 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         return () => baseAxios.interceptors.response.eject(responseInterceptor)
     }, [])
 
-    // ── 4. Logout ──
+    // Logout
     const logout = async () => {
         await supabase.auth.signOut()
         // Supabase clears its own AsyncStorage keys; clear any extra keys here if needed

@@ -20,9 +20,6 @@ export const signInWithEmail = async ({ email, password }: SignInParams) => {
         throw new Error(error.message)
     }
 
-    // Supabase automatically persists the session (access_token + refresh_token)
-    // to AsyncStorage via the adapter configured in lib/supabase.ts.
-    // AuthContext picks it up via onAuthStateChange — no manual storage needed.
     return { session: data.session }
 }
 
