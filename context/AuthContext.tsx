@@ -6,10 +6,13 @@ import { Alert } from 'react-native'
 
 // ==================== Types ====================
 
+export type UserRole = 'VOL' | 'HOST' | 'ORG_MANAGER' | 'SYS_ADMIN' | null
+
 interface AuthContextValue {
     session: Session | null
     isLoggedIn: boolean
     isLoading: boolean
+    role: UserRole
     logout: () => Promise<void>
 }
 
@@ -130,6 +133,7 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             session,
             isLoggedIn: !!session,
             isLoading,
+            role: (session?.user.app_metadata?.role as UserRole) ?? null,
             logout,
         }}>
             {children}

@@ -1,5 +1,6 @@
 import { signInWithEmail as signInAPI } from '@/services/login-service'
 import { Ionicons } from '@expo/vector-icons'
+import { useRouter } from 'expo-router'
 import React, { useState } from 'react'
 import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
@@ -7,6 +8,7 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 type AccountType = 'volunteer' | 'organizer'
 
 export default function Auth() {
+    const router = useRouter()
     const [email, setEmail] = useState('')
     const [password, setPassword] = useState('')
     const [loading, setLoading] = useState(false)
@@ -164,13 +166,16 @@ export default function Auth() {
 
                         {/* Footer */}
                         {accountType === 'volunteer' ? (
+                            <TouchableOpacity onPress={() => router.push('/screen/register')}>
+                                <Text style={styles.footerText}>
+                                    Chưa có tài khoản?{' '}
+                                    <Text style={{ color: '#42A4F5' }}>Đăng ký ngay</Text>
+                                </Text>
+                            </TouchableOpacity>
+                        ) : (
                             <Text style={styles.footerText}>
-                                Chưa có tài khoản? <a>Đăng ký ngay</a>
+                                Chưa có tài khoản? Hãy yêu cầu tài khoản{'\n'}từ người quản lí tổ chức
                             </Text>
-                        ): (
-                            <Text style={styles.footerText}>
-                            Chưa có tài khoản? Hãy yêu cầu tài khoản{'\n'}từ người quản lí tổ chức
-                        </Text>
                         )
                         }
 

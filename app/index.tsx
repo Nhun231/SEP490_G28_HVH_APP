@@ -1,11 +1,10 @@
-import Auth from "@/app/screen/login"
-import Register from "@/app/screen/register"
-import AuthProvider, { useAuth } from "@/context/AuthContext"
+import { useAuth } from "@/context/AuthContext"
+import { Redirect } from "expo-router"
 import { ActivityIndicator, View } from "react-native"
 import 'react-native-url-polyfill/auto'
 
 function AppContent() {
-    const { isLoggedIn, isLoading } = useAuth()
+    const { isLoggedIn, isLoading, role } = useAuth()
 
     if (isLoading) {
         return (
@@ -15,15 +14,17 @@ function AppContent() {
         )
     }
 
-    // TODO: swap Register for your main screen once routing is set up
-    return isLoggedIn ? <Register /> : <Auth />
+    if (!isLoggedIn) return <Redirect href="/screen/login" />
+
+    // `as any` avoids stale Expo Router type-manifest errors for new route groups;
+    // types regenerate automatically on next dev-server start.
+    if (role === 'VOL') return <Redirect href="/(tabs)/home" />
+    if (role === 'HOST') return <Redirect href={"/(host-tabs)/dashboard" as any} />
+
+    // Unknown / unhandled role → back to login
+    return <Redirect href="/screen/login" />
 }
 
 export default function Index() {
-    return (
-        <AuthProvider>
-            <AppContent />
-        </AuthProvider>
-    )
+    return <AppContent />
 }
-
