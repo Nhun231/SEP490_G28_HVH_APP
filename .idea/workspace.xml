@@ -5,8 +5,14 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="75668f23-b4c0-497d-81ac-fa2ee3afdab7" name="Changes" comment="">
+      <change afterPath="$PROJECT_DIR$/app/(host-tabs)/_layout.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/app/(host-tabs)/dashboard.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/app/(host-tabs)/events.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/app/(host-tabs)/members.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/app/(host-tabs)/personal.tsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/app/_layout.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/_layout.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/components/Button.tsx" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/app/index.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/index.tsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/app/screen/login.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/screen/login.tsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/context/AuthContext.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/context/AuthContext.tsx" afterDir="false" />
@@ -105,7 +111,7 @@
       <workItem from="1772369437301" duration="831000" />
       <workItem from="1772461756538" duration="67000" />
       <workItem from="1772462036956" duration="818000" />
-      <workItem from="1772467034663" duration="2296000" />
+      <workItem from="1772467034663" duration="2645000" />
     </task>
     <servers />
   </component>

@@ -16,12 +16,11 @@ function AppContent() {
 
     if (!isLoggedIn) return <Redirect href="/screen/login" />
 
-    // `as any` avoids stale Expo Router type-manifest errors for new route groups;
-    // types regenerate automatically on next dev-server start.
+    //check for role to navigate after login
     if (role === 'VOL') return <Redirect href="/(tabs)/home" />
     if (role === 'HOST') return <Redirect href={"/(host-tabs)/dashboard" as any} />
 
-    // Unknown / unhandled role → back to login
+    //unknown / unhandled role -> back to login
     return <Redirect href="/screen/login" />
 }
 
