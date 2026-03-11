@@ -11,7 +11,7 @@ export interface SignUpParams {
 }
 
 export const signInWithEmail = async ({ email, password }: SignInParams) => {
-    const { error } = await supabase.auth.signInWithPassword({
+    const { data, error } = await supabase.auth.signInWithPassword({
         email: email,
         password: password,
     })
@@ -19,7 +19,10 @@ export const signInWithEmail = async ({ email, password }: SignInParams) => {
     if (error) {
         throw new Error(error.message)
     }
+
+    return { session: data.session }
 }
+
 
 export const signUpWithEmail = async ({ email, password }: SignUpParams) => {
     const {

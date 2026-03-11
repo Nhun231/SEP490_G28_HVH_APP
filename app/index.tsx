@@ -1,25 +1,29 @@
-import { Redirect } from 'expo-router'
+import { useAuth } from "@/context/AuthContext"
+import { Redirect } from "expo-router"
+import { ActivityIndicator, View } from "react-native"
 import 'react-native-url-polyfill/auto'
 
+function AppContent() {
+    const { isLoggedIn, isLoading, role } = useAuth()
+
+    if (isLoading) {
+        return (
+            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+                <ActivityIndicator size="large" color="#42A4F5" />
+            </View>
+        )
+    }
+
+    if (!isLoggedIn) return <Redirect href="/screen/login" />
+
+    //check for role to navigate after login
+    if (role === 'VOL') return <Redirect href="/(tabs)/home" />
+    if (role === 'HOST') return <Redirect href={"/(host-tabs)/dashboard" as any} />
+
+    //unknown / unhandled role -> back to login
+    return <Redirect href="/screen/login" />
+}
 
 export default function Index() {
-    // const [session, setSession] = useState<Session | null>(null)
-    // useEffect(() => {
-    //     supabase.auth.getSession().then(({ data: { session } }) => {
-    //         setSession(session)
-    //     })
-
-    //     supabase.auth.onAuthStateChange((_event, session) => {
-    //         setSession(session)
-    //     })
-    // }, [])
-
-    // return (
-    //     <View>
-    //         <Auth />
-    //         {session && session.user && <Text>{session.user.id}</Text>}
-    //     </View>
-    // )
-
-    return <Redirect href="/(tabs)/home" />
+    return <AppContent />
 }
