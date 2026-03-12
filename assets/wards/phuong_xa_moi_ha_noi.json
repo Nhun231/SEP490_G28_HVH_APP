@@ -1,0 +1,508 @@
+{
+  "danh_sach_phuong_xa_moi": [
+    {
+      "stt": 1,
+      "ten_moi": "Phường Hoàn Kiếm"
+    },
+    {
+      "stt": 2,
+      "ten_moi": "Phường Cửa Nam"
+    },
+    {
+      "stt": 3,
+      "ten_moi": "Phường Ba Đình"
+    },
+    {
+      "stt": 4,
+      "ten_moi": "Phường Ngọc Hà"
+    },
+    {
+      "stt": 5,
+      "ten_moi": "Phường Giảng Võ"
+    },
+    {
+      "stt": 6,
+      "ten_moi": "Phường Hai Bà Trưng"
+    },
+    {
+      "stt": 7,
+      "ten_moi": "Phường Vĩnh Tuy"
+    },
+    {
+      "stt": 8,
+      "ten_moi": "Phường Bạch Mai"
+    },
+    {
+      "stt": 9,
+      "ten_moi": "Phường Đống Đa"
+    },
+    {
+      "stt": 10,
+      "ten_moi": "Phường Kim Liên"
+    },
+    {
+      "stt": 11,
+      "ten_moi": "Phường Văn Miếu - Quốc Tử Giám"
+    },
+    {
+      "stt": 12,
+      "ten_moi": "Phường Láng"
+    },
+    {
+      "stt": 13,
+      "ten_moi": "Phường Ô Chợ Dừa"
+    },
+    {
+      "stt": 14,
+      "ten_moi": "Phường Hồng Hà"
+    },
+    {
+      "stt": 15,
+      "ten_moi": "Phường Lĩnh Nam"
+    },
+    {
+      "stt": 16,
+      "ten_moi": "Phường Hoàng Mai"
+    },
+    {
+      "stt": 17,
+      "ten_moi": "Phường Vĩnh Hưng"
+    },
+    {
+      "stt": 18,
+      "ten_moi": "Phường Tương Mai"
+    },
+    {
+      "stt": 19,
+      "ten_moi": "Phường Định Công"
+    },
+    {
+      "stt": 20,
+      "ten_moi": "Phường Hoàng Liệt"
+    },
+    {
+      "stt": 21,
+      "ten_moi": "Phường Yên Sở"
+    },
+    {
+      "stt": 22,
+      "ten_moi": "Phường Thanh Xuân"
+    },
+    {
+      "stt": 23,
+      "ten_moi": "Phường Khương Đình"
+    },
+    {
+      "stt": 24,
+      "ten_moi": "Phường Phương Liệt"
+    },
+    {
+      "stt": 25,
+      "ten_moi": "Phường Cầu Giấy"
+    },
+    {
+      "stt": 26,
+      "ten_moi": "Phường Nghĩa Đô"
+    },
+    {
+      "stt": 27,
+      "ten_moi": "Phường Yên Hòa"
+    },
+    {
+      "stt": 28,
+      "ten_moi": "Phường Tây Hồ"
+    },
+    {
+      "stt": 29,
+      "ten_moi": "Phường Phú Thượng"
+    },
+    {
+      "stt": 30,
+      "ten_moi": "Phường Tây Tựu"
+    },
+    {
+      "stt": 31,
+      "ten_moi": "Phường Phú Diễn"
+    },
+    {
+      "stt": 32,
+      "ten_moi": "Phường Xuân Đỉnh"
+    },
+    {
+      "stt": 33,
+      "ten_moi": "Phường Đông Ngạc"
+    },
+    {
+      "stt": 34,
+      "ten_moi": "Phường Thượng Cát"
+    },
+    {
+      "stt": 35,
+      "ten_moi": "Phường Từ Liêm"
+    },
+    {
+      "stt": 36,
+      "ten_moi": "Phường Xuân Phương"
+    },
+    {
+      "stt": 37,
+      "ten_moi": "Phường Tây Mỗ"
+    },
+    {
+      "stt": 38,
+      "ten_moi": "Phường Đại Mỗ"
+    },
+    {
+      "stt": 39,
+      "ten_moi": "Phường Long Biên"
+    },
+    {
+      "stt": 40,
+      "ten_moi": "Phường Bồ Đề"
+    },
+    {
+      "stt": 41,
+      "ten_moi": "Phường Việt Hưng"
+    },
+    {
+      "stt": 42,
+      "ten_moi": "Phường Phúc Lợi"
+    },
+    {
+      "stt": 43,
+      "ten_moi": "Phường Hà Đông"
+    },
+    {
+      "stt": 44,
+      "ten_moi": "Phường Dương Nội"
+    },
+    {
+      "stt": 45,
+      "ten_moi": "Phường Yên Nghĩa"
+    },
+    {
+      "stt": 46,
+      "ten_moi": "Phường Phú Lương"
+    },
+    {
+      "stt": 47,
+      "ten_moi": "Phường Kiến Hưng"
+    },
+    {
+      "stt": 48,
+      "ten_moi": "Xã Thanh Trì"
+    },
+    {
+      "stt": 49,
+      "ten_moi": "Xã Đại Thanh"
+    },
+    {
+      "stt": 50,
+      "ten_moi": "Xã Nam Phù"
+    },
+    {
+      "stt": 51,
+      "ten_moi": "Xã Ngọc Hồi"
+    },
+    {
+      "stt": 52,
+      "ten_moi": "Phường Thanh Liệt"
+    },
+    {
+      "stt": 53,
+      "ten_moi": "Xã Thượng Phúc"
+    },
+    {
+      "stt": 54,
+      "ten_moi": "Xã Thường Tín"
+    },
+    {
+      "stt": 55,
+      "ten_moi": "Xã Chương Dương"
+    },
+    {
+      "stt": 56,
+      "ten_moi": "Xã Hồng Vân"
+    },
+    {
+      "stt": 57,
+      "ten_moi": "Xã Phú Xuyên"
+    },
+    {
+      "stt": 58,
+      "ten_moi": "Xã Phượng Dực"
+    },
+    {
+      "stt": 59,
+      "ten_moi": "Xã Chuyên Mỹ"
+    },
+    {
+      "stt": 60,
+      "ten_moi": "Xã Đại Xuyên"
+    },
+    {
+      "stt": 61,
+      "ten_moi": "Xã Thanh Oai"
+    },
+    {
+      "stt": 62,
+      "ten_moi": "Xã Bình Minh"
+    },
+    {
+      "stt": 63,
+      "ten_moi": "Xã Tam Hưng"
+    },
+    {
+      "stt": 64,
+      "ten_moi": "Xã Dân Hòa"
+    },
+    {
+      "stt": 65,
+      "ten_moi": "Xã Vân Đình"
+    },
+    {
+      "stt": 66,
+      "ten_moi": "Xã Ứng Thiên"
+    },
+    {
+      "stt": 67,
+      "ten_moi": "Xã Hòa Xá"
+    },
+    {
+      "stt": 68,
+      "ten_moi": "Xã Ứng Hòa"
+    },
+    {
+      "stt": 69,
+      "ten_moi": "Xã Mỹ Đức"
+    },
+    {
+      "stt": 70,
+      "ten_moi": "Xã Hồng Sơn"
+    },
+    {
+      "stt": 71,
+      "ten_moi": "Xã Phúc Sơn"
+    },
+    {
+      "stt": 72,
+      "ten_moi": "Xã Hương Sơn"
+    },
+    {
+      "stt": 73,
+      "ten_moi": "Phường Chương Mỹ"
+    },
+    {
+      "stt": 74,
+      "ten_moi": "Xã Phú Nghĩa"
+    },
+    {
+      "stt": 75,
+      "ten_moi": "Xã Xuân Mai"
+    },
+    {
+      "stt": 76,
+      "ten_moi": "Xã Trần Phú"
+    },
+    {
+      "stt": 77,
+      "ten_moi": "Xã Hòa Phú"
+    },
+    {
+      "stt": 78,
+      "ten_moi": "Xã Quảng Bị"
+    },
+    {
+      "stt": 79,
+      "ten_moi": "Xã Minh Châu"
+    },
+    {
+      "stt": 80,
+      "ten_moi": "Xã Quảng Oai"
+    },
+    {
+      "stt": 81,
+      "ten_moi": "Xã Vật Lại"
+    },
+    {
+      "stt": 82,
+      "ten_moi": "Xã Cổ Đô"
+    },
+    {
+      "stt": 83,
+      "ten_moi": "Xã Bất Bạt"
+    },
+    {
+      "stt": 84,
+      "ten_moi": "Xã Suối Hai"
+    },
+    {
+      "stt": 85,
+      "ten_moi": "Xã Ba Vì"
+    },
+    {
+      "stt": 86,
+      "ten_moi": "Xã Yên Bài"
+    },
+    {
+      "stt": 87,
+      "ten_moi": "Phường Sơn Tây"
+    },
+    {
+      "stt": 88,
+      "ten_moi": "Phường Tùng Thiện"
+    },
+    {
+      "stt": 89,
+      "ten_moi": "Xã Đoài Phương"
+    },
+    {
+      "stt": 90,
+      "ten_moi": "Xã Phúc Thọ"
+    },
+    {
+      "stt": 91,
+      "ten_moi": "Xã Phúc Lộc"
+    },
+    {
+      "stt": 92,
+      "ten_moi": "Xã Hát Môn"
+    },
+    {
+      "stt": 93,
+      "ten_moi": "Xã Thạch Thất"
+    },
+    {
+      "stt": 94,
+      "ten_moi": "Xã Hạ Bằng"
+    },
+    {
+      "stt": 95,
+      "ten_moi": "Xã Tây Phương"
+    },
+    {
+      "stt": 96,
+      "ten_moi": "Xã Hòa Lạc"
+    },
+    {
+      "stt": 97,
+      "ten_moi": "Xã Yên Xuân"
+    },
+    {
+      "stt": 98,
+      "ten_moi": "Xã Quốc Oai"
+    },
+    {
+      "stt": 99,
+      "ten_moi": "Xã Hưng Đạo"
+    },
+    {
+      "stt": 100,
+      "ten_moi": "Xã Kiều Phú"
+    },
+    {
+      "stt": 101,
+      "ten_moi": "Xã Phú Cát"
+    },
+    {
+      "stt": 102,
+      "ten_moi": "Xã Hoài Đức"
+    },
+    {
+      "stt": 103,
+      "ten_moi": "Xã Dương Hòa"
+    },
+    {
+      "stt": 104,
+      "ten_moi": "Xã Sơn Đồng"
+    },
+    {
+      "stt": 105,
+      "ten_moi": "Xã An Khánh"
+    },
+    {
+      "stt": 106,
+      "ten_moi": "Xã Đan Phượng"
+    },
+    {
+      "stt": 107,
+      "ten_moi": "Xã Ô Diên"
+    },
+    {
+      "stt": 108,
+      "ten_moi": "Xã Liên Minh"
+    },
+    {
+      "stt": 109,
+      "ten_moi": "Xã Gia Lâm"
+    },
+    {
+      "stt": 110,
+      "ten_moi": "Xã Thuận An"
+    },
+    {
+      "stt": 111,
+      "ten_moi": "Xã Bát Tràng"
+    },
+    {
+      "stt": 112,
+      "ten_moi": "Xã Phù Đổng"
+    },
+    {
+      "stt": 113,
+      "ten_moi": "Xã Thư Lâm"
+    },
+    {
+      "stt": 114,
+      "ten_moi": "Xã Đông Anh"
+    },
+    {
+      "stt": 115,
+      "ten_moi": "Xã Phúc Thịnh"
+    },
+    {
+      "stt": 116,
+      "ten_moi": "Xã Thiên Lộc"
+    },
+    {
+      "stt": 117,
+      "ten_moi": "Xã Vĩnh Thanh"
+    },
+    {
+      "stt": 118,
+      "ten_moi": "Xã Mê Linh"
+    },
+    {
+      "stt": 119,
+      "ten_moi": "Xã Yên Lãng"
+    },
+    {
+      "stt": 120,
+      "ten_moi": "Xã Tiến Thắng"
+    },
+    {
+      "stt": 121,
+      "ten_moi": "Xã Quang Minh"
+    },
+    {
+      "stt": 122,
+      "ten_moi": "Xã Sóc Sơn"
+    },
+    {
+      "stt": 123,
+      "ten_moi": "Xã Đa Phúc"
+    },
+    {
+      "stt": 124,
+      "ten_moi": "Xã Nội Bài"
+    },
+    {
+      "stt": 125,
+      "ten_moi": "Xã Trung Giã"
+    },
+    {
+      "stt": 126,
+      "ten_moi": "Xã Kim Anh"
+    }
+  ]
+}

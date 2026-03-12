@@ -1,0 +1,40 @@
+{
+  "linh_vuc_phuc_vu": [
+    {
+      "id": 1,
+      "label": "Y tế"
+    },
+    {
+      "id": 2,
+      "label": "Giáo dục"
+    },
+    {
+      "id": 3,
+      "label": "Môi trường"
+    },
+    {
+      "id": 4,
+      "label": "Văn hóa - Thể thao"
+    },
+    {
+      "id": 5,
+      "label": "Cứu trợ thiên tai"
+    },
+    {
+      "id": 6,
+      "label": "Từ thiện xã hội"
+    },
+    {
+      "id": 7,
+      "label": "An ninh trật tự"
+    },
+    {
+      "id": 8,
+      "label": "Xây dựng cơ sở hạ tầng"
+    },
+    {
+      "id": 9,
+      "label": "Khác"
+    }
+  ]
+}

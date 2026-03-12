@@ -1,0 +1,52 @@
+{
+  "dia_diem_phuc_vu": [
+    {
+      "id": 1,
+      "label": "Trường học"
+    },
+    {
+      "id": 2,
+      "label": "Vùng sâu vùng xa"
+    },
+    {
+      "id": 3,
+      "label": "Công viên, quảng trường"
+    },
+    {
+      "id": 4,
+      "label": "Bệnh viện"
+    },
+    {
+      "id": 5,
+      "label": "Trạm giao thông"
+    },
+    {
+      "id": 6,
+      "label": "Bảo tàng"
+    },
+    {
+      "id": 7,
+      "label": "Viện dưỡng lão"
+    },
+    {
+      "id": 8,
+      "label": "Khu du lịch"
+    },
+    {
+      "id": 9,
+      "label": "Mặt nước, sông ngòi"
+    },
+    {
+      "id": 10,
+      "label": "Khu thể dục thể thao"
+    },
+    {
+      "id": 11,
+      "label": "Nghĩa trang"
+    },
+    {
+      "id": 12,
+      "label": "Khác"
+    }
+  ]
+}

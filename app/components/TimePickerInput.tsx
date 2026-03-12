@@ -1,0 +1,115 @@
+import React, { useState } from 'react';
+import { View, Text, TouchableOpacity, Platform, Modal, Pressable } from 'react-native';
+import DateTimePicker from '@react-native-community/datetimepicker';
+import { Ionicons } from '@expo/vector-icons';
+
+interface TimePickerInputProps {
+    label: string;
+    value?: Date;
+    onChange: (time: Date) => void;
+    required?: boolean;
+    placeholder?: string;
+}
+
+export default function TimePickerInput({
+    label,
+    value,
+    onChange,
+    required = false,
+    placeholder = 'Chọn thời gian',
+}: TimePickerInputProps) {
+    const [show, setShow] = useState(false);
+
+    const handleChange = (event: any, selectedTime?: Date) => {
+        // On Android, the picker is automatically dismissed after selection or cancellation
+        // On iOS, we need to handle it manually
+        if (Platform.OS === 'android') {
+            setShow(false);
+        }
+        
+        // Only update the value if user didn't cancel
+        if (event.type === 'set' && selectedTime) {
+            onChange(selectedTime);
+            if (Platform.OS === 'ios') {
+                setShow(false);
+            }
+        } else if (event.type === 'dismissed') {
+            setShow(false);
+        }
+    };
+
+    const formatTime = (date: Date) => {
+        const hours = date.getHours().toString().padStart(2, '0');
+        const minutes = date.getMinutes().toString().padStart(2, '0');
+        return `${hours}:${minutes}`;
+    };
+
+    return (
+        <View className="mb-4">
+            <Text className="text-gray-700 text-sm font-medium mb-2">
+                {required && <Text className="text-red-500">* </Text>}
+                {label}
+            </Text>
+            <TouchableOpacity
+                onPress={() => setShow(true)}
+                className="bg-[#E3F2FD] border-b border-gray-200 rounded-lg px-4 py-3 flex-row justify-between items-center"
+            >
+                <Text className={value ? 'text-gray-800' : 'text-gray-400'}>
+                    {value ? formatTime(value) : placeholder}
+                </Text>
+                <Ionicons name="time-outline" size={20} color="#9CA3AF" />
+            </TouchableOpacity>
+
+            {show && Platform.OS === 'ios' && (
+                <Modal
+                    transparent={true}
+                    animationType="slide"
+                    visible={show}
+                    onRequestClose={() => setShow(false)}
+                >
+                    <Pressable 
+                        className="flex-1 bg-black/50 justify-end"
+                        onPress={() => setShow(false)}
+                    >
+                        <Pressable className="bg-white rounded-t-3xl" onPress={(e) => e.stopPropagation()}>
+                            <View className="flex-row justify-between items-center px-4 py-3 border-b border-gray-200">
+                                <TouchableOpacity onPress={() => setShow(false)}>
+                                    <Text className="text-[#42A5F5] text-base font-semibold">Hủy</Text>
+                                </TouchableOpacity>
+                                <Text className="text-gray-800 font-semibold">Chọn thời gian</Text>
+                                <TouchableOpacity 
+                                    onPress={() => {
+                                        handleChange({ type: 'set' }, value || new Date());
+                                    }}
+                                >
+                                    <Text className="text-[#42A5F5] text-base font-semibold">Xong</Text>
+                                </TouchableOpacity>
+                            </View>
+                            <DateTimePicker
+                                value={value || new Date()}
+                                mode="time"
+                                is24Hour={true}
+                                display="spinner"
+                                onChange={(event, time) => {
+                                    if (time) onChange(time);
+                                }}
+                                textColor="#000000"
+                                style={{ backgroundColor: '#FFFFFF', height: 200 }}
+                            />
+                        </Pressable>
+                    </Pressable>
+                </Modal>
+            )}
+            
+            {show && Platform.OS === 'android' && (
+                <DateTimePicker
+                    value={value || new Date()}
+                    mode="time"
+                    is24Hour={true}
+                    display="default"
+                    onChange={handleChange}
+                />
+            )}
+        </View>
+    );
+}

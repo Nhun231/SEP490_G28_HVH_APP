@@ -1,0 +1,36 @@
+{
+  "doi_tuong_phuc_vu": [
+    {
+      "id": 1,
+      "label": "Phụ nữ"
+    },
+    {
+      "id": 2,
+      "label": "Trẻ em"
+    },
+    {
+      "id": 3,
+      "label": "Thanh thiếu niên"
+    },
+    {
+      "id": 4,
+      "label": "Trung niên"
+    },
+    {
+      "id": 5,
+      "label": "Người cao tuổi"
+    },
+    {
+      "id": 6,
+      "label": "Người tàn tật"
+    },
+    {
+      "id": 7,
+      "label": "Người yếu thế, người có hoàn cảnh khó khăn"
+    },
+    {
+      "id": 8,
+      "label": "Không xác định"
+    }
+  ]
+}
