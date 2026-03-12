@@ -12,7 +12,10 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.sep490.hvhapp",
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+      "supportsTablet": true,
+      "config": {
+        "googleMapsApiKey": "AIzaSyDSCGln2wKVhzGdMGY5fNTUY881ZAZfPVA"
       }
     },
     "android": {
@@ -25,7 +28,12 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.na2.SEP490_G28_HVH_APP"
+      "package": "com.na2.SEP490_G28_HVH_APP",
+      "config": {
+        "googleMaps": {
+          "apiKey": "AIzaSyBhm8DyXeGs6g5OJhGZDVayeOmWtHAbsYg"
+        }
+      }
     },
     "web": {
       "bundler": "metro",
@@ -46,7 +54,8 @@
           }
         }
       ],
-      "expo-font"
+      "expo-font",
+      "@react-native-community/datetimepicker"
     ],
     "experiments": {
       "typedRoutes": true,
