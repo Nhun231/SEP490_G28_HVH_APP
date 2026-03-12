@@ -19,7 +19,28 @@ export default function Auth() {
     async function signInWithEmail() {
         setLoading(true)
         try {
-            await signInAPI({ email, password })
+            const { session } = await signInAPI({ email, password })
+
+            // Decode JWT payload to get the freshest app_metadata claims
+            const jwt = session?.access_token
+            const payload = jwt
+                ? JSON.parse(atob(jwt.split('.')[1]))
+                : null
+            const role = payload?.app_metadata?.role
+
+            console.log('[LOGIN] jwt payload app_metadata:', payload?.app_metadata)
+            console.log('[LOGIN] role:', role)
+
+            if (role === 'VOL') {
+                router.replace('/(tabs)/home')
+            } else if (role === 'HOST') {
+                router.replace('/(host-tabs)/dashboard' as any)
+            } else {
+                Alert.alert(
+                    'Tài khoản chưa có vai trò',
+                    `Role nhận được: "${role}". Vui lòng liên hệ quản trị viên.`
+                )
+            }
         } catch (error) {
             Alert.alert((error as Error).message)
         }
