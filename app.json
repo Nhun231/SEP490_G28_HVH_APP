@@ -11,63 +11,62 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.sep490.hvhapp",
+      "config": {
+        "googleMapsApiKey": "AIzaSyAyAwvegpdwoKWZiuNo__1wTUc9RK89yg4"
+      },
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
-        "supportsTablet": true,
-        "config": {
-          "googleMapsApiKey": "AIzaSyDSCGln2wKVhzGdMGY5fNTUY881ZAZfPVA"
+        "supportsTablet": true
+      }
+    },
+    "android": {
+      "jsEngine": "hermes",
+      "adaptiveIcon": {
+        "backgroundColor": "#E6F4FE",
+        "foregroundImage": "./assets/images/android-icon-foreground.png",
+        "backgroundImage": "./assets/images/android-icon-background.png",
+        "monochromeImage": "./assets/images/android-icon-monochrome.png"
+      },
+      "edgeToEdgeEnabled": true,
+      "predictiveBackGestureEnabled": false,
+      "package": "com.sep490.hvhapp",
+      "config": {
+        "googleMaps": {
+          "apiKey": "AIzaSyAyAwvegpdwoKWZiuNo__1wTUc9RK89yg4"
         }
       }
     },
-      "android": {
-        "jsEngine": "hermes",
-        "adaptiveIcon": {
-          "backgroundColor": "#E6F4FE",
-          "foregroundImage": "./assets/images/android-icon-foreground.png",
-          "backgroundImage": "./assets/images/android-icon-background.png",
-          "monochromeImage": "./assets/images/android-icon-monochrome.png"
-        },
-        "edgeToEdgeEnabled": true,
-        "predictiveBackGestureEnabled": false,
-        "package": "com.sep490.hvhapp",
-        "config": {
-          "googleMaps": {
-            "apiKey": "AIzaSyBhm8DyXeGs6g5OJhGZDVayeOmWtHAbsYg"
+    "web": {
+      "bundler": "metro",
+      "output": "static",
+      "favicon": "./assets/images/logo.png"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/images/splash-icon.png",
+          "imageWidth": 200,
+          "resizeMode": "contain",
+          "backgroundColor": "#ffffff",
+          "dark": {
+            "backgroundColor": "#000000"
           }
         }
-      },
-      "web": {
-        "bundler": "metro",
-        "output": "static",
-        "favicon": "./assets/images/logo.png"
-      },
-      "plugins": [
-        "expo-router",
-        [
-          "expo-splash-screen",
-          {
-            "image": "./assets/images/splash-icon.png",
-            "imageWidth": 200,
-            "resizeMode": "contain",
-            "backgroundColor": "#ffffff",
-            "dark": {
-              "backgroundColor": "#000000"
-            }
-          }
-        ],
-        "expo-font",
-        "@react-native-community/datetimepicker"
       ],
-      "experiments": {
-        "typedRoutes": true,
-        "reactCompiler": true
-      },
-      "extra": {
-        "router": {},
-        "eas": {
-          "projectId": "17888ed7-b6de-475a-a0cb-2b330adaf16e"
-        }
+      "expo-font",
+      "@react-native-community/datetimepicker"
+    ],
+    "experiments": {
+      "typedRoutes": true,
+      "reactCompiler": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "17888ed7-b6de-475a-a0cb-2b330adaf16e"
       }
     }
   }
-
+}
