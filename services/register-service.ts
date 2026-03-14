@@ -1,4 +1,4 @@
-import axios from 'axios'
+import baseAxios from '@/lib/baseAxios'
 import { uploadImageToSupabase } from './upload-service'
 
 const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL || ''
@@ -15,7 +15,7 @@ const resolveSupabaseUrl = (url: string): string => {
     return SUPABASE_URL + '/storage/v1' + url
 }
 
-const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.1.38:8080'
+
 
 // ==================== Request/Response Types ====================
 
@@ -58,19 +58,16 @@ export interface UploadProgressCallback {
  */
 export const sendOtp = async ({ email }: SendOtpParams): Promise<void> => {
     try {
-        await axios.post(
-            `${API_URL}/api/v1/email-otp/verify-register-vol-acc`,
+        await baseAxios.post(
+            `/api/v1/email-otp/verify-register-vol-acc`,
             null,
             {
                 params: { email },
-                headers: {
-                    'Content-Type': 'application/json',
-                },
             }
         )
     } catch (error) {
         console.log(error)
-        if (axios.isAxiosError(error)) {
+        if (baseAxios.isAxiosError(error)) {
             throw new Error(error.response?.data?.message || `Failed to send OTP to ${email}`)
         }
         throw new Error(`Failed to send OTP to ${email}`)
@@ -81,18 +78,13 @@ export const registerVolunteerAccount = async (
     params: RegisterVolunteerParams
 ): Promise<RegisterVolunteerResponse> => {
     try {
-        const response = await axios.post<RegisterVolunteerResponse>(
-            `${API_URL}/api/v1/volunteer/register-vol-acc`,
-            params,
-            {
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-            }
+        const response = await baseAxios.post<RegisterVolunteerResponse>(
+            `/api/v1/volunteer/register-vol-acc`,
+            params
         )
         return response.data
     } catch (error) {
-        if (axios.isAxiosError(error)) {
+        if (baseAxios.isAxiosError(error)) {
             throw new Error(error.response?.data?.message || 'Registration failed')
         }
         throw new Error('Registration failed')
