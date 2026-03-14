@@ -1,8 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, TouchableOpacity, Modal, TextInput, Alert, ActivityIndicator, Platform, StyleSheet } from 'react-native';
-import MapView, { Marker, Circle } from 'react-native-maps';
+import MapView, { Marker, Circle, PROVIDER_GOOGLE } from 'react-native-maps';
 import * as Location from 'expo-location';
 import { Ionicons } from '@expo/vector-icons';
+
+const ACTIVE_GOOGLE_MAPS_API_KEY = Platform.OS === 'android'
+    ? process.env.EXPO_PUBLIC_GOOGLE_MAPS_ANDROID_API_KEY
+    : process.env.EXPO_PUBLIC_GOOGLE_MAPS_IOS_API_KEY;
 
 interface LocationData {
     latitude: number;
@@ -25,6 +29,7 @@ export default function MapLocationPicker({
     initialLocation,
     radius = 300,
 }: MapLocationPickerProps) {
+    const logTag = '[MapLocationPicker]';
     const mapRef = useRef<MapView>(null);
     const [selectedLocation, setSelectedLocation] = useState<LocationData | undefined>(initialLocation);
     // Default to Hanoi center while loading current location
@@ -47,6 +52,14 @@ export default function MapLocationPicker({
         if (visible) {
             setSelectedLocation(initialLocation);
             setSearchQuery('');
+            console.log(`${logTag} Modal opened`, {
+                platform: Platform.OS,
+                mapProvider: Platform.OS === 'android' ? 'google' : 'apple',
+                hasGoogleApiKey: Boolean(ACTIVE_GOOGLE_MAPS_API_KEY),
+                keySource: Platform.OS === 'android' ? 'EXPO_PUBLIC_GOOGLE_MAPS_ANDROID_API_KEY' : 'EXPO_PUBLIC_GOOGLE_MAPS_IOS_API_KEY',
+                initialLocation,
+                radius,
+            });
         }
     }, [visible, initialLocation]);
 
@@ -65,6 +78,38 @@ export default function MapLocationPicker({
 
                 let location = await Location.getCurrentPositionAsync({});
                 setCurrentLocation(location);
+                let reverseAddress: Location.LocationGeocodedAddress | undefined;
+                try {
+                    const reversed = await Location.reverseGeocodeAsync({
+                        latitude: location.coords.latitude,
+                        longitude: location.coords.longitude,
+                    });
+                    reverseAddress = reversed[0];
+                } catch (reverseError) {
+                    console.warn(`${logTag} Reverse geocode current location failed`, reverseError);
+                }
+
+                const street = [reverseAddress?.streetNumber, reverseAddress?.street]
+                    .filter(Boolean)
+                    .join(' ') || 'N/A';
+                const city = reverseAddress?.city || reverseAddress?.subregion || reverseAddress?.district || 'N/A';
+
+                console.log(
+                    `${logTag} Current location details\n` +
+                    `platform: ${Platform.OS}\n` +
+                    `provider: ${Platform.OS === 'android' ? 'google' : 'apple'}\n` +
+                    `latitude: ${location.coords.latitude}\n` +
+                    `longitude: ${location.coords.longitude}\n` +
+                    `street: ${street}\n` +
+                    `city: ${city}\n` +
+                    `district: ${reverseAddress?.district || 'N/A'}\n` +
+                    `region: ${reverseAddress?.region || 'N/A'}\n` +
+                    `country: ${reverseAddress?.country || 'N/A'}`
+                );
+                console.log(`${logTag} Current GPS raw`, location);
+                if (reverseAddress) {
+                    console.log(`${logTag} Current reverse geocode raw`, reverseAddress);
+                }
                 
                 // Animate map to user's location
                 mapRef.current?.animateToRegion({
@@ -83,102 +128,98 @@ export default function MapLocationPicker({
 
     const handleMapPress = async (event: any) => {
         const { latitude, longitude } = event.nativeEvent.coordinate;
-        
-        // Use Apple Maps reverse geocoding
-        // try {
-        //     const result = await Location.reverseGeocodeAsync({
-        //         latitude,
-        //         longitude,
-        //     });
+        console.log(`${logTag} Map pressed`, {
+            platform: Platform.OS,
+            latitude,
+            longitude,
+            mapProvider: Platform.OS === 'android' ? 'google' : 'apple',
+        });
 
-        //     if (result.length > 0) {
-        //         const addr = result[0];
-                
-        //         // Log full geocoding result
-        //         console.log('=== APPLE MAPS GEOCODING RESULT ===');
-        //         console.log('Full object:', JSON.stringify(addr, null, 2));
-        //         console.log('streetNumber:', addr.streetNumber);
-        //         console.log('street:', addr.street);
-        //         console.log('name:', addr.name);
-        //         console.log('subregion:', addr.subregion);
-        //         console.log('district:', addr.district);
-        //         console.log('city:', addr.city);
-        //         console.log('region:', addr.region);
-        //         console.log('postalCode:', addr.postalCode);
-        //         console.log('country:', addr.country);
-        //         console.log('isoCountryCode:', addr.isoCountryCode);
-        //         console.log('timezone:', addr.timezone);
-        //         console.log('===================================');
-                
-        //         // Build full address from all available fields
-        //         const addressParts = [];
-                
-        //         if (addr.streetNumber) addressParts.push(addr.streetNumber);
-        //         if (addr.street) addressParts.push(addr.street);
-        //         if (addr.name && addr.name !== addr.street) addressParts.push(addr.name);
-        //         if (addr.subregion) addressParts.push(addr.subregion);
-        //         if (addr.district && addr.district !== addr.subregion) addressParts.push(addr.district);
-        //         if (addr.city) addressParts.push(addr.city);
-        //         if (addr.region && addr.region !== addr.city) addressParts.push(addr.region);
-                
-        //         const address = addressParts.filter(part => part).join(', ').trim();
-                
-        //         setSelectedLocation({
-        //             latitude,
-        //             longitude,
-        //             address: address || 'Địa chỉ không xác định',
-        //         });
-        //     }
-        // } catch (error) {
-        //     console.error('Apple Maps Geocoding error:', error);
-        //     setSelectedLocation({
-        //         latitude,
-        //         longitude,
-        //         address: `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`,
-        //     });
-        // }
-        
-        // GOOGLE GEOCODING API - Commented out for testing Apple Maps
-        try {
-            const GOOGLE_API_KEY = 'AIzaSyAyAwvegpdwoKWZiuNo__1wTUc9RK89yg4';
-            const response = await fetch(
-                `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=${GOOGLE_API_KEY}&language=vi`
-            );
-            const data = await response.json();
-            
-            console.log('=== GOOGLE GEOCODING RESULT ===');
-            console.log('Status:', data.status);
-            console.log('Full response:', JSON.stringify(data, null, 2));
-            console.log('================================');
-            
-            if (data.status === 'OK' && data.results && data.results.length > 0) {
-                const address = data.results[0].formatted_address;
-                
-                setSelectedLocation({
-                    latitude,
-                    longitude,
-                    address: address || 'Địa chỉ không xác định',
-                });
-            } else {
-                // Fallback to coordinates
-                setSelectedLocation({
-                    latitude,
-                    longitude,
-                    address: `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`,
-                });
+        if (ACTIVE_GOOGLE_MAPS_API_KEY) {
+            // Use Google Geocoding API when key for current platform is available
+            try {
+                const response = await fetch(
+                    `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=${ACTIVE_GOOGLE_MAPS_API_KEY}&language=vi`
+                );
+                const data = await response.json();
+                console.log(`${logTag} Google reverse geocoding raw response`, data);
+                if (data.status === 'OK' && data.results?.length > 0) {
+                    const selected = {
+                        latitude,
+                        longitude,
+                        address: data.results[0].formatted_address || 'Địa chỉ không xác định',
+                    };
+                    console.log(`${logTag} Selected place from Google`, {
+                        selected,
+                        topResult: data.results[0],
+                    });
+                    setSelectedLocation(selected);
+                } else {
+                    const fallback = { latitude, longitude, address: `${latitude.toFixed(6)}, ${longitude.toFixed(6)}` };
+                    console.log(`${logTag} Google reverse geocoding fallback`, {
+                        status: data.status,
+                        errorMessage: data.error_message,
+                        fallback,
+                        keySource: Platform.OS === 'android' ? 'ANDROID' : 'IOS',
+                    });
+                    setSelectedLocation(fallback);
+                }
+                return;
+            } catch (error) {
+                console.error('Google Geocoding error:', error);
+                if (Platform.OS === 'android') {
+                    setSelectedLocation({ latitude, longitude, address: `${latitude.toFixed(6)}, ${longitude.toFixed(6)}` });
+                    return;
+                }
             }
-        } catch (error) {
-            console.error('Google Geocoding error:', error);
-            setSelectedLocation({
-                latitude,
-                longitude,
-                address: `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`,
-            });
+
+            if (Platform.OS !== 'ios') {
+                return;
+            }
+        }
+
+        if (Platform.OS === 'ios') {
+            // Fallback to Apple Maps reverse geocoding on iOS
+            try {
+                const result = await Location.reverseGeocodeAsync({ latitude, longitude });
+                console.log(`${logTag} Apple reverse geocoding raw response`, result);
+                if (result.length > 0) {
+                    const addr = result[0];
+                    const addressParts = [
+                        addr.streetNumber,
+                        addr.street,
+                        addr.name !== addr.street ? addr.name : null,
+                        addr.subregion,
+                        addr.district !== addr.subregion ? addr.district : null,
+                        addr.city,
+                        addr.region !== addr.city ? addr.region : null,
+                    ];
+                    const selected = {
+                        latitude,
+                        longitude,
+                        address: addressParts.filter(Boolean).join(', ') || 'Địa chỉ không xác định',
+                    };
+                    console.log(`${logTag} Selected place from Apple`, {
+                        selected,
+                        firstResult: addr,
+                    });
+                    setSelectedLocation(selected);
+                }
+            } catch (error) {
+                console.error('Apple Maps Geocoding error:', error);
+                setSelectedLocation({ latitude, longitude, address: `${latitude.toFixed(6)}, ${longitude.toFixed(6)}` });
+            }
+        } else {
+            setSelectedLocation({ latitude, longitude, address: `${latitude.toFixed(6)}, ${longitude.toFixed(6)}` });
         }
     };
 
     const handleConfirm = () => {
         if (selectedLocation) {
+            console.log(`${logTag} Confirm selected location`, {
+                selectedLocation,
+                currentLocation,
+            });
             onSelectLocation(selectedLocation);
             onClose();
         }
@@ -199,63 +240,49 @@ export default function MapLocationPicker({
         if (!searchQuery) return;
 
         try {
-            // Use Apple Maps geocoding for search
-            const results = await Location.geocodeAsync(searchQuery);
-            if (results.length > 0) {
-                const { latitude, longitude } = results[0];
-                setSelectedLocation({
-                    latitude,
-                    longitude,
-                    address: searchQuery,
-                });
-                
-                // Animate map to searched location
-                mapRef.current?.animateToRegion({
-                    latitude,
-                    longitude,
-                    latitudeDelta: 0.01,
-                    longitudeDelta: 0.01,
-                }, 1000);
+            if (ACTIVE_GOOGLE_MAPS_API_KEY) {
+                // Use Google Geocoding API with key selected by current platform
+                const response = await fetch(
+                    `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(searchQuery)}&key=${ACTIVE_GOOGLE_MAPS_API_KEY}&language=vi`
+                );
+                const data = await response.json();
+                console.log(`${logTag} Google search geocoding raw response`, data);
+                if (data.status === 'OK' && data.results?.length > 0) {
+                    const { lat, lng } = data.results[0].geometry.location;
+                    setSelectedLocation({
+                        latitude: lat,
+                        longitude: lng,
+                        address: data.results[0].formatted_address,
+                    });
+                    mapRef.current?.animateToRegion({ latitude: lat, longitude: lng, latitudeDelta: 0.01, longitudeDelta: 0.01 }, 1000);
+                } else {
+                    if (Platform.OS === 'android') {
+                        Alert.alert('Không tìm thấy', 'Không tìm thấy địa điểm này');
+                    } else {
+                        const results = await Location.geocodeAsync(searchQuery);
+                        if (results.length > 0) {
+                            const { latitude, longitude } = results[0];
+                            setSelectedLocation({ latitude, longitude, address: searchQuery });
+                            mapRef.current?.animateToRegion({ latitude, longitude, latitudeDelta: 0.01, longitudeDelta: 0.01 }, 1000);
+                        } else {
+                            Alert.alert('Không tìm thấy', 'Không tìm thấy địa điểm này');
+                        }
+                    }
+                }
             } else {
-                Alert.alert('Không tìm thấy', 'Không tìm thấy địa điểm này');
+                // Use Apple Maps geocoding on iOS
+                const results = await Location.geocodeAsync(searchQuery);
+                if (results.length > 0) {
+                    const { latitude, longitude } = results[0];
+                    setSelectedLocation({ latitude, longitude, address: searchQuery });
+                    mapRef.current?.animateToRegion({ latitude, longitude, latitudeDelta: 0.01, longitudeDelta: 0.01 }, 1000);
+                } else {
+                    Alert.alert('Không tìm thấy', 'Không tìm thấy địa điểm này');
+                }
             }
         } catch (error) {
             Alert.alert('Lỗi', 'Không thể tìm kiếm địa điểm');
         }
-        
-        /* GOOGLE GEOCODING API - Commented out
-        try {
-            const GOOGLE_API_KEY = 'AIzaSyAyAwvegpdwoKWZiuNo__1wTUc9RK89yg4';
-            const response = await fetch(
-                `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(searchQuery)}&key=${GOOGLE_API_KEY}&language=vi`
-            );
-            const data = await response.json();
-            
-            if (data.status === 'OK' && data.results && data.results.length > 0) {
-                const result = data.results[0];
-                const { lat, lng } = result.geometry.location;
-                const address = result.formatted_address;
-                
-                setSelectedLocation({
-                    latitude: lat,
-                    longitude: lng,
-                    address: address,
-                });
-                
-                // Animate map to searched location
-                mapRef.current?.animateToRegion({
-                    latitude: lat,
-                    longitude: lng,
-                    latitudeDelta: 0.01,
-                    longitudeDelta: 0.01,
-                }, 1000);
-            } else {
-                Alert.alert('Không tìm thấy', 'Không tìm thấy địa điểm này');
-            }
-        } catch (error) {
-            Alert.alert('Lỗi', 'Không thể tìm kiếm địa điểm');
-        }
-        */
     };
 
     return (
@@ -300,6 +327,16 @@ export default function MapLocationPicker({
                             <MapView
                                 ref={mapRef}
                                 style={styles.map}
+                                provider={PROVIDER_GOOGLE}
+                                onMapReady={() => {
+                                    console.log(`${logTag} Map ready`, {
+                                        platform: Platform.OS,
+                                        mapProvider: 'google',
+                                        isGoogleProviderApplied: Platform.OS === 'android',
+                                        hasGoogleApiKey: Boolean(ACTIVE_GOOGLE_MAPS_API_KEY),
+                                        keySource: Platform.OS === 'android' ? 'EXPO_PUBLIC_GOOGLE_MAPS_ANDROID_API_KEY' : 'EXPO_PUBLIC_GOOGLE_MAPS_IOS_API_KEY',
+                                    });
+                                }}
                                 initialRegion={{
                                     latitude: selectedLocation?.latitude || currentLocation.coords.latitude,
                                     longitude: selectedLocation?.longitude || currentLocation.coords.longitude,

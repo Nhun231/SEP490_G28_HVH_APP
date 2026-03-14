@@ -7,18 +7,21 @@ interface DatePickerInputProps {
     label: string;
     value?: Date;
     onChange: (date: Date) => void;
-    required?: boolean;
     placeholder?: string;
+    minimumDate?: Date;
 }
 
 export default function DatePickerInput({
     label,
     value,
     onChange,
-    required = false,
     placeholder = 'Chọn ngày',
+    minimumDate,
 }: DatePickerInputProps) {
     const [show, setShow] = useState(false);
+    const normalizedMinimumDate = minimumDate
+        ? new Date(minimumDate.getFullYear(), minimumDate.getMonth(), minimumDate.getDate())
+        : undefined;
 
     const handleChange = (event: any, selectedDate?: Date) => {
         // On Android, the picker is automatically dismissed after selection or cancellation
@@ -29,6 +32,16 @@ export default function DatePickerInput({
 
         // Only update the value if user didn't cancel
         if (event.type === 'set' && selectedDate) {
+            const normalizedSelectedDate = new Date(
+                selectedDate.getFullYear(),
+                selectedDate.getMonth(),
+                selectedDate.getDate()
+            );
+
+            if (normalizedMinimumDate && normalizedSelectedDate < normalizedMinimumDate) {
+                return;
+            }
+
             onChange(selectedDate);
             if (Platform.OS === 'ios') {
                 setShow(false);
@@ -49,7 +62,6 @@ export default function DatePickerInput({
         <View className="mb-4">
             {label && (
                 <Text className="text-gray-700 text-sm font-medium mb-2">
-                    {required && <Text className="text-red-500">* </Text>}
                     {label}
                 </Text>
             )}
@@ -92,9 +104,8 @@ export default function DatePickerInput({
                                 value={value || new Date()}
                                 mode="date"
                                 display="spinner"
-                                onChange={(event, date) => {
-                                    if (date) onChange(date);
-                                }}
+                                minimumDate={normalizedMinimumDate}
+                                onChange={handleChange}
                                 textColor="#000000"
                                 style={{ backgroundColor: '#FFFFFF', height: 200 }}
                             />
@@ -108,6 +119,7 @@ export default function DatePickerInput({
                     value={value || new Date()}
                     mode="date"
                     display="default"
+                    minimumDate={normalizedMinimumDate}
                     onChange={handleChange}
                 />
             )}

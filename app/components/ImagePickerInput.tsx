@@ -7,14 +7,12 @@ interface ImagePickerInputProps {
     label: string;
     value?: string;
     onChange: (uri: string) => void;
-    required?: boolean;
 }
 
 export default function ImagePickerInput({
     label,
     value,
     onChange,
-    required = false,
 }: ImagePickerInputProps) {
     const pickImage = async () => {
         // Request permission
@@ -44,7 +42,6 @@ export default function ImagePickerInput({
     return (
         <View className="mb-4">
             <Text className="text-gray-700 text-sm font-medium mb-2">
-                {required && <Text className="text-red-500">* </Text>}
                 {label}
             </Text>
 

@@ -7,18 +7,29 @@ interface TimePickerInputProps {
     label: string;
     value?: Date;
     onChange: (time: Date) => void;
-    required?: boolean;
     placeholder?: string;
+    minHour?: number;
+    maxHour?: number;
+    onInvalidSelection?: (message: string) => void;
 }
 
 export default function TimePickerInput({
     label,
     value,
     onChange,
-    required = false,
     placeholder = 'Chọn thời gian',
+    minHour,
+    maxHour,
+    onInvalidSelection,
 }: TimePickerInputProps) {
     const [show, setShow] = useState(false);
+
+    const isWithinAllowedRange = (time: Date) => {
+        const minutes = time.getHours() * 60 + time.getMinutes();
+        const minMinutes = typeof minHour === 'number' ? minHour * 60 : 0;
+        const maxMinutes = typeof maxHour === 'number' ? maxHour * 60 : 24 * 60 - 1;
+        return minutes >= minMinutes && minutes <= maxMinutes;
+    };
 
     const handleChange = (event: any, selectedTime?: Date) => {
         // On Android, the picker is automatically dismissed after selection or cancellation
@@ -29,6 +40,10 @@ export default function TimePickerInput({
         
         // Only update the value if user didn't cancel
         if (event.type === 'set' && selectedTime) {
+            if (!isWithinAllowedRange(selectedTime)) {
+                onInvalidSelection?.(`Giờ chỉ được chọn trong khoảng ${String(minHour ?? 0).padStart(2, '0')}:00 đến ${String(maxHour ?? 23).padStart(2, '0')}:00`);
+                return;
+            }
             onChange(selectedTime);
             if (Platform.OS === 'ios') {
                 setShow(false);
@@ -47,7 +62,6 @@ export default function TimePickerInput({
     return (
         <View className="mb-4">
             <Text className="text-gray-700 text-sm font-medium mb-2">
-                {required && <Text className="text-red-500">* </Text>}
                 {label}
             </Text>
             <TouchableOpacity
@@ -90,9 +104,7 @@ export default function TimePickerInput({
                                 mode="time"
                                 is24Hour={true}
                                 display="spinner"
-                                onChange={(event, time) => {
-                                    if (time) onChange(time);
-                                }}
+                                onChange={handleChange}
                                 textColor="#000000"
                                 style={{ backgroundColor: '#FFFFFF', height: 200 }}
                             />
