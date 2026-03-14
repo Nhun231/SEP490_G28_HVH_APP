@@ -10,8 +10,13 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
+      "bundleIdentifier": "com.sep490.hvhapp",
       "config": {
-        "googleMapsApiKey": "AIzaSyDSCGln2wKVhzGdMGY5fNTUY881ZAZfPVA"
+        "googleMapsApiKey": "AIzaSyAyAwvegpdwoKWZiuNo__1wTUc9RK89yg4"
+      },
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false,
+        "supportsTablet": true
       }
     },
     "android": {
@@ -24,9 +29,10 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
+      "package": "com.sep490.hvhapp",
       "config": {
         "googleMaps": {
-          "apiKey": "AIzaSyBhm8DyXeGs6g5OJhGZDVayeOmWtHAbsYg"
+          "apiKey": "AIzaSyAyAwvegpdwoKWZiuNo__1wTUc9RK89yg4"
         }
       }
     },
@@ -55,6 +61,12 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "17888ed7-b6de-475a-a0cb-2b330adaf16e"
+      }
     }
   }
 }
