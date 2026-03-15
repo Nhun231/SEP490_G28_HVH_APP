@@ -1,3 +1,4 @@
+import axios from 'axios'
 import baseAxios from '@/lib/baseAxios'
 import { uploadImageToSupabase } from './upload-service'
 
@@ -28,6 +29,7 @@ export interface RegisterVolunteerParams {
     email: string
     phone: string
     cid: string
+    fullName: string
     cidFrontFileExtension: string
     cidBackFileExtension: string
     cidHoldingFileExtension: string
@@ -67,7 +69,7 @@ export const sendOtp = async ({ email }: SendOtpParams): Promise<void> => {
         )
     } catch (error) {
         console.log(error)
-        if (baseAxios.isAxiosError(error)) {
+        if (axios.isAxiosError(error)) {
             throw new Error(error.response?.data?.message || `Failed to send OTP to ${email}`)
         }
         throw new Error(`Failed to send OTP to ${email}`)
@@ -84,7 +86,7 @@ export const registerVolunteerAccount = async (
         )
         return response.data
     } catch (error) {
-        if (baseAxios.isAxiosError(error)) {
+        if (axios.isAxiosError(error)) {
             throw new Error(error.response?.data?.message || 'Registration failed')
         }
         throw new Error('Registration failed')

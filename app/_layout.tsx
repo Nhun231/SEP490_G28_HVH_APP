@@ -13,6 +13,7 @@ export default function RootLayout() {
           <Stack.Screen name="index" options={{ headerShown: false }} />
           <Stack.Screen name="screen/login" options={{ headerShown: false }} />
           <Stack.Screen name="screen/register" options={{ headerShown: false }} />
+          <Stack.Screen name="screen/event-feed" options={{ headerShown: false }} />
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           <Stack.Screen name="(host-tabs)" options={{ headerShown: false }} />
         </Stack>
