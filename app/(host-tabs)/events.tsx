@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { ScrollView, View, Text, TouchableOpacity, TextInput } from 'react-native';
+import { ScrollView, View, Text, TouchableOpacity, TextInput, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import DatePickerInput from '../components/DatePickerInput';
@@ -405,70 +405,80 @@ const Event = () => {
 
     return (
         <>
-            <SafeAreaView className="flex-1 bg-[#E3F2FD]">
+            <SafeAreaView style={styles.safeArea}>
                 {/* Header */}
-                <View className="bg-[#E3F2FD] px-4 py-2 -mt-5 flex-row items-center">
-                    <TouchableOpacity className="mr-3">
-                        <Ionicons name="arrow-back" size={24} color="#898989" />
+                <View style={styles.header}>
+                    <TouchableOpacity style={styles.backBtn}>
+                        <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
                     </TouchableOpacity>
-                    <Text className="text-lg font-bold text-gray-800">
-                        Thêm sự kiện mới
-                    </Text>
+                    <View>
+                        <Text style={styles.headerTitle}>
+                            Thêm sự kiện mới
+                        </Text>
+                        <Text style={styles.headerSubtitle}>
+                            Điền thông tin bên dưới
+                        </Text>
+                    </View>
                 </View>
 
-                <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
-                    <View className="p-4">
-                        {/* Thông tin cơ bản Section */}
-                        <Text className="text-gray-800 font-bold text-base mb-4">
+                <KeyboardAvoidingView
+                    behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                    style={styles.scrollView}
+                    keyboardVerticalOffset={0}
+                >
+                <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
+
+                    {/* ── Thông tin cơ bản ── */}
+                    <View style={styles.card}>
+                        <Text style={styles.sectionTitle}>
                             Thông tin cơ bản
                         </Text>
 
                         {/* Tên hoạt động */}
-                        <View className="mb-4">
-                            <Text className="text-gray-700 text-sm font-medium mb-2">
-                                Tên hoạt động
+                        <View style={styles.fieldWrapper}>
+                            <Text style={styles.fieldLabel}>
+                                Tên hoạt động <Text style={styles.required}>*</Text>
                             </Text>
-                            <TextInput
-                                className="bg-[#E3F2FD] border-b border-gray-200 rounded-lg px-4 py-3 text-gray-800"
-                                placeholder="Ví dụ: Làm sạch môi trường + Hoàn Kiếm"
-                                placeholderTextColor="#898989"
-                                value={eventName}
-                                onChangeText={(text) => {
-                                    setEventName(text);
-                                    setFormErrors((prev) => ({ ...prev, eventName: undefined }));
-                                }}
-                            />
-                            <Text className="text-gray-500 text-xs mt-1">
+                            <View style={[styles.inputRow, { borderColor: formErrors.eventName ? '#EF4444' : '#D1D5DB' }]}>
+                                <Ionicons name="pencil-outline" size={17} color="#9CA3AF" style={styles.inputIcon} />
+                                <TextInput
+                                    style={styles.textInput}
+                                    placeholder="Ví dụ: Làm sạch môi trường + Hoàn Kiếm"
+                                    placeholderTextColor="#9CA3AF"
+                                    value={eventName}
+                                    onChangeText={(text) => {
+                                        setEventName(text);
+                                        setFormErrors((prev) => ({ ...prev, eventName: undefined }));
+                                    }}
+                                />
+                            </View>
+                            <Text style={styles.fieldHint}>
                                 Định dạng: Nội dung + Địa điểm (không quá 30 ký tự)
                             </Text>
                             {formErrors.eventName && (
-                                <Text className="text-red-500 text-xs mt-1">{formErrors.eventName}</Text>
+                                <Text style={styles.errorText}>{formErrors.eventName}</Text>
                             )}
                         </View>
 
                         {/* Chế độ phê duyệt */}
-                        <View className="mb-4">
-                            <Text className="text-gray-700 text-sm font-medium mb-2">
+                        <View style={styles.fieldWrapper}>
+                            <Text style={styles.fieldLabel}>
                                 Chế độ phê duyệt
                             </Text>
-                            <View className="flex-row gap-3">
+                            <View style={styles.toggleRow}>
                                 <TouchableOpacity
                                     onPress={() => setApprovalMode(0)}
-                                    className={`flex-1 py-3 px-4 rounded-lg ${approvalMode === 0 ? 'bg-[#14B8A6]' : 'bg-[#E3F2FD] border border-gray-200'
-                                        }`}
+                                    style={[styles.toggleBtn, approvalMode === 0 ? styles.toggleBtnActive : styles.toggleBtnInactive]}
                                 >
-                                    <Text className={`text-center font-medium ${approvalMode === 0 ? 'text-white' : 'text-gray-700'
-                                        }`}>
+                                    <Text style={[styles.toggleBtnText, { color: approvalMode === 0 ? '#FFFFFF' : '#374151' }]}>
                                         Phê duyệt tự động
                                     </Text>
                                 </TouchableOpacity>
                                 <TouchableOpacity
                                     onPress={() => setApprovalMode(1)}
-                                    className={`flex-1 py-3 px-4 rounded-lg ${approvalMode === 1 ? 'bg-[#14B8A6]' : 'bg-[#E3F2FD] border border-gray-200'
-                                        }`}
+                                    style={[styles.toggleBtn, approvalMode === 1 ? styles.toggleBtnActive : styles.toggleBtnInactive]}
                                 >
-                                    <Text className={`text-center font-medium ${approvalMode === 1 ? 'text-white' : 'text-gray-700'
-                                        }`}>
+                                    <Text style={[styles.toggleBtnText, { color: approvalMode === 1 ? '#FFFFFF' : '#374151' }]}>
                                         Phê duyệt thủ công
                                     </Text>
                                 </TouchableOpacity>
@@ -476,153 +486,159 @@ const Event = () => {
                         </View>
 
                         {/* Đối tượng phục vụ */}
-                        <View className="mb-4">
-                            <Text className="text-gray-700 text-sm font-medium mb-2">
-                                Đối tượng phục vụ
+                        <View style={styles.fieldWrapper}>
+                            <Text style={styles.fieldLabel}>
+                                Đối tượng phục vụ <Text style={styles.required}>*</Text>
                             </Text>
                             <TouchableOpacity
                                 onPress={() => setShowTargetPicker(true)}
-                                className="bg-[#E3F2FD] border-b border-gray-200 rounded-lg px-4 py-3 flex-row justify-between items-center"
+                                style={[styles.pickerRow, { borderColor: formErrors.servedTarget ? '#EF4444' : '#D1D5DB' }]}
                             >
-                                <Text className={servedTarget ? "text-gray-800" : "text-[#898989]"} numberOfLines={1}>
-                                    {servedTarget?.label || "Vui lòng chọn đối tượng phục vụ"}
+                                <Ionicons name="people-outline" size={17} color="#9CA3AF" style={styles.inputIcon} />
+                                <Text style={[styles.pickerText, { color: servedTarget ? '#1F2937' : '#9CA3AF' }]} numberOfLines={1}>
+                                    {servedTarget?.label || 'Vui lòng chọn đối tượng phục vụ'}
                                 </Text>
-                                <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
+                                <Ionicons name="chevron-forward" size={18} color="#9CA3AF" />
                             </TouchableOpacity>
                             {formErrors.servedTarget && (
-                                <Text className="text-red-500 text-xs mt-1">{formErrors.servedTarget}</Text>
+                                <Text style={styles.errorText}>{formErrors.servedTarget}</Text>
                             )}
                         </View>
 
                         {/* Lĩnh vực phục vụ */}
-                        <View className="mb-4">
-                            <Text className="text-gray-700 text-sm font-medium mb-2">
-                                Lĩnh vực phục vụ
+                        <View style={styles.fieldWrapper}>
+                            <Text style={styles.fieldLabel}>
+                                Lĩnh vực phục vụ <Text style={styles.required}>*</Text>
                             </Text>
                             <TouchableOpacity
                                 onPress={() => setShowFieldPicker(true)}
-                                className="bg-[#E3F2FD] border-b border-gray-200 rounded-lg px-4 py-3 flex-row justify-between items-center"
+                                style={[styles.pickerRow, { borderColor: formErrors.servedField ? '#EF4444' : '#D1D5DB' }]}
                             >
-                                <Text className={servedField ? "text-gray-800" : "text-[#898989]"} numberOfLines={1}>
-                                    {servedField?.label || "Vui lòng chọn lĩnh vực phục vụ"}
+                                <Ionicons name="grid-outline" size={17} color="#9CA3AF" style={styles.inputIcon} />
+                                <Text style={[styles.pickerText, { color: servedField ? '#1F2937' : '#9CA3AF' }]} numberOfLines={1}>
+                                    {servedField?.label || 'Vui lòng chọn lĩnh vực phục vụ'}
                                 </Text>
-                                <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
+                                <Ionicons name="chevron-forward" size={18} color="#9CA3AF" />
                             </TouchableOpacity>
                             {formErrors.servedField && (
-                                <Text className="text-red-500 text-xs mt-1">{formErrors.servedField}</Text>
+                                <Text style={styles.errorText}>{formErrors.servedField}</Text>
                             )}
                         </View>
 
                         {/* Lĩnh vực cụ thể */}
-                        <View className="mb-4">
-                            <Text className="text-gray-700 text-sm font-medium mb-2">
-                                Lĩnh vực cụ thể
+                        <View style={styles.fieldWrapper}>
+                            <Text style={styles.fieldLabel}>
+                                Lĩnh vực cụ thể <Text style={styles.required}>*</Text>
                             </Text>
                             <TouchableOpacity
-                                onPress={() => {
-                                    if (!servedField) {
-                                        return;
-                                    }
-                                    setShowSpecificFieldPicker(true);
-                                }}
-                                className="bg-[#E3F2FD] border-b border-gray-200 rounded-lg px-4 py-3 flex-row justify-between items-center"
+                                onPress={() => { if (!servedField) return; setShowSpecificFieldPicker(true); }}
+                                style={[styles.pickerRow, { borderColor: formErrors.servedSpecificField ? '#EF4444' : '#D1D5DB', opacity: servedField ? 1 : 0.5 }]}
                             >
-                                <Text className={servedSpecificField ? "text-gray-800" : "text-[#898989]"} numberOfLines={1}>
-                                    {servedSpecificField?.label || "Vui lòng chọn lĩnh vực cụ thể"}
+                                <Ionicons name="list-outline" size={17} color="#9CA3AF" style={styles.inputIcon} />
+                                <Text style={[styles.pickerText, { color: servedSpecificField ? '#1F2937' : '#9CA3AF' }]} numberOfLines={1}>
+                                    {servedSpecificField?.label || 'Vui lòng chọn lĩnh vực cụ thể'}
                                 </Text>
-                                <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
+                                <Ionicons name="chevron-forward" size={18} color="#9CA3AF" />
                             </TouchableOpacity>
                             {!servedField && (
-                                <Text className="text-gray-500 text-xs mt-1">
+                                <Text style={styles.fieldHint}>
                                     Vui lòng chọn lĩnh vực phục vụ trước
                                 </Text>
                             )}
                             {formErrors.servedSpecificField && (
-                                <Text className="text-red-500 text-xs mt-1">{formErrors.servedSpecificField}</Text>
+                                <Text style={styles.errorText}>{formErrors.servedSpecificField}</Text>
                             )}
                         </View>
 
                         {/* Loại địa điểm phục vụ */}
-                        <View className="mb-4">
-                            <Text className="text-gray-700 text-sm font-medium mb-2">
-                                Loại địa điểm phục vụ
+                        <View style={styles.fieldWrapper}>
+                            <Text style={styles.fieldLabel}>
+                                Loại địa điểm phục vụ <Text style={styles.required}>*</Text>
                             </Text>
                             <TouchableOpacity
                                 onPress={() => setShowPlacePicker(true)}
-                                className="bg-[#E3F2FD] border-b border-gray-200 rounded-lg px-4 py-3 flex-row justify-between items-center"
+                                style={[styles.pickerRow, { borderColor: formErrors.servedPlace ? '#EF4444' : '#D1D5DB' }]}
                             >
-                                <Text className={servedPlace ? "text-gray-800" : "text-[#898989]"} numberOfLines={1}>
-                                    {servedPlace?.label || "Vui lòng chọn loại địa điểm phục vụ"}
+                                <Ionicons name="location-outline" size={17} color="#9CA3AF" style={styles.inputIcon} />
+                                <Text style={[styles.pickerText, { color: servedPlace ? '#1F2937' : '#9CA3AF' }]} numberOfLines={1}>
+                                    {servedPlace?.label || 'Vui lòng chọn loại địa điểm phục vụ'}
                                 </Text>
-                                <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
+                                <Ionicons name="chevron-forward" size={18} color="#9CA3AF" />
                             </TouchableOpacity>
                             {formErrors.servedPlace && (
-                                <Text className="text-red-500 text-xs mt-1">{formErrors.servedPlace}</Text>
+                                <Text style={styles.errorText}>{formErrors.servedPlace}</Text>
                             )}
                         </View>
 
                         {/* Khu vực tổ chức */}
-                        <View className="mb-4">
-                            <Text className="text-gray-700 text-sm font-medium mb-2">
-                                Khu vực tổ chức
+                        <View style={styles.fieldWrapper}>
+                            <Text style={styles.fieldLabel}>
+                                Khu vực tổ chức <Text style={styles.required}>*</Text>
                             </Text>
                             <TouchableOpacity
                                 onPress={() => setShowAreaPicker(true)}
-                                className="bg-[#E3F2FD] border-b border-gray-200 rounded-lg px-4 py-3 flex-row justify-between items-center"
+                                style={[styles.pickerRow, { borderColor: formErrors.area ? '#EF4444' : '#D1D5DB' }]}
                             >
-                                <Text className={area ? "text-gray-800" : "text-[#898989]"} numberOfLines={1}>
-                                    {area?.label || "Vui lòng chọn khu vực tổ chức"}
+                                <Ionicons name="map-outline" size={17} color="#9CA3AF" style={styles.inputIcon} />
+                                <Text style={[styles.pickerText, { color: area ? '#1F2937' : '#9CA3AF' }]} numberOfLines={1}>
+                                    {area?.label || 'Vui lòng chọn khu vực tổ chức'}
                                 </Text>
-                                <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
+                                <Ionicons name="chevron-forward" size={18} color="#9CA3AF" />
                             </TouchableOpacity>
                             {formErrors.area && (
-                                <Text className="text-red-500 text-xs mt-1">{formErrors.area}</Text>
+                                <Text style={styles.errorText}>{formErrors.area}</Text>
                             )}
                         </View>
 
                         {/* Người liên hệ */}
-                        <View className="mb-4">
-                            <Text className="text-gray-700 text-sm font-medium mb-2">
-                                Người liên hệ
+                        <View style={styles.fieldWrapper}>
+                            <Text style={styles.fieldLabel}>
+                                Người liên hệ <Text style={styles.required}>*</Text>
                             </Text>
-                            <TextInput
-                                className="bg-[#E3F2FD] border-b border-gray-200 rounded-lg px-4 py-3 text-gray-800"
-                                placeholder="Nhập tên người liên hệ"
-                                placeholderTextColor="#898989"
-                                value={contactPerson}
-                                onChangeText={(text) => {
-                                    setContactPerson(text);
-                                    setFormErrors((prev) => ({ ...prev, contactPerson: undefined }));
-                                }}
-                            />
+                            <View style={[styles.inputRow, { borderColor: formErrors.contactPerson ? '#EF4444' : '#D1D5DB' }]}>
+                                <Ionicons name="person-outline" size={17} color="#9CA3AF" style={styles.inputIcon} />
+                                <TextInput
+                                    style={styles.textInput}
+                                    placeholder="Nhập tên người liên hệ"
+                                    placeholderTextColor="#9CA3AF"
+                                    value={contactPerson}
+                                    onChangeText={(text) => {
+                                        setContactPerson(text);
+                                        setFormErrors((prev) => ({ ...prev, contactPerson: undefined }));
+                                    }}
+                                />
+                            </View>
                             {formErrors.contactPerson && (
-                                <Text className="text-red-500 text-xs mt-1">{formErrors.contactPerson}</Text>
+                                <Text style={styles.errorText}>{formErrors.contactPerson}</Text>
                             )}
                         </View>
 
                         {/* Số điện thoại */}
-                        <View className="mb-4">
-                            <Text className="text-gray-700 text-sm font-medium mb-2">
-                                Số điện thoại
+                        <View style={styles.fieldWrapper}>
+                            <Text style={styles.fieldLabel}>
+                                Số điện thoại <Text style={styles.required}>*</Text>
                             </Text>
-                            <TextInput
-                                className="bg-[#E3F2FD] border-b border-gray-200 rounded-lg px-4 py-3 text-gray-800"
-                                placeholder="Nhập số điện thoại"
-                                placeholderTextColor="#898989"
-                                keyboardType="phone-pad"
-                                value={contactPhone}
-                                onChangeText={(text) => {
-                                    setContactPhone(text);
-                                    setFormErrors((prev) => ({ ...prev, contactPhone: undefined }));
-                                }}
-                            />
+                            <View style={[styles.inputRow, { borderColor: formErrors.contactPhone ? '#EF4444' : '#D1D5DB' }]}>
+                                <Ionicons name="call-outline" size={17} color="#9CA3AF" style={styles.inputIcon} />
+                                <TextInput
+                                    style={styles.textInput}
+                                    placeholder="Nhập số điện thoại"
+                                    placeholderTextColor="#9CA3AF"
+                                    keyboardType="phone-pad"
+                                    value={contactPhone}
+                                    onChangeText={(text) => {
+                                        setContactPhone(text);
+                                        setFormErrors((prev) => ({ ...prev, contactPhone: undefined }));
+                                    }}
+                                />
+                            </View>
                             {formErrors.contactPhone && (
-                                <Text className="text-red-500 text-xs mt-1">{formErrors.contactPhone}</Text>
+                                <Text style={styles.errorText}>{formErrors.contactPhone}</Text>
                             )}
                         </View>
 
                         {/* Hạn đăng ký */}
-                        <View className="mb-4">
+                        <View style={{ marginBottom: 0 }}>
                             <DatePickerInput
                                 label="Hạn đăng ký"
                                 value={registrationDeadline}
@@ -633,17 +649,23 @@ const Event = () => {
                                 placeholder="Vui lòng chọn ngày kết thúc tuyển chọn"
                                 minimumDate={todayStart}
                             />
-                            <Text className="text-gray-500 text-xs -mt-3">
+                            <Text style={styles.fieldHintNeg}>
                                 Hạn đăng ký phải trước ngày bắt đầu ít nhất 3 ngày
                             </Text>
                             {formErrors.registrationDeadline && (
-                                <Text className="text-red-500 text-xs mt-1">{formErrors.registrationDeadline}</Text>
+                                <Text style={styles.errorText}>{formErrors.registrationDeadline}</Text>
                             )}
                         </View>
+                    </View>
 
-                        {/* Ảnh hoạt động */}
+                    {/* ── Ảnh hoạt động ── */}
+                    <View style={styles.card}>
+                        <Text style={[styles.sectionTitle, { marginBottom: 12 }]}>
+                            Ảnh hoạt động
+                        </Text>
                         <ImagePickerInput
-                            label="Ảnh hoạt động"
+                            label="Ảnh đại diện sự kiện *"
+                            hint="Chọn ảnh mô tả hoạt động (tỷ lệ 16:9)"
                             value={eventImage}
                             onChange={(uri) => {
                                 setEventImage(uri);
@@ -651,25 +673,24 @@ const Event = () => {
                             }}
                         />
                         {formErrors.eventImage && (
-                            <Text className="text-red-500 text-xs -mt-3 mb-4">{formErrors.eventImage}</Text>
+                            <Text style={styles.errorTextNeg}>{formErrors.eventImage}</Text>
                         )}
+                    </View>
 
-                        {/* Lịch tổ chức sự kiện Section */}
-                        <Text className="text-gray-800 font-bold text-base mb-4 mt-6">
+                    {/* ── Lịch tổ chức sự kiện ── */}
+                    <View style={styles.card}>
+                        <Text style={styles.sectionTitle}>
                             Lịch tổ chức sự kiện
                         </Text>
 
                         {eventDays.map((day, index) => (
-                            <View key={day.id} className="mb-6 bg-[#E3F2FD] rounded-lg p-4 border border-gray-200">
-                                <View className="flex-row justify-between items-center mb-3">
-                                    <Text className="text-gray-700 font-semibold">
+                            <View key={day.id} style={styles.dayCard}>
+                                <View style={styles.dayCardHeader}>
+                                    <Text style={styles.dayCardTitle}>
                                         Ngày {index + 1}
                                     </Text>
                                     {eventDays.length > 1 && (
-                                        <TouchableOpacity
-                                            onPress={() => removeEventDay(day.id)}
-                                            className="p-1"
-                                        >
+                                        <TouchableOpacity onPress={() => removeEventDay(day.id)} style={styles.trashBtn}>
                                             <Ionicons name="trash-outline" size={20} color="#EF4444" />
                                         </TouchableOpacity>
                                     )}
@@ -684,80 +705,82 @@ const Event = () => {
                                     minimumDate={todayStart}
                                 />
                                 {eventDayErrors[day.id]?.date && (
-                                    <Text className="text-red-500 text-xs -mt-3 mb-3">{eventDayErrors[day.id]?.date}</Text>
+                                    <Text style={styles.errorTextNeg}>{eventDayErrors[day.id]?.date}</Text>
                                 )}
 
-                                {/* Giờ bắt đầu và Giờ kết thúc */}
-                                <View className="flex-row gap-3 mb-4">
-                                    <View className="flex-1">
+                                {/* Giờ bắt đầu và Kết thúc */}
+                                <View style={styles.timeRow}>
+                                    <View style={styles.halfCol}>
                                         <TimePickerInput
                                             label="Giờ bắt đầu"
                                             value={day.startTime}
                                             onChange={(time) => updateEventDay(day.id, 'startTime', time)}
-                                            placeholder="Chọn giờ bắt đầu"
+                                            placeholder="Chọn giờ"
                                             minHour={5}
                                             maxHour={23}
                                             onInvalidSelection={(message) => setDayFieldError(day.id, 'startTime', message)}
                                         />
                                         {eventDayErrors[day.id]?.startTime && (
-                                            <Text className="text-red-500 text-xs -mt-3">{eventDayErrors[day.id]?.startTime}</Text>
+                                            <Text style={styles.errorTextNeg}>{eventDayErrors[day.id]?.startTime}</Text>
                                         )}
                                     </View>
-                                    <View className="flex-1">
+                                    <View style={styles.halfCol}>
                                         <TimePickerInput
                                             label="Giờ kết thúc"
                                             value={day.endTime}
                                             onChange={(time) => updateEventDay(day.id, 'endTime', time)}
-                                            placeholder="Chọn giờ kết thúc"
+                                            placeholder="Chọn giờ"
                                             minHour={5}
                                             maxHour={23}
                                             onInvalidSelection={(message) => setDayFieldError(day.id, 'endTime', message)}
                                         />
                                         {eventDayErrors[day.id]?.endTime && (
-                                            <Text className="text-red-500 text-xs -mt-3">{eventDayErrors[day.id]?.endTime}</Text>
+                                            <Text style={styles.errorTextNeg}>{eventDayErrors[day.id]?.endTime}</Text>
                                         )}
                                     </View>
                                 </View>
 
-                                {/* Số lượng TNV cần tuyển */}
-                                <View className="mb-4">
-                                    <Text className="text-gray-700 text-sm font-medium mb-2">
+                                {/* Số lượng TNV */}
+                                <View style={styles.dayFieldWrapper}>
+                                    <Text style={styles.fieldLabel}>
                                         Số lượng TNV cần tuyển
                                     </Text>
-                                    <View className="flex-row items-center bg-[#E3F2FD] border-b border-gray-200 rounded-lg">
+                                    <View style={[styles.inputRow, { borderColor: eventDayErrors[day.id]?.volunteerCount ? '#EF4444' : '#D1D5DB' }]}>
+                                        <Ionicons name="people-outline" size={17} color="#9CA3AF" style={styles.inputIcon} />
                                         <TextInput
-                                            className="flex-1 px-4 py-3 text-gray-800"
+                                            style={styles.textInput}
                                             placeholder="Nhập số lượng"
-                                            placeholderTextColor="#898989"
+                                            placeholderTextColor="#9CA3AF"
                                             keyboardType="numeric"
                                             value={day.volunteerCount}
                                             onChangeText={(text) => updateEventDay(day.id, 'volunteerCount', text)}
                                         />
-                                        <Text className="text-gray-500 pr-4">Người</Text>
+                                        <Text style={styles.unitText}>Người</Text>
                                     </View>
                                     {eventDayErrors[day.id]?.volunteerCount && (
-                                        <Text className="text-red-500 text-xs mt-1">{eventDayErrors[day.id]?.volunteerCount}</Text>
+                                        <Text style={styles.errorText}>{eventDayErrors[day.id]?.volunteerCount}</Text>
                                     )}
                                 </View>
 
                                 {/* Số lượng đối tượng phục vụ */}
-                                <View className="mb-0">
-                                    <Text className="text-gray-700 text-sm font-medium mb-2">
+                                <View style={{ marginBottom: 0 }}>
+                                    <Text style={styles.fieldLabel}>
                                         Số lượng đối tượng phục vụ
                                     </Text>
-                                    <View className="flex-row items-center bg-[#E3F2FD] border-b border-gray-200 rounded-lg">
+                                    <View style={[styles.inputRow, { borderColor: eventDayErrors[day.id]?.servedCount ? '#EF4444' : '#D1D5DB' }]}>
+                                        <Ionicons name="heart-outline" size={17} color="#9CA3AF" style={styles.inputIcon} />
                                         <TextInput
-                                            className="flex-1 px-4 py-3 text-gray-800"
+                                            style={styles.textInput}
                                             placeholder="Nhập số lượng"
-                                            placeholderTextColor="#898989"
+                                            placeholderTextColor="#9CA3AF"
                                             keyboardType="numeric"
                                             value={day.servedCount}
                                             onChangeText={(text) => updateEventDay(day.id, 'servedCount', text)}
                                         />
-                                        <Text className="text-gray-500 pr-4">Người</Text>
+                                        <Text style={styles.unitText}>Người</Text>
                                     </View>
                                     {eventDayErrors[day.id]?.servedCount && (
-                                        <Text className="text-red-500 text-xs mt-1">{eventDayErrors[day.id]?.servedCount}</Text>
+                                        <Text style={styles.errorText}>{eventDayErrors[day.id]?.servedCount}</Text>
                                     )}
                                 </View>
                             </View>
@@ -766,110 +789,112 @@ const Event = () => {
                         {/* Thêm ngày button */}
                         <TouchableOpacity
                             onPress={addEventDay}
-                            className="border-2 border-dashed border-[#14B8A6] rounded-lg py-3 mb-6 flex-row items-center justify-center"
+                            style={styles.addDayBtn}
                         >
-                            <Ionicons name="add" size={20} color="#14B8A6" />
-                            <Text className="text-[#14B8A6] font-medium ml-1">Thêm ngày</Text>
+                            <Ionicons name="add" size={20} color="#42A5F5" />
+                            <Text style={styles.addDayText}>Thêm ngày</Text>
                         </TouchableOpacity>
+                    </View>
 
-                        {/* Cài đặt địa điểm điểm danh Section */}
-                        <Text className="text-gray-800 font-bold text-base mb-4">
+                    {/* ── Cài đặt địa điểm điểm danh ── */}
+                    <View style={styles.card}>
+                        <Text style={styles.sectionTitle}>
                             Cài đặt địa điểm điểm danh
                         </Text>
 
-                        {/* Địa chỉ điểm danh */}
-                        <View className="mb-4">
-                            <Text className="text-gray-700 text-sm font-medium mb-2">
-                                Địa điểm điểm danh
+                        {/* Địa điểm điểm danh */}
+                        <View style={styles.fieldWrapper}>
+                            <Text style={styles.fieldLabel}>
+                                Địa điểm điểm danh <Text style={styles.required}>*</Text>
                             </Text>
                             <TouchableOpacity
                                 onPress={() => setShowMapPicker(true)}
                                 activeOpacity={0.7}
-                                className="bg-[#E3F2FD] border-b border-gray-200 rounded-lg px-4 py-3 flex-row justify-between items-center"
+                                style={[styles.pickerRow, { borderColor: formErrors.checkInLocation ? '#EF4444' : '#D1D5DB' }]}
                             >
-                                <View className="flex-1 mr-2">
+                                <Ionicons name="location-outline" size={17} color="#9CA3AF" style={styles.inputIcon} />
+                                <View style={styles.locationTextWrapper}>
                                     {checkInLocation?.address ? (
-                                        <Text className="text-gray-800" numberOfLines={2}>
+                                        <Text style={styles.pickerTextDark} numberOfLines={2}>
                                             {checkInLocation.address}
                                         </Text>
                                     ) : (
-                                        <Text className="text-[#898989]">
+                                        <Text style={styles.pickerTextPlaceholder}>
                                             Chọn địa điểm trên bản đồ
                                         </Text>
                                     )}
                                 </View>
-                                <Ionicons name="location" size={20} color="#9CA3AF" />
+                                <Ionicons name="map-outline" size={18} color="#9CA3AF" />
                             </TouchableOpacity>
                             {formErrors.checkInLocation && (
-                                <Text className="text-red-500 text-xs mt-1">{formErrors.checkInLocation}</Text>
+                                <Text style={styles.errorText}>{formErrors.checkInLocation}</Text>
                             )}
                         </View>
 
                         {/* Bán kính cho phép */}
-                        <View className="mb-4">
-                            <Text className="text-gray-700 text-sm font-medium mb-2">
-                                Bán kính cho phép
+                        <View style={{ marginBottom: 0 }}>
+                            <Text style={styles.fieldLabel}>
+                                Bán kính cho phép <Text style={styles.required}>*</Text>
                             </Text>
-                            <View className="flex-row items-center bg-[#E3F2FD] border-b border-gray-200 rounded-lg">
+                            <View style={[styles.inputRow, { borderColor: formErrors.checkInRadius ? '#EF4444' : '#D1D5DB' }]}>
+                                <Ionicons name="radio-button-on-outline" size={17} color="#9CA3AF" style={styles.inputIcon} />
                                 <TextInput
-                                    className="flex-1 px-4 py-3 text-gray-800"
+                                    style={styles.textInput}
                                     placeholder="300"
-                                    placeholderTextColor="#898989"
+                                    placeholderTextColor="#9CA3AF"
                                     keyboardType="numeric"
                                     value={checkInRadius}
                                     onChangeText={(text) => {
                                         const sanitized = text.replace(/[^0-9]/g, '');
-                                        setCheckInRadius(sanitized || '300');
+                                        setCheckInRadius(sanitized);
 
                                         if (!sanitized) {
                                             setFormErrors((prev) => ({ ...prev, checkInRadius: 'Vui lòng nhập bán kính' }));
                                             return;
                                         }
-
-                                        if (!isPositiveNumber(sanitized)) {
+                                        if (Number(sanitized) === 0) {
                                             setFormErrors((prev) => ({ ...prev, checkInRadius: 'Bán kính phải là số lớn hơn 0' }));
                                             return;
                                         }
-
                                         if (Number(sanitized) < 300) {
                                             setFormErrors((prev) => ({ ...prev, checkInRadius: 'Bán kính không được nhỏ hơn 300m' }));
                                             return;
                                         }
-
                                         setFormErrors((prev) => ({ ...prev, checkInRadius: undefined }));
                                     }}
                                 />
-                                <Text className="text-gray-500 pr-4">Mét</Text>
+                                <Text style={styles.unitText}>Mét</Text>
                             </View>
-                            <Text className="text-gray-500 text-xs mt-1">
-                                Tiêu chuẩn: 300m - 500m (có thể yêu cầu lên đến 3000m cho sự kiện lớn, cần xét duyệt lại sau)
+                            <Text style={styles.fieldHint}>
+                                Tiêu chuẩn: 300m - 500m (có thể yêu cầu lên đến 3000m cho sự kiện lớn)
                             </Text>
                             {formErrors.checkInRadius && (
-                                <Text className="text-red-500 text-xs mt-1">{formErrors.checkInRadius}</Text>
+                                <Text style={styles.errorText}>{formErrors.checkInRadius}</Text>
                             )}
                         </View>
+                    </View>
 
-                        {/* Action Buttons */}
-                        <View className="flex-row gap-3 mt-6 mb-8">
-                            <TouchableOpacity
-                                onPress={handleSaveDraft}
-                                className="flex-1 bg-white border border-gray-300 py-4 rounded-lg"
-                            >
-                                <Text className="text-gray-700 font-semibold text-center">
-                                    Lưu bản thảo
-                                </Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity
-                                onPress={handleSubmit}
-                                className="flex-1 bg-[#14B8A6] py-4 rounded-lg"
-                            >
-                                <Text className="text-white font-semibold text-center">
-                                    Gửi phê duyệt
-                                </Text>
-                            </TouchableOpacity>
-                        </View>
+                    {/* Action Buttons */}
+                    <View style={styles.btnRow}>
+                        <TouchableOpacity
+                            onPress={handleSaveDraft}
+                            style={styles.draftBtn}
+                        >
+                            <Text style={styles.draftBtnText}>
+                                Lưu bản thảo
+                            </Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                            onPress={handleSubmit}
+                            style={styles.submitBtn}
+                        >
+                            <Text style={styles.submitBtnText}>
+                                Gửi phê duyệt
+                            </Text>
+                        </TouchableOpacity>
                     </View>
                 </ScrollView>
+                </KeyboardAvoidingView>
             </SafeAreaView>
 
             {/* Bottom Sheet Pickers - Rendered outside SafeAreaView */}
@@ -958,5 +983,259 @@ const Event = () => {
         </>
     );
 };
+
+const styles = StyleSheet.create({
+    // Layout
+    safeArea: {
+        flex: 1,
+        backgroundColor: '#F0F4F8',
+    },
+    scrollView: {
+        flex: 1,
+    },
+    scrollContent: {
+        padding: 16,
+        paddingBottom: 32,
+    },
+
+    // Header
+    header: {
+        backgroundColor: '#42A4F5',
+        paddingHorizontal: 16,
+        paddingVertical: 14,
+        paddingTop: 0,
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    backBtn: {
+        marginRight: 12,
+    },
+    headerTitle: {
+        color: '#FFFFFF',
+        fontSize: 18,
+        fontWeight: 'bold',
+    },
+    headerSubtitle: {
+        color: 'rgba(255,255,255,0.85)',
+        fontSize: 13,
+    },
+
+    // Cards
+    card: {
+        backgroundColor: '#FFFFFF',
+        borderRadius: 16,
+        padding: 16,
+        marginBottom: 16,
+        shadowColor: '#000',
+        shadowOpacity: 0.06,
+        shadowRadius: 8,
+        elevation: 2,
+    },
+    sectionTitle: {
+        fontSize: 15,
+        fontWeight: '700',
+        color: '#1F2937',
+        marginBottom: 16,
+    },
+
+    // Form fields
+    fieldWrapper: {
+        marginBottom: 16,
+    },
+    fieldLabel: {
+        color: '#374151',
+        fontSize: 13,
+        fontWeight: '600',
+        marginBottom: 6,
+    },
+    required: {
+        color: '#EF4444',
+    },
+    fieldHint: {
+        color: '#9CA3AF',
+        fontSize: 11,
+        marginTop: 4,
+    },
+    fieldHintNeg: {
+        color: '#9CA3AF',
+        fontSize: 11,
+        marginTop: -10,
+        marginBottom: 4,
+    },
+    errorText: {
+        color: '#EF4444',
+        fontSize: 11,
+        marginTop: 2,
+    },
+    errorTextNeg: {
+        color: '#EF4444',
+        fontSize: 11,
+        marginTop: -10,
+        marginBottom: 8,
+    },
+
+    // Text input row (with icon)
+    inputRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#FFFFFF',
+        borderWidth: 1,
+        borderRadius: 10,
+        paddingHorizontal: 12,
+        paddingVertical: 3,
+    },
+    inputIcon: {
+        marginRight: 8,
+    },
+    textInput: {
+        flex: 1,
+        color: '#1F2937',
+        fontSize: 14,
+        paddingVertical: 10,
+    },
+    unitText: {
+        color: '#6B7280',
+        fontSize: 13,
+        marginRight: 4,
+    },
+
+    // Picker row (TouchableOpacity as select)
+    pickerRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#FFFFFF',
+        borderWidth: 1,
+        borderRadius: 10,
+        paddingHorizontal: 12,
+        paddingVertical: 13,
+    },
+    pickerText: {
+        flex: 1,
+        fontSize: 14,
+    },
+    pickerTextDark: {
+        color: '#1F2937',
+        fontSize: 14,
+    },
+    pickerTextPlaceholder: {
+        color: '#9CA3AF',
+        fontSize: 14,
+    },
+    locationTextWrapper: {
+        flex: 1,
+        marginRight: 8,
+    },
+
+    // Toggle buttons (approval mode)
+    toggleRow: {
+        flexDirection: 'row',
+        gap: 10,
+    },
+    toggleBtn: {
+        flex: 1,
+        paddingVertical: 11,
+        borderRadius: 10,
+        alignItems: 'center',
+        borderWidth: 1,
+    },
+    toggleBtnActive: {
+        backgroundColor: '#42A4F5',
+        borderColor: '#42A4F5',
+    },
+    toggleBtnInactive: {
+        backgroundColor: '#FFFFFF',
+        borderColor: '#D1D5DB',
+    },
+    toggleBtnText: {
+        fontWeight: '600',
+        fontSize: 13,
+    },
+
+    // Event day card
+    dayCard: {
+        marginBottom: 16,
+        backgroundColor: '#FFFFFF',
+        borderRadius: 12,
+        padding: 14,
+        borderWidth: 1,
+        borderColor: '#E5E7EB',
+    },
+    dayCardHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 12,
+    },
+    dayCardTitle: {
+        color: '#374151',
+        fontWeight: '700',
+        fontSize: 14,
+    },
+    trashBtn: {
+        padding: 4,
+    },
+    timeRow: {
+        flexDirection: 'row',
+        gap: 10,
+        marginBottom: 0,
+    },
+    halfCol: {
+        flex: 1,
+    },
+    dayFieldWrapper: {
+        marginBottom: 12,
+        marginTop: 12,
+    },
+
+    // Add-day dashed button
+    addDayBtn: {
+        borderWidth: 1.5,
+        borderStyle: 'dashed',
+        borderColor: '#42A4F5',
+        borderRadius: 10,
+        paddingVertical: 12,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    addDayText: {
+        color: '#42A4F5',
+        fontWeight: '600',
+        marginLeft: 4,
+    },
+
+    // Action buttons
+    btnRow: {
+        flexDirection: 'row',
+        gap: 12,
+        marginTop: 8,
+    },
+    draftBtn: {
+        flex: 1,
+        backgroundColor: '#FFFFFF',
+        borderWidth: 1,
+        borderColor: '#D1D5DB',
+        paddingVertical: 14,
+        borderRadius: 12,
+        alignItems: 'center',
+    },
+    draftBtnText: {
+        color: '#374151',
+        fontWeight: '700',
+        fontSize: 15,
+    },
+    submitBtn: {
+        flex: 1,
+        backgroundColor: '#42A4F5',
+        paddingVertical: 14,
+        borderRadius: 12,
+        alignItems: 'center',
+    },
+    submitBtnText: {
+        color: '#FFFFFF',
+        fontWeight: '700',
+        fontSize: 15,
+    },
+});
 
 export default Event;

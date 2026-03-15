@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, Platform, Modal, Pressable } from 'react-native';
+import { View, Text, TouchableOpacity, Platform, Modal, Pressable, StyleSheet } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -67,12 +67,13 @@ export default function DatePickerInput({
             )}
             <TouchableOpacity
                 onPress={() => setShow(true)}
-                className="bg-[#E3F2FD] border-b border-gray-200 rounded-lg px-4 py-3 flex-row justify-between items-center"
+                style={styles.inputBox}
             >
-                <Text className={value ? 'text-gray-800' : 'text-gray-400'}>
+                <Ionicons name="calendar-outline" size={18} color="#9CA3AF" style={styles.icon} />
+                <Text style={[styles.valueText, { color: value ? '#1F2937' : '#9CA3AF' }]}>
                     {value ? formatDate(value) : placeholder}
                 </Text>
-                <Ionicons name="calendar-outline" size={20} color="#9CA3AF" />
+                <Ionicons name="chevron-down-outline" size={16} color="#9CA3AF" />
             </TouchableOpacity>
 
             {show && Platform.OS === 'ios' && (
@@ -89,7 +90,7 @@ export default function DatePickerInput({
                         <Pressable className="bg-white rounded-t-3xl" onPress={(e) => e.stopPropagation()}>
                             <View className="flex-row justify-between items-center px-4 py-3 border-b border-gray-200">
                                 <TouchableOpacity onPress={() => setShow(false)}>
-                                    <Text className="text-[#42A5F5] text-base font-semibold">Hủy</Text>
+                                    <Text className="text-[#42A4F5] text-base font-semibold">Hủy</Text>
                                 </TouchableOpacity>
                                 <Text className="text-gray-800 font-semibold">Chọn ngày</Text>
                                 <TouchableOpacity
@@ -97,7 +98,7 @@ export default function DatePickerInput({
                                         handleChange({ type: 'set' }, value || new Date());
                                     }}
                                 >
-                                    <Text className="text-[#42A5F5] text-base font-semibold">Xong</Text>
+                                    <Text className="text-[#42A4F5] text-base font-semibold">Xong</Text>
                                 </TouchableOpacity>
                             </View>
                             <DateTimePicker
@@ -107,7 +108,7 @@ export default function DatePickerInput({
                                 minimumDate={normalizedMinimumDate}
                                 onChange={handleChange}
                                 textColor="#000000"
-                                style={{ backgroundColor: '#FFFFFF', height: 200 }}
+                                style={styles.spinner}
                             />
                         </Pressable>
                     </Pressable>
@@ -126,3 +127,27 @@ export default function DatePickerInput({
         </View>
     );
 }
+
+const styles = StyleSheet.create({
+    inputBox: {
+        backgroundColor: '#FFFFFF',
+        borderWidth: 1,
+        borderColor: '#D1D5DB',
+        borderRadius: 10,
+        paddingHorizontal: 12,
+        paddingVertical: 13,
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    icon: {
+        marginRight: 8,
+    },
+    valueText: {
+        flex: 1,
+        fontSize: 14,
+    },
+    spinner: {
+        backgroundColor: '#FFFFFF',
+        height: 200,
+    },
+});
