@@ -7,20 +7,24 @@ interface TimePickerInputProps {
     label: string;
     value?: Date;
     onChange: (time: Date) => void;
+    onDismiss?: () => void;
     placeholder?: string;
     minHour?: number;
     maxHour?: number;
     onInvalidSelection?: (message: string) => void;
+    required?: boolean;
 }
 
 export default function TimePickerInput({
     label,
     value,
     onChange,
+    onDismiss,
     placeholder = 'Chọn thời gian',
     minHour,
     maxHour,
     onInvalidSelection,
+    required = false,
 }: TimePickerInputProps) {
     const [show, setShow] = useState(false);
 
@@ -50,6 +54,7 @@ export default function TimePickerInput({
             }
         } else if (event.type === 'dismissed') {
             setShow(false);
+            onDismiss?.();
         }
     };
 
@@ -63,6 +68,7 @@ export default function TimePickerInput({
         <View className="mb-4">
             <Text className="text-gray-700 text-sm font-medium mb-2">
                 {label}
+                {required && <Text style={styles.required}> *</Text>}
             </Text>
             <TouchableOpacity
                 onPress={() => setShow(true)}
@@ -80,15 +86,24 @@ export default function TimePickerInput({
                     transparent={true}
                     animationType="slide"
                     visible={show}
-                    onRequestClose={() => setShow(false)}
+                    onRequestClose={() => {
+                        setShow(false);
+                        onDismiss?.();
+                    }}
                 >
                     <Pressable 
                         className="flex-1 bg-black/50 justify-end"
-                        onPress={() => setShow(false)}
+                        onPress={() => {
+                            setShow(false);
+                            onDismiss?.();
+                        }}
                     >
                         <Pressable className="bg-white rounded-t-3xl" onPress={(e) => e.stopPropagation()}>
                             <View className="flex-row justify-between items-center px-4 py-3 border-b border-gray-200">
-                                <TouchableOpacity onPress={() => setShow(false)}>
+                                <TouchableOpacity onPress={() => {
+                                    setShow(false);
+                                    onDismiss?.();
+                                }}>
                                     <Text className="text-[#42A4F5] text-base font-semibold">Hủy</Text>
                                 </TouchableOpacity>
                                 <Text className="text-gray-800 font-semibold">Chọn thời gian</Text>
@@ -128,6 +143,9 @@ export default function TimePickerInput({
 }
 
 const styles = StyleSheet.create({
+    required: {
+        color: '#EF4444',
+    },
     inputBox: {
         backgroundColor: '#FFFFFF',
         borderWidth: 1,

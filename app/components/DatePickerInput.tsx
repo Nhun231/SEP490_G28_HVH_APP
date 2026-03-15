@@ -7,47 +7,71 @@ interface DatePickerInputProps {
     label: string;
     value?: Date;
     onChange: (date: Date) => void;
+    onDismiss?: () => void;
     placeholder?: string;
     minimumDate?: Date;
+    required?: boolean;
 }
 
 export default function DatePickerInput({
     label,
     value,
     onChange,
+    onDismiss,
     placeholder = 'Chọn ngày',
     minimumDate,
+    required = false,
 }: DatePickerInputProps) {
     const [show, setShow] = useState(false);
+    const [pendingDate, setPendingDate] = useState<Date | undefined>(undefined);
     const normalizedMinimumDate = minimumDate
         ? new Date(minimumDate.getFullYear(), minimumDate.getMonth(), minimumDate.getDate())
         : undefined;
 
-    const handleChange = (event: any, selectedDate?: Date) => {
-        // On Android, the picker is automatically dismissed after selection or cancellation
-        // On iOS, we need to handle it manually
-        if (Platform.OS === 'android') {
-            setShow(false);
+    const getInitialPickerDate = () => value || normalizedMinimumDate || new Date();
+
+    const openPicker = () => {
+        setPendingDate(getInitialPickerDate());
+        setShow(true);
+    };
+
+    const dismissPicker = () => {
+        setShow(false);
+        setPendingDate(undefined);
+        onDismiss?.();
+    };
+
+    const commitDate = (date: Date) => {
+        const normalizedSelectedDate = new Date(
+            date.getFullYear(),
+            date.getMonth(),
+            date.getDate()
+        );
+
+        if (normalizedMinimumDate && normalizedSelectedDate < normalizedMinimumDate) {
+            return;
         }
 
-        // Only update the value if user didn't cancel
-        if (event.type === 'set' && selectedDate) {
-            const normalizedSelectedDate = new Date(
-                selectedDate.getFullYear(),
-                selectedDate.getMonth(),
-                selectedDate.getDate()
-            );
+        onChange(normalizedSelectedDate);
+        setShow(false);
+        setPendingDate(undefined);
+    };
 
-            if (normalizedMinimumDate && normalizedSelectedDate < normalizedMinimumDate) {
-                return;
-            }
-
-            onChange(selectedDate);
-            if (Platform.OS === 'ios') {
-                setShow(false);
-            }
-        } else if (event.type === 'dismissed') {
+    const handleChange = (event: any, selectedDate?: Date) => {
+        if (Platform.OS === 'android') {
             setShow(false);
+            if (event.type === 'set' && selectedDate) {
+                commitDate(selectedDate);
+            } else if (event.type === 'dismissed') {
+                dismissPicker();
+            }
+            return;
+        }
+
+        if (event.type === 'set' && selectedDate) {
+            setPendingDate(selectedDate);
+        } else if (event.type === 'dismissed') {
+            dismissPicker();
         }
     };
 
@@ -63,10 +87,11 @@ export default function DatePickerInput({
             {label && (
                 <Text className="text-gray-700 text-sm font-medium mb-2">
                     {label}
+                    {required && <Text style={styles.required}> *</Text>}
                 </Text>
             )}
             <TouchableOpacity
-                onPress={() => setShow(true)}
+                onPress={openPicker}
                 style={styles.inputBox}
             >
                 <Ionicons name="calendar-outline" size={18} color="#9CA3AF" style={styles.icon} />
@@ -81,33 +106,33 @@ export default function DatePickerInput({
                     transparent={true}
                     animationType="slide"
                     visible={show}
-                    onRequestClose={() => setShow(false)}
+                    onRequestClose={dismissPicker}
                 >
                     <Pressable
                         className="flex-1 bg-black/50 justify-end"
-                        onPress={() => setShow(false)}
+                        onPress={dismissPicker}
                     >
                         <Pressable className="bg-white rounded-t-3xl" onPress={(e) => e.stopPropagation()}>
                             <View className="flex-row justify-between items-center px-4 py-3 border-b border-gray-200">
-                                <TouchableOpacity onPress={() => setShow(false)}>
+                                <TouchableOpacity onPress={dismissPicker}>
                                     <Text className="text-[#42A4F5] text-base font-semibold">Hủy</Text>
                                 </TouchableOpacity>
                                 <Text className="text-gray-800 font-semibold">Chọn ngày</Text>
                                 <TouchableOpacity
                                     onPress={() => {
-                                        handleChange({ type: 'set' }, value || new Date());
+                                        commitDate(pendingDate || getInitialPickerDate());
                                     }}
                                 >
                                     <Text className="text-[#42A4F5] text-base font-semibold">Xong</Text>
                                 </TouchableOpacity>
                             </View>
                             <DateTimePicker
-                                value={value || new Date()}
+                                value={pendingDate || getInitialPickerDate()}
                                 mode="date"
                                 display="spinner"
                                 minimumDate={normalizedMinimumDate}
                                 onChange={handleChange}
-                                textColor="#000000"
+                                themeVariant="light"
                                 style={styles.spinner}
                             />
                         </Pressable>
@@ -129,6 +154,9 @@ export default function DatePickerInput({
 }
 
 const styles = StyleSheet.create({
+    required: {
+        color: '#EF4444',
+    },
     inputBox: {
         backgroundColor: '#FFFFFF',
         borderWidth: 1,

@@ -2,7 +2,32 @@
  * Event Service - Handles API calls for event-related endpoints
  */
 
+import baseAxios from '@/lib/baseAxios'
+
 const API_BASE = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.1.38:8080'
+
+export interface ActivitySubDomain {
+    id: number;
+    name: string;
+    active: boolean;
+}
+
+export interface ActivityDomain {
+    name: string;
+    specialSessionMaxTime: number;
+    active: boolean;
+    activitySubDomainList: ActivitySubDomain[];
+}
+
+export interface ActivityDomainResponse {
+    content: ActivityDomain[];
+    page: {
+        size: number;
+        number: number;
+        totalElements: number;
+        totalPages: number;
+    };
+}
 
 export interface EventSimpleResponse {
     orgName: string;
@@ -60,4 +85,35 @@ export const getEventFeeds = async (params: EventFeedParams = {}): Promise<Event
     const data: EventFeedResponse = await response.json()
     console.log('[EventService] Success - events count:', data?.events?.length)
     return data
+}
+
+/**
+ * Fetch all activity domains across all pages.
+ */
+export const getAllActivityDomains = async (): Promise<ActivityDomain[]> => {
+    const endpoint = `${API_BASE}/api/v1/activity-domain/activity-domains`
+    console.log('[EventService] Fetching activity domains:', endpoint)
+    console.log('[EventService] Axios baseURL:', baseAxios.defaults.baseURL)
+
+    const firstResponse = await baseAxios.get<ActivityDomainResponse>(
+        endpoint,
+        {
+            params: { page: 0, size: 100 },
+        }
+    )
+
+    const firstData = firstResponse.data
+    let allDomains = [...firstData.content]
+
+    for (let page = 1; page < firstData.page.totalPages; page += 1) {
+        const pageResponse = await baseAxios.get<ActivityDomainResponse>(
+            endpoint,
+            {
+                params: { page, size: 100 },
+            }
+        )
+        allDomains = [...allDomains, ...pageResponse.data.content]
+    }
+
+    return allDomains
 }

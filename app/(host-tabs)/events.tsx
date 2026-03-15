@@ -1,13 +1,15 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { ScrollView, View, Text, TouchableOpacity, TextInput, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
+import { ScrollView, View, Text, TouchableOpacity, TextInput, StyleSheet, KeyboardAvoidingView, Platform, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
 import DatePickerInput from '../components/DatePickerInput';
 import TimePickerInput from '../components/TimePickerInput';
-import ImagePickerInput from '../components/ImagePickerInput';
+import DocumentUploadBox, { DocumentUpload } from '../components/DocumentUploadBox';
 import BottomSheetPicker from '../components/BottomSheetPicker';
 import MapLocationPicker from '../components/MapLocationPicker';
-import baseAxios from '@/lib/baseAxios';
+import { ActivityDomain, getAllActivityDomains } from '@/services/event-service';
+import { getFileExtension, getMimeType } from '@/services/upload-service';
 
 // Import JSON data
 import servedTargetsData from '../../assets/served_targets/doi_tuong_phuc_vu.json';
@@ -34,29 +36,6 @@ interface EventDay {
     servedCount: string;
 }
 
-interface ActivitySubDomain {
-    id: number;
-    name: string;
-    active: boolean;
-}
-
-interface ActivityDomain {
-    name: string;
-    specialSessionMaxTime: number;
-    active: boolean;
-    activitySubDomainList: ActivitySubDomain[];
-}
-
-interface ActivityDomainResponse {
-    content: ActivityDomain[];
-    page: {
-        size: number;
-        number: number;
-        totalElements: number;
-        totalPages: number;
-    };
-}
-
 type DayErrorField = 'date' | 'startTime' | 'endTime' | 'volunteerCount' | 'servedCount';
 
 interface EventFormErrors {
@@ -66,8 +45,6 @@ interface EventFormErrors {
     servedSpecificField?: string;
     servedPlace?: string;
     area?: string;
-    contactPerson?: string;
-    contactPhone?: string;
     registrationDeadline?: string;
     eventImage?: string;
     checkInLocation?: string;
@@ -84,10 +61,12 @@ const Event = () => {
     const [servedSpecificField, setServedSpecificField] = useState<OptionItem>();
     const [servedPlace, setServedPlace] = useState<OptionItem>();
     const [area, setArea] = useState<OptionItem>();
-    const [contactPerson, setContactPerson] = useState('');
-    const [contactPhone, setContactPhone] = useState('');
     const [registrationDeadline, setRegistrationDeadline] = useState<Date>();
-    const [eventImage, setEventImage] = useState<string>();
+    const [eventImageDoc, setEventImageDoc] = useState<DocumentUpload>({
+        uri: null,
+        fileName: null,
+        mimeType: null,
+    });
 
     // Multi-day event states
     const [eventDays, setEventDays] = useState<EventDay[]>([
@@ -148,11 +127,37 @@ const Event = () => {
 
     const getMinutesOfDay = (date: Date) => date.getHours() * 60 + date.getMinutes();
 
-    const isPositiveNumber = (value: string) => /^\d+$/.test(value) && Number(value) > 0;
+    const sanitizeNaturalNumberInput = (value: string) => value.replace(/[^0-9]/g, '');
+
+    const isPositiveNaturalNumber = (value: string) => {
+        const parsed = Number(value);
+        return Number.isInteger(parsed) && parsed > 0;
+    };
 
     const isAllowedTimeRange = (time: Date) => {
         const minutes = getMinutesOfDay(time);
         return minutes >= 300 && minutes <= 1380; // 05:00 - 23:00
+    };
+
+    const getDurationValidationError = (startTime: Date, endTime: Date) => {
+        const durationMinutes = getMinutesOfDay(endTime) - getMinutesOfDay(startTime);
+        const baseLimitMinutes = 4 * 60;
+
+        if (durationMinutes <= baseLimitMinutes) {
+            return undefined;
+        }
+
+        const specialLimitHours = selectedActivityDomain?.specialSessionMaxTime;
+        if (typeof specialLimitHours !== 'number') {
+            return 'Thời lượng sự kiện tối đa 4 giờ';
+        }
+
+        const specialLimitMinutes = specialLimitHours * 60;
+        if (durationMinutes > specialLimitMinutes) {
+            return `Thời lượng vượt quá giới hạn của lĩnh vực đã chọn (${specialLimitHours} giờ)`;
+        }
+
+        return undefined;
     };
 
     const getEarliestEventDate = () => {
@@ -189,29 +194,55 @@ const Event = () => {
         });
     };
 
+    const setFormFieldError = (field: keyof EventFormErrors, message?: string) => {
+        setFormErrors((prev) => ({
+            ...prev,
+            [field]: message,
+        }));
+    };
+
+    const validateRequiredFormField = (field: keyof EventFormErrors, value: unknown, message: string) => {
+        const hasValue = value instanceof Date ? true : Boolean(value);
+        setFormFieldError(field, hasValue ? undefined : message);
+    };
+
+    const validateQuantityField = (dayId: string, field: 'volunteerCount' | 'servedCount', value: string, emptyMessage: string) => {
+        if (!value.trim()) {
+            setDayFieldError(dayId, field, emptyMessage);
+            return;
+        }
+
+        if (!isPositiveNaturalNumber(value)) {
+            setDayFieldError(dayId, field, 'Số lượng cần là số tự nhiên lớn hơn 0');
+            return;
+        }
+
+        setDayFieldError(dayId, field);
+    };
+
+    const validateRadiusField = (value: string) => {
+        if (!value.trim()) {
+            setFormFieldError('checkInRadius', 'Vui lòng nhập bán kính');
+            return;
+        }
+
+        if (!isPositiveNaturalNumber(value)) {
+            setFormFieldError('checkInRadius', 'Bán kính phải là số lớn hơn 0');
+            return;
+        }
+
+        if (Number(value) < 300) {
+            setFormFieldError('checkInRadius', 'Bán kính không được nhỏ hơn 300m');
+            return;
+        }
+
+        setFormFieldError('checkInRadius');
+    };
+
     useEffect(() => {
         const fetchAllActivityDomains = async () => {
             try {
-                const firstResponse = await baseAxios.get<ActivityDomainResponse>(
-                    '/api/v1/activity-domain/activity-domains',
-                    {
-                        params: { page: 0, size: 100 },
-                    }
-                );
-
-                const firstData = firstResponse.data;
-                let allDomains = [...firstData.content];
-
-                for (let page = 1; page < firstData.page.totalPages; page += 1) {
-                    const pageResponse = await baseAxios.get<ActivityDomainResponse>(
-                        '/api/v1/activity-domain/activity-domains',
-                        {
-                            params: { page, size: 100 },
-                        }
-                    );
-                    allDomains = [...allDomains, ...pageResponse.data.content];
-                }
-
+                const allDomains = await getAllActivityDomains();
                 setActivityDomains(allDomains);
             } catch (error) {
                 console.error('Failed to fetch activity domains:', error);
@@ -251,13 +282,14 @@ const Event = () => {
         }
 
         if ((field === 'volunteerCount' || field === 'servedCount') && typeof value === 'string') {
-            if (value.trim().length === 0) {
-                setDayFieldError(id, field, 'Trường này không được để trống');
-            } else if (!isPositiveNumber(value)) {
-                setDayFieldError(id, field, 'Giá trị phải là số lớn hơn 0');
-            } else {
-                setDayFieldError(id, field);
-            }
+            validateQuantityField(
+                id,
+                field,
+                value,
+                field === 'volunteerCount'
+                    ? 'Vui lòng nhập số lượng TNV cần tuyển'
+                    : 'Vui lòng nhập số lượng đối tượng phục vụ'
+            );
         }
 
         setEventDays((prev) => prev.map(day =>
@@ -273,7 +305,8 @@ const Event = () => {
                 if (getMinutesOfDay(endTime) <= getMinutesOfDay(startTime)) {
                     setDayFieldError(id, 'endTime', 'Giờ kết thúc phải sau giờ bắt đầu');
                 } else {
-                    setDayFieldError(id, 'endTime');
+                    const durationError = getDurationValidationError(startTime, endTime);
+                    setDayFieldError(id, 'endTime', durationError);
                 }
             }
         }
@@ -295,6 +328,63 @@ const Event = () => {
         // TODO: Save draft logic
     };
 
+    const handlePickEventImage = async () => {
+        try {
+            const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+            if (!permission.granted) {
+                Alert.alert('Cần quyền truy cập', 'Vui lòng cho phép truy cập thư viện ảnh');
+                return;
+            }
+
+            const result = await ImagePicker.launchImageLibraryAsync({
+                mediaTypes: ['images'],
+                allowsEditing: false,
+                quality: 1,
+            });
+
+            if (result.canceled) {
+                if (!eventImageDoc.uri) {
+                    setFormFieldError('eventImage', 'Vui lòng chọn ảnh hoạt động');
+                }
+                return;
+            }
+
+            if (result.assets?.[0]) {
+                const asset = result.assets[0];
+                const uri = asset.uri;
+                const fileName = asset.fileName || uri.split('/').pop() || `event_${Date.now()}.jpg`;
+                let extension = '.jpg';
+                let mimeType = 'image/jpeg';
+
+                try {
+                    const match = fileName.toLowerCase().match(/\.(jpg|jpeg|png)$/);
+                    if (match) {
+                        extension = match[0];
+                        mimeType = getMimeType(extension);
+                    } else if (asset.mimeType) {
+                        mimeType = asset.mimeType;
+                        extension = mimeType.includes('png') ? '.png' : '.jpg';
+                    }
+                } catch (err) {
+                    console.warn('Could not detect file extension, using default .jpg', err);
+                }
+
+                setEventImageDoc({
+                    uri,
+                    fileName: fileName.toLowerCase().endsWith(extension) ? fileName : `${fileName}${extension}`,
+                    mimeType,
+                });
+                setFormErrors((prev) => ({ ...prev, eventImage: undefined }));
+            }
+        } catch (error) {
+            Alert.alert('Lỗi', error instanceof Error ? error.message : 'Không thể chọn ảnh');
+        }
+    };
+
+    const handleRemoveEventImage = () => {
+        setEventImageDoc({ uri: null, fileName: null, mimeType: null });
+    };
+
     const validateForm = () => {
         const nextErrors: EventFormErrors = {};
         const nextDayErrors: Record<string, Partial<Record<DayErrorField, string>>> = {};
@@ -305,15 +395,13 @@ const Event = () => {
         if (!servedSpecificField) nextErrors.servedSpecificField = 'Vui lòng chọn lĩnh vực cụ thể';
         if (!servedPlace) nextErrors.servedPlace = 'Vui lòng chọn loại địa điểm phục vụ';
         if (!area) nextErrors.area = 'Vui lòng chọn khu vực tổ chức';
-        if (!contactPerson.trim()) nextErrors.contactPerson = 'Vui lòng nhập người liên hệ';
-        if (!contactPhone.trim()) nextErrors.contactPhone = 'Vui lòng nhập số điện thoại';
         if (!registrationDeadline) nextErrors.registrationDeadline = 'Vui lòng chọn hạn đăng ký';
-        if (!eventImage) nextErrors.eventImage = 'Vui lòng chọn ảnh hoạt động';
+        if (!eventImageDoc.uri) nextErrors.eventImage = 'Vui lòng chọn ảnh hoạt động';
         if (!checkInLocation) nextErrors.checkInLocation = 'Vui lòng chọn địa điểm điểm danh';
 
         if (!checkInRadius.trim()) {
             nextErrors.checkInRadius = 'Vui lòng nhập bán kính';
-        } else if (!isPositiveNumber(checkInRadius)) {
+        } else if (!isPositiveNaturalNumber(checkInRadius)) {
             nextErrors.checkInRadius = 'Bán kính phải là số lớn hơn 0';
         } else if (Number(checkInRadius) < 300) {
             nextErrors.checkInRadius = 'Bán kính không được nhỏ hơn 300m';
@@ -344,16 +432,27 @@ const Event = () => {
                 dayErr.endTime = 'Giờ kết thúc phải sau giờ bắt đầu';
             }
 
+            if (
+                day.startTime &&
+                day.endTime &&
+                getMinutesOfDay(day.endTime) > getMinutesOfDay(day.startTime)
+            ) {
+                const durationError = getDurationValidationError(day.startTime, day.endTime);
+                if (durationError) {
+                    dayErr.endTime = durationError;
+                }
+            }
+
             if (!day.volunteerCount.trim()) {
                 dayErr.volunteerCount = 'Vui lòng nhập số lượng TNV cần tuyển';
-            } else if (!isPositiveNumber(day.volunteerCount)) {
-                dayErr.volunteerCount = 'Giá trị phải là số lớn hơn 0';
+            } else if (!isPositiveNaturalNumber(day.volunteerCount)) {
+                dayErr.volunteerCount = 'Số lượng cần là số tự nhiên lớn hơn 0';
             }
 
             if (!day.servedCount.trim()) {
                 dayErr.servedCount = 'Vui lòng nhập số lượng đối tượng phục vụ';
-            } else if (!isPositiveNumber(day.servedCount)) {
-                dayErr.servedCount = 'Giá trị phải là số lớn hơn 0';
+            } else if (!isPositiveNaturalNumber(day.servedCount)) {
+                dayErr.servedCount = 'Số lượng cần là số tự nhiên lớn hơn 0';
             }
 
             if (Object.keys(dayErr).length > 0) {
@@ -392,10 +491,9 @@ const Event = () => {
             servedSpecificField,
             servedPlace,
             area,
-            contactPerson,
-            contactPhone,
             registrationDeadline,
-            eventImage,
+            eventImage: eventImageDoc.uri,
+            eventImageFileExtension: eventImageDoc.uri ? getFileExtension(eventImageDoc.uri, eventImageDoc.mimeType) : undefined,
             eventDays,
             checkInLocation,
             checkInRadius,
@@ -405,7 +503,7 @@ const Event = () => {
 
     return (
         <>
-            <SafeAreaView style={styles.safeArea}>
+            <SafeAreaView style={styles.safeArea} edges={['top']}>
                 {/* Header */}
                 <View style={styles.header}>
                     <TouchableOpacity style={styles.backBtn}>
@@ -446,9 +544,10 @@ const Event = () => {
                                     placeholder="Ví dụ: Làm sạch môi trường + Hoàn Kiếm"
                                     placeholderTextColor="#9CA3AF"
                                     value={eventName}
+                                    onBlur={() => validateRequiredFormField('eventName', eventName.trim(), 'Vui lòng nhập tên hoạt động')}
                                     onChangeText={(text) => {
                                         setEventName(text);
-                                        setFormErrors((prev) => ({ ...prev, eventName: undefined }));
+                                        setFormFieldError('eventName', text.trim() ? undefined : formErrors.eventName);
                                     }}
                                 />
                             </View>
@@ -590,61 +689,16 @@ const Event = () => {
                             )}
                         </View>
 
-                        {/* Người liên hệ */}
-                        <View style={styles.fieldWrapper}>
-                            <Text style={styles.fieldLabel}>
-                                Người liên hệ <Text style={styles.required}>*</Text>
-                            </Text>
-                            <View style={[styles.inputRow, { borderColor: formErrors.contactPerson ? '#EF4444' : '#D1D5DB' }]}>
-                                <Ionicons name="person-outline" size={17} color="#9CA3AF" style={styles.inputIcon} />
-                                <TextInput
-                                    style={styles.textInput}
-                                    placeholder="Nhập tên người liên hệ"
-                                    placeholderTextColor="#9CA3AF"
-                                    value={contactPerson}
-                                    onChangeText={(text) => {
-                                        setContactPerson(text);
-                                        setFormErrors((prev) => ({ ...prev, contactPerson: undefined }));
-                                    }}
-                                />
-                            </View>
-                            {formErrors.contactPerson && (
-                                <Text style={styles.errorText}>{formErrors.contactPerson}</Text>
-                            )}
-                        </View>
-
-                        {/* Số điện thoại */}
-                        <View style={styles.fieldWrapper}>
-                            <Text style={styles.fieldLabel}>
-                                Số điện thoại <Text style={styles.required}>*</Text>
-                            </Text>
-                            <View style={[styles.inputRow, { borderColor: formErrors.contactPhone ? '#EF4444' : '#D1D5DB' }]}>
-                                <Ionicons name="call-outline" size={17} color="#9CA3AF" style={styles.inputIcon} />
-                                <TextInput
-                                    style={styles.textInput}
-                                    placeholder="Nhập số điện thoại"
-                                    placeholderTextColor="#9CA3AF"
-                                    keyboardType="phone-pad"
-                                    value={contactPhone}
-                                    onChangeText={(text) => {
-                                        setContactPhone(text);
-                                        setFormErrors((prev) => ({ ...prev, contactPhone: undefined }));
-                                    }}
-                                />
-                            </View>
-                            {formErrors.contactPhone && (
-                                <Text style={styles.errorText}>{formErrors.contactPhone}</Text>
-                            )}
-                        </View>
-
                         {/* Hạn đăng ký */}
                         <View style={{ marginBottom: 0 }}>
                             <DatePickerInput
                                 label="Hạn đăng ký"
+                                required
                                 value={registrationDeadline}
+                                onDismiss={() => validateRequiredFormField('registrationDeadline', registrationDeadline, 'Vui lòng chọn hạn đăng ký')}
                                 onChange={(date) => {
                                     setRegistrationDeadline(date);
-                                    setFormErrors((prev) => ({ ...prev, registrationDeadline: undefined }));
+                                    setFormFieldError('registrationDeadline');
                                 }}
                                 placeholder="Vui lòng chọn ngày kết thúc tuyển chọn"
                                 minimumDate={todayStart}
@@ -663,14 +717,13 @@ const Event = () => {
                         <Text style={[styles.sectionTitle, { marginBottom: 12 }]}>
                             Ảnh hoạt động
                         </Text>
-                        <ImagePickerInput
-                            label="Ảnh đại diện sự kiện *"
-                            hint="Chọn ảnh mô tả hoạt động (tỷ lệ 16:9)"
-                            value={eventImage}
-                            onChange={(uri) => {
-                                setEventImage(uri);
-                                setFormErrors((prev) => ({ ...prev, eventImage: undefined }));
-                            }}
+                        <DocumentUploadBox
+                            label="Ảnh đại diện sự kiện"
+                            required
+                            subtitle="PNG, JPG (tối đa 5MB)"
+                            document={eventImageDoc}
+                            onPress={handlePickEventImage}
+                            onRemove={handleRemoveEventImage}
                         />
                         {formErrors.eventImage && (
                             <Text style={styles.errorTextNeg}>{formErrors.eventImage}</Text>
@@ -699,7 +752,9 @@ const Event = () => {
                                 {/* Ngày tổ chức */}
                                 <DatePickerInput
                                     label="Ngày tổ chức"
+                                    required
                                     value={day.date}
+                                    onDismiss={() => setDayFieldError(day.id, 'date', day.date ? undefined : 'Vui lòng chọn ngày tổ chức')}
                                     onChange={(date) => updateEventDay(day.id, 'date', date)}
                                     placeholder="Vui lòng chọn ngày diễn ra sự kiện"
                                     minimumDate={todayStart}
@@ -713,7 +768,9 @@ const Event = () => {
                                     <View style={styles.halfCol}>
                                         <TimePickerInput
                                             label="Giờ bắt đầu"
+                                            required
                                             value={day.startTime}
+                                            onDismiss={() => setDayFieldError(day.id, 'startTime', day.startTime ? undefined : 'Vui lòng chọn giờ bắt đầu')}
                                             onChange={(time) => updateEventDay(day.id, 'startTime', time)}
                                             placeholder="Chọn giờ"
                                             minHour={5}
@@ -727,7 +784,9 @@ const Event = () => {
                                     <View style={styles.halfCol}>
                                         <TimePickerInput
                                             label="Giờ kết thúc"
+                                            required
                                             value={day.endTime}
+                                            onDismiss={() => setDayFieldError(day.id, 'endTime', day.endTime ? undefined : 'Vui lòng chọn giờ kết thúc')}
                                             onChange={(time) => updateEventDay(day.id, 'endTime', time)}
                                             placeholder="Chọn giờ"
                                             minHour={5}
@@ -743,7 +802,7 @@ const Event = () => {
                                 {/* Số lượng TNV */}
                                 <View style={styles.dayFieldWrapper}>
                                     <Text style={styles.fieldLabel}>
-                                        Số lượng TNV cần tuyển
+                                        Số lượng TNV cần tuyển <Text style={styles.required}>*</Text>
                                     </Text>
                                     <View style={[styles.inputRow, { borderColor: eventDayErrors[day.id]?.volunteerCount ? '#EF4444' : '#D1D5DB' }]}>
                                         <Ionicons name="people-outline" size={17} color="#9CA3AF" style={styles.inputIcon} />
@@ -753,7 +812,8 @@ const Event = () => {
                                             placeholderTextColor="#9CA3AF"
                                             keyboardType="numeric"
                                             value={day.volunteerCount}
-                                            onChangeText={(text) => updateEventDay(day.id, 'volunteerCount', text)}
+                                            onBlur={() => validateQuantityField(day.id, 'volunteerCount', day.volunteerCount, 'Vui lòng nhập số lượng TNV cần tuyển')}
+                                            onChangeText={(text) => updateEventDay(day.id, 'volunteerCount', sanitizeNaturalNumberInput(text))}
                                         />
                                         <Text style={styles.unitText}>Người</Text>
                                     </View>
@@ -765,7 +825,7 @@ const Event = () => {
                                 {/* Số lượng đối tượng phục vụ */}
                                 <View style={{ marginBottom: 0 }}>
                                     <Text style={styles.fieldLabel}>
-                                        Số lượng đối tượng phục vụ
+                                        Số lượng đối tượng phục vụ <Text style={styles.required}>*</Text>
                                     </Text>
                                     <View style={[styles.inputRow, { borderColor: eventDayErrors[day.id]?.servedCount ? '#EF4444' : '#D1D5DB' }]}>
                                         <Ionicons name="heart-outline" size={17} color="#9CA3AF" style={styles.inputIcon} />
@@ -775,7 +835,8 @@ const Event = () => {
                                             placeholderTextColor="#9CA3AF"
                                             keyboardType="numeric"
                                             value={day.servedCount}
-                                            onChangeText={(text) => updateEventDay(day.id, 'servedCount', text)}
+                                            onBlur={() => validateQuantityField(day.id, 'servedCount', day.servedCount, 'Vui lòng nhập số lượng đối tượng phục vụ')}
+                                            onChangeText={(text) => updateEventDay(day.id, 'servedCount', sanitizeNaturalNumberInput(text))}
                                         />
                                         <Text style={styles.unitText}>Người</Text>
                                     </View>
@@ -844,23 +905,11 @@ const Event = () => {
                                     placeholderTextColor="#9CA3AF"
                                     keyboardType="numeric"
                                     value={checkInRadius}
+                                    onBlur={() => validateRadiusField(checkInRadius)}
                                     onChangeText={(text) => {
-                                        const sanitized = text.replace(/[^0-9]/g, '');
+                                        const sanitized = sanitizeNaturalNumberInput(text);
                                         setCheckInRadius(sanitized);
-
-                                        if (!sanitized) {
-                                            setFormErrors((prev) => ({ ...prev, checkInRadius: 'Vui lòng nhập bán kính' }));
-                                            return;
-                                        }
-                                        if (Number(sanitized) === 0) {
-                                            setFormErrors((prev) => ({ ...prev, checkInRadius: 'Bán kính phải là số lớn hơn 0' }));
-                                            return;
-                                        }
-                                        if (Number(sanitized) < 300) {
-                                            setFormErrors((prev) => ({ ...prev, checkInRadius: 'Bán kính không được nhỏ hơn 300m' }));
-                                            return;
-                                        }
-                                        setFormErrors((prev) => ({ ...prev, checkInRadius: undefined }));
+                                        validateRadiusField(sanitized);
                                     }}
                                 />
                                 <Text style={styles.unitText}>Mét</Text>
@@ -900,20 +949,26 @@ const Event = () => {
             {/* Bottom Sheet Pickers - Rendered outside SafeAreaView */}
             <BottomSheetPicker
                 visible={showTargetPicker}
-                onClose={() => setShowTargetPicker(false)}
+                onClose={() => {
+                    setShowTargetPicker(false);
+                    validateRequiredFormField('servedTarget', servedTarget, 'Vui lòng chọn đối tượng phục vụ');
+                }}
                 title="Chọn đối tượng phục vụ"
                 options={servedTargetsData.doi_tuong_phuc_vu}
                 selectedId={servedTarget?.id}
                 onSelect={(item) => {
                     setServedTarget(item);
-                    setFormErrors((prev) => ({ ...prev, servedTarget: undefined }));
+                    setFormFieldError('servedTarget');
                     setShowTargetPicker(false);
                 }}
             />
 
             <BottomSheetPicker
                 visible={showFieldPicker}
-                onClose={() => setShowFieldPicker(false)}
+                onClose={() => {
+                    setShowFieldPicker(false);
+                    validateRequiredFormField('servedField', servedField, 'Vui lòng chọn lĩnh vực phục vụ');
+                }}
                 title="Chọn lĩnh vực phục vụ"
                 options={servedFieldOptions}
                 selectedId={servedField?.id}
@@ -931,39 +986,48 @@ const Event = () => {
 
             <BottomSheetPicker
                 visible={showSpecificFieldPicker}
-                onClose={() => setShowSpecificFieldPicker(false)}
+                onClose={() => {
+                    setShowSpecificFieldPicker(false);
+                    validateRequiredFormField('servedSpecificField', servedSpecificField, 'Vui lòng chọn lĩnh vực cụ thể');
+                }}
                 title="Chọn lĩnh vực cụ thể"
                 options={servedSpecificFieldOptions}
                 selectedId={servedSpecificField?.id}
                 onSelect={(item) => {
                     setServedSpecificField(item);
-                    setFormErrors((prev) => ({ ...prev, servedSpecificField: undefined }));
+                    setFormFieldError('servedSpecificField');
                     setShowSpecificFieldPicker(false);
                 }}
             />
 
             <BottomSheetPicker
                 visible={showPlacePicker}
-                onClose={() => setShowPlacePicker(false)}
+                onClose={() => {
+                    setShowPlacePicker(false);
+                    validateRequiredFormField('servedPlace', servedPlace, 'Vui lòng chọn loại địa điểm phục vụ');
+                }}
                 title="Chọn loại địa điểm phục vụ"
                 options={servedPlacesData.dia_diem_phuc_vu}
                 selectedId={servedPlace?.id}
                 onSelect={(item) => {
                     setServedPlace(item);
-                    setFormErrors((prev) => ({ ...prev, servedPlace: undefined }));
+                    setFormFieldError('servedPlace');
                     setShowPlacePicker(false);
                 }}
             />
 
             <BottomSheetPicker
                 visible={showAreaPicker}
-                onClose={() => setShowAreaPicker(false)}
+                onClose={() => {
+                    setShowAreaPicker(false);
+                    validateRequiredFormField('area', area, 'Vui lòng chọn khu vực tổ chức');
+                }}
                 title="Chọn khu vực tổ chức"
                 options={wardOptions}
                 selectedId={area?.id}
                 onSelect={(item) => {
                     setArea(item);
-                    setFormErrors((prev) => ({ ...prev, area: undefined }));
+                    setFormFieldError('area');
                     setShowAreaPicker(false);
                 }}
             />
@@ -971,10 +1035,13 @@ const Event = () => {
             {/* Map Location Picker */}
             <MapLocationPicker
                 visible={showMapPicker}
-                onClose={() => setShowMapPicker(false)}
+                onClose={() => {
+                    setShowMapPicker(false);
+                    validateRequiredFormField('checkInLocation', checkInLocation, 'Vui lòng chọn địa điểm điểm danh');
+                }}
                 onSelectLocation={(location) => {
                     setCheckInLocation(location);
-                    setFormErrors((prev) => ({ ...prev, checkInLocation: undefined }));
+                    setFormFieldError('checkInLocation');
                     setShowMapPicker(false);
                 }}
                 initialLocation={checkInLocation}
@@ -988,10 +1055,11 @@ const styles = StyleSheet.create({
     // Layout
     safeArea: {
         flex: 1,
-        backgroundColor: '#F0F4F8',
+        backgroundColor: '#42A4F5',
     },
     scrollView: {
         flex: 1,
+        backgroundColor: '#F0F4F8',
     },
     scrollContent: {
         padding: 16,

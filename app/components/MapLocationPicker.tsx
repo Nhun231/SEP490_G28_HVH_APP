@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, Modal, TextInput, Alert, ActivityIndicato
 import MapView, { Marker, Circle, PROVIDER_GOOGLE } from 'react-native-maps';
 import * as Location from 'expo-location';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 // Nominatim (OpenStreetMap) - miễn phí, không cần API key
 const NOMINATIM_URL = 'https://nominatim.openstreetmap.org/search';
@@ -37,6 +38,7 @@ export default function MapLocationPicker({
     radius = 300,
 }: MapLocationPickerProps) {
     const logTag = '[MapLocationPicker]';
+    const insets = useSafeAreaInsets();
     const mapRef = useRef<MapView>(null);
     const [selectedLocation, setSelectedLocation] = useState<LocationData | undefined>(initialLocation);
     // Default to Hanoi center while loading current location
@@ -335,7 +337,10 @@ export default function MapLocationPicker({
         >
             <View className="flex-1">
                 {/* Header */}
-                <View className="bg-white px-4 py-3 border-b border-gray-200 flex-row items-center">
+                <View
+                    className="bg-white px-4 py-3 border-b border-gray-200 flex-row items-center"
+                    style={{ paddingTop: Math.max(insets.top + 8, 20) }}
+                >
                     <TouchableOpacity onPress={onClose} className="mr-3">
                         <Ionicons name="arrow-back" size={24} color="#000" />
                     </TouchableOpacity>
