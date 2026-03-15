@@ -6,7 +6,6 @@ import React, { useEffect, useState } from 'react'
 import {
     ActivityIndicator,
     Alert,
-    Image,
     KeyboardAvoidingView,
     Platform,
     ScrollView,
@@ -17,18 +16,14 @@ import {
     View,
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
-
-interface DocumentUpload {
-    uri: string | null
-    fileName: string | null
-    mimeType: string | null
-}
+import DocumentUploadBox, { DocumentUpload } from '../components/DocumentUploadBox'
 
 const OTP_EXPIRATION_SECONDS = 300
 
 export default function Register() {
     // Form fields
     const [citizenId, setCitizenId] = useState('')
+    const [fullName, setFullName] = useState('')
     const [phone, setPhone] = useState('')
     const [email, setEmail] = useState('')
     const [otp, setOtp] = useState('')
@@ -74,7 +69,7 @@ export default function Register() {
             }
 
             const result = await ImagePicker.launchImageLibraryAsync({
-                mediaTypes: ImagePicker.MediaTypeOptions.Images,
+                mediaTypes: ['images'],
                 allowsEditing: false,
                 quality: 1,
             })
@@ -119,7 +114,6 @@ export default function Register() {
     }
 
     const handleSendOtp = async () => {
-        // Validate email before sending OTP
         if (!email) {
             Alert.alert('Lỗi', 'Vui lòng nhập email')
             return
@@ -145,67 +139,58 @@ export default function Register() {
     }
 
     const handleRegister = async () => {
-        console.log('handleRegister starts')
         // Validation
-        if (!citizenId || !phone || !email || !otp) {
-            //Alert.alert('Lỗi', 'Vui lòng điền đầy đủ thông tin')
-            console.log('Vui lòng điền đầy đủ thông tin')
+        if (!citizenId || !fullName || !phone || !email || !otp) {
+            Alert.alert('Lỗi', 'Vui lòng điền đầy đủ thông tin')
             return
         }
 
-        // Validate citizen ID (12 digits)
         if (!/^\d{12}$/.test(citizenId)) {
-            //Alert.alert('Lỗi', 'Số căn cước công dân phải có 12 chữ số')
-            console.log('Số căn cước công dân phải có 12 chữ số')
+            Alert.alert('Lỗi', 'Số căn cước công dân phải có 12 chữ số')
             return
         }
 
-        // Validate phone number (Vietnamese format)
+        // Validate fullName: each word starts with uppercase, no digits/special chars
+        if (!/^[A-ZÀ-Ỹ][a-zà-ỹ]*(?:\s[A-ZÀ-Ỹ][a-zà-ỹ]*)*$/.test(fullName)) {
+            Alert.alert('Lỗi', 'Họ tên không hợp lệ. Mỗi từ phải viết hoa chữ cái đầu')
+            return
+        }
+
         if (!/^(0|\+84)(3|5|7|8|9)\d{8}$/.test(phone)) {
-            //Alert.alert('Lỗi', 'Số điện thoại không hợp lệ')
-            console.log('Số điện thoại không hợp lệ')
+            Alert.alert('Lỗi', 'Số điện thoại không hợp lệ')
             return
         }
 
-        // Validate OTP (6 digits)
         if (!/^\d{6}$/.test(otp)) {
-            //Alert.alert('Lỗi', 'Mã OTP phải có 6 chữ số')
-            console.log('Mã OTP phải có 6 chữ số')
+            Alert.alert('Lỗi', 'Mã OTP phải có 6 chữ số')
             return
         }
 
         if (!frontIdCard.uri || !backIdCard.uri || !selfieWithId.uri) {
-            //Alert.alert('Lỗi', 'Vui lòng tải lên đầy đủ các tài liệu')
-            console.log('Vui lòng tải lên đầy đủ các tài liệu')
+            Alert.alert('Lỗi', 'Vui lòng tải lên đầy đủ các tài liệu')
             return
         }
 
         if (!imageVerification) {
-            //Alert.alert('Lỗi', 'Vui lòng xác nhận điều khoản sử dụng')
-            console.log('Vui lòng xác nhận điều khoản sử dụng')
+            Alert.alert('Lỗi', 'Vui lòng xác nhận điều khoản sử dụng')
             return
         }
-
-        console.log('handleRegister after validation')
 
         try {
             setLoading(true)
             setUploadProgress({ front: 0, back: 0, holding: 0 })
 
-            // Extract file extensions
-            console.log('STEP 1: extracting file extensions')
-            console.log('frontIdCard.uri:', frontIdCard.uri)
             const cidFrontFileExtension = getFileExtension(frontIdCard.uri, frontIdCard.mimeType)
             const cidBackFileExtension = getFileExtension(backIdCard.uri, backIdCard.mimeType)
             const cidHoldingFileExtension = getFileExtension(selfieWithId.uri, selfieWithId.mimeType)
-            console.log('STEP 2: extensions ok, calling completeRegistration')
-            // Complete registration and upload
+
             await completeRegistration(
                 {
                     otp,
                     email,
                     phone,
                     cid: citizenId,
+                    fullName,
                     cidFrontFileExtension,
                     cidBackFileExtension,
                     cidHoldingFileExtension,
@@ -234,110 +219,20 @@ export default function Register() {
                     }))
                 }
             )
-            console.log('Đăng ký tài khoản thành công!')
             Alert.alert('Thành công', 'Đăng ký tài khoản thành công! Vui lòng chờ xác minh.')
             // TODO: Navigate to success screen or login
         } catch (error) {
-            console.log('CATCH ERROR:', error)
             Alert.alert('Lỗi', (error as Error).message || JSON.stringify(error))
         } finally {
-            console.log('Đăng ký tài khoản thất bại!')
             setLoading(false)
         }
     }
-
-    // const isRegisterButtonDisabled = loading
 
     const formatTime = (seconds: number) => {
         const mins = Math.floor(seconds / 60)
         const secs = seconds % 60
         return `${mins}:${secs.toString().padStart(2, '0')}`
     }
-
-    const DocumentUploadButton = ({
-        label,
-        document,
-        onPress,
-        onRemove,
-        subtitle,
-        uploadProgress,
-    }: {
-        label: string
-        document: DocumentUpload
-        onPress: () => void
-        onRemove: () => void
-        subtitle?: string
-        uploadProgress?: number
-    }) => (
-        <View style={styles.uploadContainer}>
-            <Text style={styles.uploadLabel}>{label}</Text>
-            {subtitle && <Text style={styles.uploadSubtitle}>{subtitle}</Text>}
-
-            {/* Show preview if image is selected */}
-            {document.uri ? (
-                <View style={styles.previewContainer}>
-                    <Image
-                        source={{ uri: document.uri }}
-                        style={styles.previewImage}
-                        resizeMode="contain"
-                    />
-                    <View style={styles.previewOverlay}>
-                        <View style={styles.previewButtons}>
-                            {/* Update button */}
-                            <TouchableOpacity
-                                style={styles.previewActionButton}
-                                onPress={onPress}
-                                disabled={loading}
-                            >
-                                <Ionicons name="camera-outline" size={20} color="#FFFFFF" />
-                                <Text style={styles.previewActionText}>Thay đổi</Text>
-                            </TouchableOpacity>
-                            {/* Remove button */}
-                            <TouchableOpacity
-                                style={[styles.previewActionButton, styles.removeButton]}
-                                onPress={onRemove}
-                                disabled={loading}
-                            >
-                                <Ionicons name="trash-outline" size={20} color="#FFFFFF" />
-                                <Text style={styles.previewActionText}>Xóa</Text>
-                            </TouchableOpacity>
-                        </View>
-                    </View>
-                    {/* File name badge */}
-                    <View style={styles.fileNameBadge}>
-                        <Ionicons name="checkmark-circle" size={14} color="#10B981" />
-                        <Text style={styles.fileNameText} numberOfLines={1}>
-                            {document.fileName}
-                        </Text>
-                    </View>
-                </View>
-            ) : (
-                /* Show upload button if no image */
-                <TouchableOpacity
-                    style={styles.uploadButton}
-                    onPress={onPress}
-                    activeOpacity={0.7}
-                    disabled={loading}
-                >
-                    <Ionicons name="cloud-upload-outline" size={24} color="#42A4F5" />
-                    <View style={styles.uploadTextContainer}>
-                        <Text style={styles.uploadButtonText}>Tải lên tệp</Text>
-                        <Text style={styles.uploadButtonSubtext}>PNG, JPG (tối đa 5MB)</Text>
-                    </View>
-                </TouchableOpacity>
-            )}
-
-            {/* Upload progress */}
-            {loading && uploadProgress !== undefined && uploadProgress > 0 && (
-                <View style={styles.progressContainer}>
-                    <View style={styles.progressBar}>
-                        <View style={[styles.progressFill, { width: `${uploadProgress}%` }]} />
-                    </View>
-                    <Text style={styles.progressText}>{uploadProgress}%</Text>
-                </View>
-            )}
-        </View>
-    )
 
     return (
         <SafeAreaView style={styles.safeArea}>
@@ -383,6 +278,25 @@ export default function Register() {
                                     editable={!loading}
                                 />
                             </View>
+                        </View>
+
+                        {/* Full Name Input */}
+                        <View style={styles.inputContainer}>
+                            <Text style={styles.label}>
+                                Họ và tên <Text style={styles.required}>*</Text>
+                            </Text>
+                            <View style={styles.inputWrapper}>
+                                <Ionicons name="person-outline" size={20} color="#9CA3AF" style={styles.inputIcon} />
+                                <TextInput
+                                    style={styles.input}
+                                    value={fullName}
+                                    onChangeText={setFullName}
+                                    placeholder="Nguyễn Văn A"
+                                    placeholderTextColor="#9CA3AF"
+                                    editable={!loading}
+                                />
+                            </View>
+                            <Text style={styles.helperText}>Viết hoa chữ cái đầu mỗi từ</Text>
                         </View>
 
                         {/* Phone Number Input */}
@@ -483,31 +397,34 @@ export default function Register() {
                         </View>
 
                         {/* Document Upload Sections */}
-                        <DocumentUploadButton
+                        <DocumentUploadBox
                             label="Mặt trước căn cước công dân *"
                             subtitle="Chọn mặt trước tài liệu CCCD và tải lên hệ thống"
                             document={frontIdCard}
                             onPress={() => pickImage(setFrontIdCard)}
                             onRemove={() => setFrontIdCard({ uri: null, fileName: null, mimeType: null })}
                             uploadProgress={uploadProgress.front}
+                            disabled={loading}
                         />
 
-                        <DocumentUploadButton
+                        <DocumentUploadBox
                             label="Mặt sau căn cước công dân *"
                             subtitle="Chọn mặt sau của tài liệu CCCD"
                             document={backIdCard}
                             onPress={() => pickImage(setBackIdCard)}
                             onRemove={() => setBackIdCard({ uri: null, fileName: null, mimeType: null })}
                             uploadProgress={uploadProgress.back}
+                            disabled={loading}
                         />
 
-                        <DocumentUploadButton
+                        <DocumentUploadBox
                             label="Ảnh chân dung cầm CCCD *"
                             subtitle="Chọn ảnh chân dung cầm CCCD ở giữ màn, chụp rõ nét, để bảo mật camera"
                             document={selfieWithId}
                             onPress={() => pickImage(setSelfieWithId)}
                             onRemove={() => setSelfieWithId({ uri: null, fileName: null, mimeType: null })}
                             uploadProgress={uploadProgress.holding}
+                            disabled={loading}
                         />
 
                         {/* Image Verification Checkbox */}
@@ -699,85 +616,6 @@ const styles = StyleSheet.create({
         marginLeft: 8,
         lineHeight: 18,
     },
-    uploadContainer: {
-        marginBottom: 20,
-    },
-    uploadLabel: {
-        fontSize: 14,
-        fontWeight: '500',
-        color: '#1F2937',
-        marginBottom: 4,
-    },
-    uploadSubtitle: {
-        fontSize: 12,
-        color: '#6B7280',
-        marginBottom: 8,
-    },
-    uploadButton: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: '#F9FAFB',
-        borderRadius: 12,
-        borderWidth: 2,
-        borderStyle: 'dashed',
-        borderColor: '#D1D5DB',
-        paddingVertical: 20,
-        paddingHorizontal: 16,
-    },
-    uploadTextContainer: {
-        marginLeft: 12,
-        flex: 1,
-    },
-    uploadButtonText: {
-        fontSize: 14,
-        fontWeight: '500',
-        color: '#42A4F5',
-    },
-    uploadButtonSubtext: {
-        fontSize: 12,
-        color: '#9CA3AF',
-        marginTop: 2,
-    },
-    uploadedFileContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginTop: 8,
-        paddingHorizontal: 12,
-        paddingVertical: 8,
-        backgroundColor: '#ECFDF5',
-        borderRadius: 8,
-    },
-    uploadedFileName: {
-        fontSize: 13,
-        color: '#059669',
-        marginLeft: 6,
-        flex: 1,
-    },
-    progressContainer: {
-        marginTop: 8,
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 8,
-    },
-    progressBar: {
-        flex: 1,
-        height: 8,
-        backgroundColor: '#E5E7EB',
-        borderRadius: 4,
-        overflow: 'hidden',
-    },
-    progressFill: {
-        height: '100%',
-        backgroundColor: '#42A4F5',
-        borderRadius: 4,
-    },
-    progressText: {
-        fontSize: 12,
-        color: '#6B7280',
-        fontWeight: '600',
-        minWidth: 40,
-        textAlign: 'right',
-    },
     checkboxContainer: {
         flexDirection: 'row',
         alignItems: 'flex-start',
@@ -840,70 +678,5 @@ const styles = StyleSheet.create({
         fontSize: 14,
         color: '#6B7280',
         textAlign: 'center',
-    },
-    // Preview styles
-    previewContainer: {
-        position: 'relative',
-        borderRadius: 12,
-        overflow: 'hidden',
-        backgroundColor: '#F9FAFB',
-        borderWidth: 1,
-        borderColor: '#E5E7EB',
-    },
-    previewImage: {
-        width: 80,
-        height: 120,
-        backgroundColor: '#F3F4F6',
-    },
-    previewOverlay: {
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        backgroundColor: 'rgba(0, 0, 0, 0.4)',
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    previewButtons: {
-        flexDirection: 'row',
-        gap: 12,
-    },
-    previewActionButton: {
-        backgroundColor: '#42A4F5',
-        borderRadius: 8,
-        paddingVertical: 10,
-        paddingHorizontal: 16,
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 6,
-    },
-    removeButton: {
-        backgroundColor: '#EF4444',
-    },
-    previewActionText: {
-        fontSize: 14,
-        fontWeight: '600',
-        color: '#FFFFFF',
-    },
-    fileNameBadge: {
-        position: 'absolute',
-        bottom: 0,
-        left: 0,
-        right: 0,
-        backgroundColor: 'rgba(255, 255, 255, 0.95)',
-        paddingVertical: 8,
-        paddingHorizontal: 12,
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 6,
-        borderBottomLeftRadius: 12,
-        borderBottomRightRadius: 12,
-    },
-    fileNameText: {
-        fontSize: 12,
-        color: '#059669',
-        fontWeight: '500',
-        flex: 1,
     },
 })

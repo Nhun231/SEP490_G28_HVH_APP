@@ -8,24 +8,28 @@ const HostPersonal = () => {
     const router = useRouter()
 
     const handleLogout = () => {
-        Alert.alert('Đăng xuất', 'Bạn có chắc chắn muốn đăng xuất?', [
-            { text: 'Hủy', style: 'cancel' },
-            {
-                text: 'Đăng xuất',
-                style: 'destructive',
-                onPress: async () => {
-                    await logout()
-                    router.replace('/screen/login')
+        Alert.alert(
+            'Đăng xuất',
+            'Bạn có chắc muốn đăng xuất không?',
+            [
+                { text: 'Hủy', style: 'cancel' },
+                {
+                    text: 'Đăng xuất',
+                    style: 'destructive',
+                    onPress: async () => {
+                        await logout()
+                        router.replace('/screen/login')
+                    },
                 },
-            },
-        ])
+            ]
+        )
     }
 
     return (
         <SafeAreaView style={styles.container}>
             <View style={styles.content}>
                 <Text style={styles.title}>Cá nhân (Host)</Text>
-                <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+                <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
                     <Text style={styles.logoutText}>Đăng xuất</Text>
                 </TouchableOpacity>
             </View>
@@ -34,30 +38,11 @@ const HostPersonal = () => {
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#E3F2FD' },
-    content: {
-        flex: 1,
-        padding: 16,
-        justifyContent: 'center',
-        gap: 16,
-    },
-    title: {
-        fontSize: 18,
-        fontWeight: '600',
-        textAlign: 'center',
-        color: '#1f2937',
-    },
-    logoutButton: {
-        backgroundColor: '#ef4444',
-        borderRadius: 10,
-        paddingVertical: 12,
-        alignItems: 'center',
-    },
-    logoutText: {
-        color: '#ffffff',
-        fontWeight: '600',
-        fontSize: 16,
-    },
+    container: { flex: 1 },
+    content: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 20 },
+    title: { fontSize: 18, fontWeight: '600' },
+    logoutBtn: { backgroundColor: '#EF4444', paddingHorizontal: 24, paddingVertical: 12, borderRadius: 8 },
+    logoutText: { color: '#fff', fontWeight: '600', fontSize: 16 },
 })
 
 export default HostPersonal

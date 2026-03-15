@@ -2,7 +2,13 @@ import React from 'react';
 import { View, Text, TouchableOpacity, ScrollView, Image, StyleSheet } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 
+import { router } from 'expo-router';
+
 export default function MenuIcons() {
+    const handleFindEvent = () => {
+        router.push('/screen/event-feed' as any);
+    };
+
     return (
         <ScrollView
             horizontal
@@ -11,8 +17,7 @@ export default function MenuIcons() {
             contentContainerStyle={{ paddingRight: 16 }}
         >
             {/* BUTTON 1: SEARCH EVENT */}
-            {/* Change logic onPress later */}
-            <TouchableOpacity onPress={() => console.log('1')} activeOpacity={0.85}> 
+            <TouchableOpacity onPress={handleFindEvent} activeOpacity={0.85}> 
                 <View style={styles.buttonContainer}>
                     <LinearGradient
                         colors={['#64B5F6', '#42A5F5']}
