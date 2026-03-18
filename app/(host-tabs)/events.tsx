@@ -4,10 +4,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import DatePickerInput from '../components/DatePickerInput';
-import TimePickerInput from '../components/TimePickerInput';
 import DocumentUploadBox, { DocumentUpload } from '../components/DocumentUploadBox';
-import BottomSheetPicker from '../components/BottomSheetPicker';
-import MapLocationPicker from '../components/MapLocationPicker';
+import BottomSheetPicker, { OptionItem } from '../components/BottomSheetPicker';
+import MapLocationPicker, { LocationData } from '../components/MapLocationPicker';
+import PickerField from '../components/PickerField';
+import EventDayCard, { EventDay, DayErrorField } from '../components/EventDayCard';
 import { ActivityDomain, getAllActivityDomains } from '@/services/event-service';
 import { getFileExtension, getMimeType } from '@/services/upload-service';
 
@@ -15,28 +16,6 @@ import { getFileExtension, getMimeType } from '@/services/upload-service';
 import servedTargetsData from '../../assets/served_targets/doi_tuong_phuc_vu.json';
 import servedPlacesData from '../../assets/served_places/dia_diem_phuc_vu.json';
 import wardsData from '../../assets/wards/phuong_xa_moi_ha_noi.json';
-
-interface OptionItem {
-    id: number;
-    label: string;
-}
-
-interface LocationData {
-    latitude: number;
-    longitude: number;
-    address?: string;
-}
-
-interface EventDay {
-    id: string;
-    date?: Date;
-    startTime?: Date;
-    endTime?: Date;
-    volunteerCount: string;
-    servedCount: string;
-}
-
-type DayErrorField = 'date' | 'startTime' | 'endTime' | 'volunteerCount' | 'servedCount';
 
 interface EventFormErrors {
     eventName?: string;
@@ -56,6 +35,7 @@ const Event = () => {
 
     // Basic info states
     const [eventName, setEventName] = useState('');
+    const [description, setDescription] = useState('');
     const [servedTarget, setServedTarget] = useState<OptionItem>();
     const [servedField, setServedField] = useState<OptionItem>();
     const [servedSpecificField, setServedSpecificField] = useState<OptionItem>();
@@ -123,52 +103,47 @@ const Event = () => {
             }));
     }, [selectedActivityDomain]);
 
-    const getDateOnly = (date: Date) => new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    // const getDateOnly = (date: Date) => new Date(date.getFullYear(), date.getMonth(), date.getDate());
 
-    const getMinutesOfDay = (date: Date) => date.getHours() * 60 + date.getMinutes();
+    // const getMinutesOfDay = (date: Date) => date.getHours() * 60 + date.getMinutes();
 
-    const sanitizeNaturalNumberInput = (value: string) => value.replace(/[^0-9]/g, '');
+    const sanitizeNaturalNumberInput = (value: string) =>value.replace(/[^0-9]/g, '');
 
     const isPositiveNaturalNumber = (value: string) => {
         const parsed = Number(value);
         return Number.isInteger(parsed) && parsed > 0;
     };
 
-    const isAllowedTimeRange = (time: Date) => {
-        const minutes = getMinutesOfDay(time);
-        return minutes >= 300 && minutes <= 1380; // 05:00 - 23:00
-    };
+    // const getDurationValidationError = (startTime: Date, endTime: Date) => {
+    //     const durationMinutes = getMinutesOfDay(endTime) - getMinutesOfDay(startTime);
+    //     const baseLimitMinutes = 4 * 60;
 
-    const getDurationValidationError = (startTime: Date, endTime: Date) => {
-        const durationMinutes = getMinutesOfDay(endTime) - getMinutesOfDay(startTime);
-        const baseLimitMinutes = 4 * 60;
+    //     if (durationMinutes <= baseLimitMinutes) {
+    //         return undefined;
+    //     }
 
-        if (durationMinutes <= baseLimitMinutes) {
-            return undefined;
-        }
+    //     const specialLimitHours = selectedActivityDomain?.specialSessionMaxTime;
+    //     if (typeof specialLimitHours !== 'number') {
+    //         return 'Thời lượng sự kiện tối đa 4 giờ';
+    //     }
 
-        const specialLimitHours = selectedActivityDomain?.specialSessionMaxTime;
-        if (typeof specialLimitHours !== 'number') {
-            return 'Thời lượng sự kiện tối đa 4 giờ';
-        }
+    //     const specialLimitMinutes = specialLimitHours * 60;
+    //     if (durationMinutes > specialLimitMinutes) {
+    //         return `Thời lượng vượt quá giới hạn của lĩnh vực đã chọn (${specialLimitHours} giờ)`;
+    //     }
 
-        const specialLimitMinutes = specialLimitHours * 60;
-        if (durationMinutes > specialLimitMinutes) {
-            return `Thời lượng vượt quá giới hạn của lĩnh vực đã chọn (${specialLimitHours} giờ)`;
-        }
+    //     return undefined;
+    // };
 
-        return undefined;
-    };
+    // const getEarliestEventDate = () => {
+    //     const validDates = eventDays
+    //         .map((day) => day.date)
+    //         .filter((date): date is Date => Boolean(date))
+    //         .map((date) => getDateOnly(date));
 
-    const getEarliestEventDate = () => {
-        const validDates = eventDays
-            .map((day) => day.date)
-            .filter((date): date is Date => Boolean(date))
-            .map((date) => getDateOnly(date));
-
-        if (!validDates.length) return undefined;
-        return new Date(Math.min(...validDates.map((date) => date.getTime())));
-    };
+    //     if (!validDates.length) return undefined;
+    //     return new Date(Math.min(...validDates.map((date) => date.getTime())));
+    // };
 
     const setDayFieldError = (dayId: string, field: DayErrorField, message?: string) => {
         setEventDayErrors((prev) => {
@@ -220,24 +195,24 @@ const Event = () => {
         setDayFieldError(dayId, field);
     };
 
-    const validateRadiusField = (value: string) => {
-        if (!value.trim()) {
-            setFormFieldError('checkInRadius', 'Vui lòng nhập bán kính');
-            return;
-        }
+    // const validateRadiusField = (value: string) => {
+    //     if (!value.trim()) {
+    //         setFormFieldError('checkInRadius', 'Vui lòng nhập bán kính');
+    //         return;
+    //     }
 
-        if (!isPositiveNaturalNumber(value)) {
-            setFormFieldError('checkInRadius', 'Bán kính phải là số lớn hơn 0');
-            return;
-        }
+    //     if (!isPositiveNaturalNumber(value)) {
+    //         setFormFieldError('checkInRadius', 'Bán kính phải là số lớn hơn 0');
+    //         return;
+    //     }
 
-        if (Number(value) < 300) {
-            setFormFieldError('checkInRadius', 'Bán kính không được nhỏ hơn 300m');
-            return;
-        }
+    //     if (Number(value) < 300) {
+    //         setFormFieldError('checkInRadius', 'Bán kính tiêu chuẩn mặc định là 300m');
+    //         return;
+    //     }
 
-        setFormFieldError('checkInRadius');
-    };
+    //     setFormFieldError('checkInRadius');
+    // };
 
     useEffect(() => {
         const fetchAllActivityDomains = async () => {
@@ -264,20 +239,10 @@ const Event = () => {
 
     const updateEventDay = (id: string, field: keyof EventDay, value: any) => {
         if (field === 'date' && value instanceof Date) {
-            const selectedDate = getDateOnly(value);
-            if (selectedDate < todayStart) {
-                setDayFieldError(id, 'date', 'Ngày tổ chức không được là ngày trong quá khứ');
-                return;
-            }
             setDayFieldError(id, 'date');
         }
 
         if ((field === 'startTime' || field === 'endTime') && value instanceof Date) {
-            if (!isAllowedTimeRange(value)) {
-                const errorMessage = 'Giờ chỉ được chọn trong khoảng 05:00 đến 23:00';
-                setDayFieldError(id, field, errorMessage);
-                return;
-            }
             setDayFieldError(id, field);
         }
 
@@ -296,20 +261,20 @@ const Event = () => {
             day.id === id ? { ...day, [field]: value } : day
         ));
 
-        if (field === 'startTime' || field === 'endTime') {
-            const currentDay = eventDays.find((day) => day.id === id);
-            const startTime = field === 'startTime' ? value : currentDay?.startTime;
-            const endTime = field === 'endTime' ? value : currentDay?.endTime;
+        // if (field === 'startTime' || field === 'endTime') {
+        //     const currentDay = eventDays.find((day) => day.id === id);
+        //     const startTime = field === 'startTime' ? value : currentDay?.startTime;
+        //     const endTime = field === 'endTime' ? value : currentDay?.endTime;
 
-            if (startTime instanceof Date && endTime instanceof Date) {
-                if (getMinutesOfDay(endTime) <= getMinutesOfDay(startTime)) {
-                    setDayFieldError(id, 'endTime', 'Giờ kết thúc phải sau giờ bắt đầu');
-                } else {
-                    const durationError = getDurationValidationError(startTime, endTime);
-                    setDayFieldError(id, 'endTime', durationError);
-                }
-            }
-        }
+        //     if (startTime instanceof Date && endTime instanceof Date) {
+        //         if (getMinutesOfDay(endTime) <= getMinutesOfDay(startTime)) {
+        //             setDayFieldError(id, 'endTime', 'Giờ kết thúc phải sau giờ bắt đầu');
+        //         } else {
+        //             const durationError = getDurationValidationError(startTime, endTime);
+        //             setDayFieldError(id, 'endTime', durationError);
+        //         }
+        //     }
+        // }
     };
 
     const removeEventDay = (id: string) => {
@@ -399,49 +364,43 @@ const Event = () => {
         if (!eventImageDoc.uri) nextErrors.eventImage = 'Vui lòng chọn ảnh hoạt động';
         if (!checkInLocation) nextErrors.checkInLocation = 'Vui lòng chọn địa điểm điểm danh';
 
-        if (!checkInRadius.trim()) {
-            nextErrors.checkInRadius = 'Vui lòng nhập bán kính';
-        } else if (!isPositiveNaturalNumber(checkInRadius)) {
-            nextErrors.checkInRadius = 'Bán kính phải là số lớn hơn 0';
-        } else if (Number(checkInRadius) < 300) {
-            nextErrors.checkInRadius = 'Bán kính không được nhỏ hơn 300m';
-        }
+        // if (!checkInRadius.trim()) {
+        //     nextErrors.checkInRadius = 'Vui lòng nhập bán kính';
+        // } else if (!isPositiveNaturalNumber(checkInRadius)) {
+        //     nextErrors.checkInRadius = 'Bán kính phải là số lớn hơn 0';
+        // } else if (Number(checkInRadius) < 300) {
+        //     nextErrors.checkInRadius = 'Bán kính không được nhỏ hơn 300m';
+        // }
 
         eventDays.forEach((day) => {
             const dayErr: Partial<Record<DayErrorField, string>> = {};
 
             if (!day.date) {
                 dayErr.date = 'Vui lòng chọn ngày tổ chức';
-            } else if (getDateOnly(day.date) < todayStart) {
-                dayErr.date = 'Ngày tổ chức không được là ngày trong quá khứ';
             }
 
             if (!day.startTime) {
                 dayErr.startTime = 'Vui lòng chọn giờ bắt đầu';
-            } else if (!isAllowedTimeRange(day.startTime)) {
-                dayErr.startTime = 'Giờ bắt đầu chỉ được từ 05:00 đến 23:00';
             }
 
             if (!day.endTime) {
                 dayErr.endTime = 'Vui lòng chọn giờ kết thúc';
-            } else if (!isAllowedTimeRange(day.endTime)) {
-                dayErr.endTime = 'Giờ kết thúc chỉ được từ 05:00 đến 23:00';
             }
 
-            if (day.startTime && day.endTime && getMinutesOfDay(day.endTime) <= getMinutesOfDay(day.startTime)) {
-                dayErr.endTime = 'Giờ kết thúc phải sau giờ bắt đầu';
-            }
+            // if (day.startTime && day.endTime && getMinutesOfDay(day.endTime) <= getMinutesOfDay(day.startTime)) {
+            //     dayErr.endTime = 'Giờ kết thúc phải sau giờ bắt đầu';
+            // }
 
-            if (
-                day.startTime &&
-                day.endTime &&
-                getMinutesOfDay(day.endTime) > getMinutesOfDay(day.startTime)
-            ) {
-                const durationError = getDurationValidationError(day.startTime, day.endTime);
-                if (durationError) {
-                    dayErr.endTime = durationError;
-                }
-            }
+            // if (
+            //     day.startTime &&
+            //     day.endTime &&
+            //     getMinutesOfDay(day.endTime) > getMinutesOfDay(day.startTime)
+            // ) {
+            //     const durationError = getDurationValidationError(day.startTime, day.endTime);
+            //     if (durationError) {
+            //         dayErr.endTime = durationError;
+            //     }
+            // }
 
             if (!day.volunteerCount.trim()) {
                 dayErr.volunteerCount = 'Vui lòng nhập số lượng TNV cần tuyển';
@@ -460,17 +419,17 @@ const Event = () => {
             }
         });
 
-        if (registrationDeadline) {
-            const earliestEventDate = getEarliestEventDate();
-            if (earliestEventDate) {
-                const maxDeadline = new Date(earliestEventDate);
-                maxDeadline.setDate(maxDeadline.getDate() - 3);
+        // if (registrationDeadline) {
+        //     const earliestEventDate = getEarliestEventDate();
+        //     if (earliestEventDate) {
+        //         const maxDeadline = new Date(earliestEventDate);
+        //         maxDeadline.setDate(maxDeadline.getDate() - 3);
 
-                if (getDateOnly(registrationDeadline) > getDateOnly(maxDeadline)) {
-                    nextErrors.registrationDeadline = 'Hạn đăng ký phải trước ngày bắt đầu sự kiện ít nhất 3 ngày';
-                }
-            }
-        }
+        //         if (getDateOnly(registrationDeadline) > getDateOnly(maxDeadline)) {
+        //             nextErrors.registrationDeadline = 'Hạn đăng ký phải sau ngày tạo sự kiện và trước ngày bắt đầu sự kiện ít nhất 3 ngày';
+        //         }
+        //     }
+        // }
 
         setFormErrors(nextErrors);
         setEventDayErrors(nextDayErrors);
@@ -485,11 +444,14 @@ const Event = () => {
 
         console.log('Submit for approval', {
             eventName,
+            description,
             approvalMode,
             servedTarget,
+            servedTargetValue: servedTarget?.value,
             servedField,
             servedSpecificField,
             servedPlace,
+            servingPlaceType: servedPlace?.value,
             area,
             registrationDeadline,
             eventImage: eventImageDoc.uri,
@@ -510,12 +472,8 @@ const Event = () => {
                         <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
                     </TouchableOpacity>
                     <View>
-                        <Text style={styles.headerTitle}>
-                            Thêm sự kiện mới
-                        </Text>
-                        <Text style={styles.headerSubtitle}>
-                            Điền thông tin bên dưới
-                        </Text>
+                        <Text style={styles.headerTitle}>Thêm sự kiện mới</Text>
+                        <Text style={styles.headerSubtitle}>Điền thông tin bên dưới</Text>
                     </View>
                 </View>
 
@@ -524,429 +482,283 @@ const Event = () => {
                     style={styles.scrollView}
                     keyboardVerticalOffset={0}
                 >
-                <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
+                    <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
 
-                    {/* ── Thông tin cơ bản ── */}
-                    <View style={styles.card}>
-                        <Text style={styles.sectionTitle}>
-                            Thông tin cơ bản
-                        </Text>
+                        {/* ── Thông tin cơ bản ── */}
+                        <View style={styles.card}>
+                            <Text style={styles.sectionTitle}>Thông tin cơ bản</Text>
 
-                        {/* Tên hoạt động */}
-                        <View style={styles.fieldWrapper}>
-                            <Text style={styles.fieldLabel}>
-                                Tên hoạt động <Text style={styles.required}>*</Text>
-                            </Text>
-                            <View style={[styles.inputRow, { borderColor: formErrors.eventName ? '#EF4444' : '#D1D5DB' }]}>
-                                <Ionicons name="pencil-outline" size={17} color="#9CA3AF" style={styles.inputIcon} />
-                                <TextInput
-                                    style={styles.textInput}
-                                    placeholder="Ví dụ: Làm sạch môi trường + Hoàn Kiếm"
-                                    placeholderTextColor="#9CA3AF"
-                                    value={eventName}
-                                    onBlur={() => validateRequiredFormField('eventName', eventName.trim(), 'Vui lòng nhập tên hoạt động')}
-                                    onChangeText={(text) => {
-                                        setEventName(text);
-                                        setFormFieldError('eventName', text.trim() ? undefined : formErrors.eventName);
-                                    }}
-                                />
-                            </View>
-                            <Text style={styles.fieldHint}>
-                                Định dạng: Nội dung + Địa điểm (không quá 30 ký tự)
-                            </Text>
-                            {formErrors.eventName && (
-                                <Text style={styles.errorText}>{formErrors.eventName}</Text>
-                            )}
-                        </View>
-
-                        {/* Chế độ phê duyệt */}
-                        <View style={styles.fieldWrapper}>
-                            <Text style={styles.fieldLabel}>
-                                Chế độ phê duyệt
-                            </Text>
-                            <View style={styles.toggleRow}>
-                                <TouchableOpacity
-                                    onPress={() => setApprovalMode(0)}
-                                    style={[styles.toggleBtn, approvalMode === 0 ? styles.toggleBtnActive : styles.toggleBtnInactive]}
-                                >
-                                    <Text style={[styles.toggleBtnText, { color: approvalMode === 0 ? '#FFFFFF' : '#374151' }]}>
-                                        Phê duyệt tự động
-                                    </Text>
-                                </TouchableOpacity>
-                                <TouchableOpacity
-                                    onPress={() => setApprovalMode(1)}
-                                    style={[styles.toggleBtn, approvalMode === 1 ? styles.toggleBtnActive : styles.toggleBtnInactive]}
-                                >
-                                    <Text style={[styles.toggleBtnText, { color: approvalMode === 1 ? '#FFFFFF' : '#374151' }]}>
-                                        Phê duyệt thủ công
-                                    </Text>
-                                </TouchableOpacity>
-                            </View>
-                        </View>
-
-                        {/* Đối tượng phục vụ */}
-                        <View style={styles.fieldWrapper}>
-                            <Text style={styles.fieldLabel}>
-                                Đối tượng phục vụ <Text style={styles.required}>*</Text>
-                            </Text>
-                            <TouchableOpacity
-                                onPress={() => setShowTargetPicker(true)}
-                                style={[styles.pickerRow, { borderColor: formErrors.servedTarget ? '#EF4444' : '#D1D5DB' }]}
-                            >
-                                <Ionicons name="people-outline" size={17} color="#9CA3AF" style={styles.inputIcon} />
-                                <Text style={[styles.pickerText, { color: servedTarget ? '#1F2937' : '#9CA3AF' }]} numberOfLines={1}>
-                                    {servedTarget?.label || 'Vui lòng chọn đối tượng phục vụ'}
+                            {/* Tên hoạt động */}
+                            <View style={styles.fieldWrapper}>
+                                <Text style={styles.fieldLabel}>
+                                    Tên hoạt động <Text style={styles.required}>*</Text>
                                 </Text>
-                                <Ionicons name="chevron-forward" size={18} color="#9CA3AF" />
-                            </TouchableOpacity>
-                            {formErrors.servedTarget && (
-                                <Text style={styles.errorText}>{formErrors.servedTarget}</Text>
-                            )}
-                        </View>
-
-                        {/* Lĩnh vực phục vụ */}
-                        <View style={styles.fieldWrapper}>
-                            <Text style={styles.fieldLabel}>
-                                Lĩnh vực phục vụ <Text style={styles.required}>*</Text>
-                            </Text>
-                            <TouchableOpacity
-                                onPress={() => setShowFieldPicker(true)}
-                                style={[styles.pickerRow, { borderColor: formErrors.servedField ? '#EF4444' : '#D1D5DB' }]}
-                            >
-                                <Ionicons name="grid-outline" size={17} color="#9CA3AF" style={styles.inputIcon} />
-                                <Text style={[styles.pickerText, { color: servedField ? '#1F2937' : '#9CA3AF' }]} numberOfLines={1}>
-                                    {servedField?.label || 'Vui lòng chọn lĩnh vực phục vụ'}
-                                </Text>
-                                <Ionicons name="chevron-forward" size={18} color="#9CA3AF" />
-                            </TouchableOpacity>
-                            {formErrors.servedField && (
-                                <Text style={styles.errorText}>{formErrors.servedField}</Text>
-                            )}
-                        </View>
-
-                        {/* Lĩnh vực cụ thể */}
-                        <View style={styles.fieldWrapper}>
-                            <Text style={styles.fieldLabel}>
-                                Lĩnh vực cụ thể <Text style={styles.required}>*</Text>
-                            </Text>
-                            <TouchableOpacity
-                                onPress={() => { if (!servedField) return; setShowSpecificFieldPicker(true); }}
-                                style={[styles.pickerRow, { borderColor: formErrors.servedSpecificField ? '#EF4444' : '#D1D5DB', opacity: servedField ? 1 : 0.5 }]}
-                            >
-                                <Ionicons name="list-outline" size={17} color="#9CA3AF" style={styles.inputIcon} />
-                                <Text style={[styles.pickerText, { color: servedSpecificField ? '#1F2937' : '#9CA3AF' }]} numberOfLines={1}>
-                                    {servedSpecificField?.label || 'Vui lòng chọn lĩnh vực cụ thể'}
-                                </Text>
-                                <Ionicons name="chevron-forward" size={18} color="#9CA3AF" />
-                            </TouchableOpacity>
-                            {!servedField && (
-                                <Text style={styles.fieldHint}>
-                                    Vui lòng chọn lĩnh vực phục vụ trước
-                                </Text>
-                            )}
-                            {formErrors.servedSpecificField && (
-                                <Text style={styles.errorText}>{formErrors.servedSpecificField}</Text>
-                            )}
-                        </View>
-
-                        {/* Loại địa điểm phục vụ */}
-                        <View style={styles.fieldWrapper}>
-                            <Text style={styles.fieldLabel}>
-                                Loại địa điểm phục vụ <Text style={styles.required}>*</Text>
-                            </Text>
-                            <TouchableOpacity
-                                onPress={() => setShowPlacePicker(true)}
-                                style={[styles.pickerRow, { borderColor: formErrors.servedPlace ? '#EF4444' : '#D1D5DB' }]}
-                            >
-                                <Ionicons name="location-outline" size={17} color="#9CA3AF" style={styles.inputIcon} />
-                                <Text style={[styles.pickerText, { color: servedPlace ? '#1F2937' : '#9CA3AF' }]} numberOfLines={1}>
-                                    {servedPlace?.label || 'Vui lòng chọn loại địa điểm phục vụ'}
-                                </Text>
-                                <Ionicons name="chevron-forward" size={18} color="#9CA3AF" />
-                            </TouchableOpacity>
-                            {formErrors.servedPlace && (
-                                <Text style={styles.errorText}>{formErrors.servedPlace}</Text>
-                            )}
-                        </View>
-
-                        {/* Khu vực tổ chức */}
-                        <View style={styles.fieldWrapper}>
-                            <Text style={styles.fieldLabel}>
-                                Khu vực tổ chức <Text style={styles.required}>*</Text>
-                            </Text>
-                            <TouchableOpacity
-                                onPress={() => setShowAreaPicker(true)}
-                                style={[styles.pickerRow, { borderColor: formErrors.area ? '#EF4444' : '#D1D5DB' }]}
-                            >
-                                <Ionicons name="map-outline" size={17} color="#9CA3AF" style={styles.inputIcon} />
-                                <Text style={[styles.pickerText, { color: area ? '#1F2937' : '#9CA3AF' }]} numberOfLines={1}>
-                                    {area?.label || 'Vui lòng chọn khu vực tổ chức'}
-                                </Text>
-                                <Ionicons name="chevron-forward" size={18} color="#9CA3AF" />
-                            </TouchableOpacity>
-                            {formErrors.area && (
-                                <Text style={styles.errorText}>{formErrors.area}</Text>
-                            )}
-                        </View>
-
-                        {/* Hạn đăng ký */}
-                        <View style={{ marginBottom: 0 }}>
-                            <DatePickerInput
-                                label="Hạn đăng ký"
-                                required
-                                value={registrationDeadline}
-                                onDismiss={() => validateRequiredFormField('registrationDeadline', registrationDeadline, 'Vui lòng chọn hạn đăng ký')}
-                                onChange={(date) => {
-                                    setRegistrationDeadline(date);
-                                    setFormFieldError('registrationDeadline');
-                                }}
-                                placeholder="Vui lòng chọn ngày kết thúc tuyển chọn"
-                                minimumDate={todayStart}
-                            />
-                            <Text style={styles.fieldHintNeg}>
-                                Hạn đăng ký phải trước ngày bắt đầu ít nhất 3 ngày
-                            </Text>
-                            {formErrors.registrationDeadline && (
-                                <Text style={styles.errorText}>{formErrors.registrationDeadline}</Text>
-                            )}
-                        </View>
-                    </View>
-
-                    {/* ── Ảnh hoạt động ── */}
-                    <View style={styles.card}>
-                        <Text style={[styles.sectionTitle, { marginBottom: 12 }]}>
-                            Ảnh hoạt động
-                        </Text>
-                        <DocumentUploadBox
-                            label="Ảnh đại diện sự kiện"
-                            required
-                            subtitle="PNG, JPG (tối đa 5MB)"
-                            document={eventImageDoc}
-                            onPress={handlePickEventImage}
-                            onRemove={handleRemoveEventImage}
-                        />
-                        {formErrors.eventImage && (
-                            <Text style={styles.errorTextNeg}>{formErrors.eventImage}</Text>
-                        )}
-                    </View>
-
-                    {/* ── Lịch tổ chức sự kiện ── */}
-                    <View style={styles.card}>
-                        <Text style={styles.sectionTitle}>
-                            Lịch tổ chức sự kiện
-                        </Text>
-
-                        {eventDays.map((day, index) => (
-                            <View key={day.id} style={styles.dayCard}>
-                                <View style={styles.dayCardHeader}>
-                                    <Text style={styles.dayCardTitle}>
-                                        Ngày {index + 1}
-                                    </Text>
-                                    {eventDays.length > 1 && (
-                                        <TouchableOpacity onPress={() => removeEventDay(day.id)} style={styles.trashBtn}>
-                                            <Ionicons name="trash-outline" size={20} color="#EF4444" />
-                                        </TouchableOpacity>
-                                    )}
+                                <View style={[styles.inputRow, { borderColor: formErrors.eventName ? '#EF4444' : '#D1D5DB' }]}>
+                                    <Ionicons name="pencil-outline" size={17} color="#9CA3AF" style={styles.inputIcon} />
+                                    <TextInput
+                                        style={styles.textInput}
+                                        placeholder="Ví dụ: Làm sạch môi trường + Hoàn Kiếm"
+                                        placeholderTextColor="#9CA3AF"
+                                        value={eventName}
+                                        onBlur={() => validateRequiredFormField('eventName', eventName.trim(), 'Vui lòng nhập tên hoạt động')}
+                                        onChangeText={(text) => {
+                                            setEventName(text);
+                                            setFormFieldError('eventName', text.trim() ? undefined : formErrors.eventName);
+                                        }}
+                                    />
                                 </View>
+                                <Text style={styles.fieldHint}>
+                                    Định dạng: Nội dung + Địa điểm (không quá 30 ký tự)
+                                </Text>
+                                {formErrors.eventName && (
+                                    <Text style={styles.errorText}>{formErrors.eventName}</Text>
+                                )}
+                            </View>
 
-                                {/* Ngày tổ chức */}
-                                <DatePickerInput
-                                    label="Ngày tổ chức"
+                            {/* Miêu tả sự kiện */}
+                            <View style={styles.fieldWrapper}>
+                                <Text style={styles.fieldLabel}>
+                                    Miêu tả sự kiện <Text style={styles.required}>*</Text>
+                                </Text>
+                                <View style={styles.descriptionInputRow}>
+                                    <TextInput
+                                        style={styles.descriptionInput}
+                                        placeholder="Nhập miêu tả chi tiết cho sự kiện"
+                                        placeholderTextColor="#9CA3AF"
+                                        multiline
+                                        numberOfLines={4}
+                                        textAlignVertical="top"
+                                        value={description}
+                                        onChangeText={setDescription}
+                                    />
+                                </View>
+                            </View>
+
+                            {/* Chế độ phê duyệt */}
+                            <View style={styles.fieldWrapper}>
+                                <Text style={styles.fieldLabel}>Chế độ phê duyệt</Text>
+                                <View style={styles.toggleRow}>
+                                    <TouchableOpacity
+                                        onPress={() => setApprovalMode(0)}
+                                        style={[styles.toggleBtn, approvalMode === 0 ? styles.toggleBtnActive : styles.toggleBtnInactive]}
+                                    >
+                                        <Text style={[styles.toggleBtnText, { color: approvalMode === 0 ? '#FFFFFF' : '#374151' }]}>
+                                            Phê duyệt tự động
+                                        </Text>
+                                    </TouchableOpacity>
+                                    <TouchableOpacity
+                                        onPress={() => setApprovalMode(1)}
+                                        style={[styles.toggleBtn, approvalMode === 1 ? styles.toggleBtnActive : styles.toggleBtnInactive]}
+                                    >
+                                        <Text style={[styles.toggleBtnText, { color: approvalMode === 1 ? '#FFFFFF' : '#374151' }]}>
+                                            Phê duyệt thủ công
+                                        </Text>
+                                    </TouchableOpacity>
+                                </View>
+                            </View>
+
+                            {/* Đối tượng phục vụ */}
+                            <PickerField
+                                label="Đối tượng phục vụ"
+                                required
+                                icon="people-outline"
+                                value={servedTarget}
+                                placeholder="Vui lòng chọn đối tượng phục vụ"
+                                onPress={() => setShowTargetPicker(true)}
+                                error={formErrors.servedTarget}
+                            />
+
+                            {/* Lĩnh vực phục vụ */}
+                            <PickerField
+                                label="Lĩnh vực phục vụ"
+                                required
+                                icon="grid-outline"
+                                value={servedField}
+                                placeholder="Vui lòng chọn lĩnh vực phục vụ"
+                                onPress={() => setShowFieldPicker(true)}
+                                error={formErrors.servedField}
+                            />
+
+                            {/* Lĩnh vực cụ thể */}
+                            <View>
+                                <PickerField
+                                    label="Lĩnh vực cụ thể"
                                     required
-                                    value={day.date}
-                                    onDismiss={() => setDayFieldError(day.id, 'date', day.date ? undefined : 'Vui lòng chọn ngày tổ chức')}
-                                    onChange={(date) => updateEventDay(day.id, 'date', date)}
-                                    placeholder="Vui lòng chọn ngày diễn ra sự kiện"
+                                    icon="list-outline"
+                                    value={servedSpecificField}
+                                    placeholder="Vui lòng chọn lĩnh vực cụ thể"
+                                    onPress={() => { if (!servedField) return; setShowSpecificFieldPicker(true); }}
+                                    error={formErrors.servedSpecificField}
+                                    disabled={!servedField}
+                                />
+                                {!servedField && (
+                                    <Text style={[styles.fieldHint, { marginTop: -12 }]}>
+                                        Vui lòng chọn lĩnh vực phục vụ trước
+                                    </Text>
+                                )}
+                            </View>
+
+                            {/* Loại địa điểm phục vụ */}
+                            <PickerField
+                                label="Loại địa điểm phục vụ"
+                                required
+                                icon="location-outline"
+                                value={servedPlace}
+                                placeholder="Vui lòng chọn loại địa điểm phục vụ"
+                                onPress={() => setShowPlacePicker(true)}
+                                error={formErrors.servedPlace}
+                            />
+
+                            {/* Khu vực tổ chức */}
+                            <PickerField
+                                label="Khu vực tổ chức"
+                                required
+                                icon="map-outline"
+                                value={area}
+                                placeholder="Vui lòng chọn khu vực tổ chức"
+                                onPress={() => setShowAreaPicker(true)}
+                                error={formErrors.area}
+                            />
+
+                            {/* Hạn đăng ký */}
+                            <View style={{ marginBottom: 0 }}>
+                                <DatePickerInput
+                                    label="Hạn đăng ký"
+                                    required
+                                    value={registrationDeadline}
+                                    onDismiss={() => validateRequiredFormField('registrationDeadline', registrationDeadline, 'Vui lòng chọn hạn đăng ký')}
+                                    onChange={(date) => {
+                                        setRegistrationDeadline(date);
+                                        setFormFieldError('registrationDeadline');
+                                    }}
+                                    placeholder="Vui lòng chọn ngày kết thúc tuyển chọn"
                                     minimumDate={todayStart}
                                 />
-                                {eventDayErrors[day.id]?.date && (
-                                    <Text style={styles.errorTextNeg}>{eventDayErrors[day.id]?.date}</Text>
+                                <Text style={styles.fieldHintNeg}>
+                                    Hạn đăng ký phải sau ngày tạo sự kiện và trước ngày bắt đầu ít nhất 3 ngày
+                                </Text>
+                                {formErrors.registrationDeadline && (
+                                    <Text style={styles.errorText}>{formErrors.registrationDeadline}</Text>
                                 )}
-
-                                {/* Giờ bắt đầu và Kết thúc */}
-                                <View style={styles.timeRow}>
-                                    <View style={styles.halfCol}>
-                                        <TimePickerInput
-                                            label="Giờ bắt đầu"
-                                            required
-                                            value={day.startTime}
-                                            onDismiss={() => setDayFieldError(day.id, 'startTime', day.startTime ? undefined : 'Vui lòng chọn giờ bắt đầu')}
-                                            onChange={(time) => updateEventDay(day.id, 'startTime', time)}
-                                            placeholder="Chọn giờ"
-                                            minHour={5}
-                                            maxHour={23}
-                                            onInvalidSelection={(message) => setDayFieldError(day.id, 'startTime', message)}
-                                        />
-                                        {eventDayErrors[day.id]?.startTime && (
-                                            <Text style={styles.errorTextNeg}>{eventDayErrors[day.id]?.startTime}</Text>
-                                        )}
-                                    </View>
-                                    <View style={styles.halfCol}>
-                                        <TimePickerInput
-                                            label="Giờ kết thúc"
-                                            required
-                                            value={day.endTime}
-                                            onDismiss={() => setDayFieldError(day.id, 'endTime', day.endTime ? undefined : 'Vui lòng chọn giờ kết thúc')}
-                                            onChange={(time) => updateEventDay(day.id, 'endTime', time)}
-                                            placeholder="Chọn giờ"
-                                            minHour={5}
-                                            maxHour={23}
-                                            onInvalidSelection={(message) => setDayFieldError(day.id, 'endTime', message)}
-                                        />
-                                        {eventDayErrors[day.id]?.endTime && (
-                                            <Text style={styles.errorTextNeg}>{eventDayErrors[day.id]?.endTime}</Text>
-                                        )}
-                                    </View>
-                                </View>
-
-                                {/* Số lượng TNV */}
-                                <View style={styles.dayFieldWrapper}>
-                                    <Text style={styles.fieldLabel}>
-                                        Số lượng TNV cần tuyển <Text style={styles.required}>*</Text>
-                                    </Text>
-                                    <View style={[styles.inputRow, { borderColor: eventDayErrors[day.id]?.volunteerCount ? '#EF4444' : '#D1D5DB' }]}>
-                                        <Ionicons name="people-outline" size={17} color="#9CA3AF" style={styles.inputIcon} />
-                                        <TextInput
-                                            style={styles.textInput}
-                                            placeholder="Nhập số lượng"
-                                            placeholderTextColor="#9CA3AF"
-                                            keyboardType="numeric"
-                                            value={day.volunteerCount}
-                                            onBlur={() => validateQuantityField(day.id, 'volunteerCount', day.volunteerCount, 'Vui lòng nhập số lượng TNV cần tuyển')}
-                                            onChangeText={(text) => updateEventDay(day.id, 'volunteerCount', sanitizeNaturalNumberInput(text))}
-                                        />
-                                        <Text style={styles.unitText}>Người</Text>
-                                    </View>
-                                    {eventDayErrors[day.id]?.volunteerCount && (
-                                        <Text style={styles.errorText}>{eventDayErrors[day.id]?.volunteerCount}</Text>
-                                    )}
-                                </View>
-
-                                {/* Số lượng đối tượng phục vụ */}
-                                <View style={{ marginBottom: 0 }}>
-                                    <Text style={styles.fieldLabel}>
-                                        Số lượng đối tượng phục vụ <Text style={styles.required}>*</Text>
-                                    </Text>
-                                    <View style={[styles.inputRow, { borderColor: eventDayErrors[day.id]?.servedCount ? '#EF4444' : '#D1D5DB' }]}>
-                                        <Ionicons name="heart-outline" size={17} color="#9CA3AF" style={styles.inputIcon} />
-                                        <TextInput
-                                            style={styles.textInput}
-                                            placeholder="Nhập số lượng"
-                                            placeholderTextColor="#9CA3AF"
-                                            keyboardType="numeric"
-                                            value={day.servedCount}
-                                            onBlur={() => validateQuantityField(day.id, 'servedCount', day.servedCount, 'Vui lòng nhập số lượng đối tượng phục vụ')}
-                                            onChangeText={(text) => updateEventDay(day.id, 'servedCount', sanitizeNaturalNumberInput(text))}
-                                        />
-                                        <Text style={styles.unitText}>Người</Text>
-                                    </View>
-                                    {eventDayErrors[day.id]?.servedCount && (
-                                        <Text style={styles.errorText}>{eventDayErrors[day.id]?.servedCount}</Text>
-                                    )}
-                                </View>
                             </View>
-                        ))}
+                        </View>
 
-                        {/* Thêm ngày button */}
-                        <TouchableOpacity
-                            onPress={addEventDay}
-                            style={styles.addDayBtn}
-                        >
-                            <Ionicons name="add" size={20} color="#42A5F5" />
-                            <Text style={styles.addDayText}>Thêm ngày</Text>
-                        </TouchableOpacity>
-                    </View>
-
-                    {/* ── Cài đặt địa điểm điểm danh ── */}
-                    <View style={styles.card}>
-                        <Text style={styles.sectionTitle}>
-                            Cài đặt địa điểm điểm danh
-                        </Text>
-
-                        {/* Địa điểm điểm danh */}
-                        <View style={styles.fieldWrapper}>
-                            <Text style={styles.fieldLabel}>
-                                Địa điểm điểm danh <Text style={styles.required}>*</Text>
-                            </Text>
-                            <TouchableOpacity
-                                onPress={() => setShowMapPicker(true)}
-                                activeOpacity={0.7}
-                                style={[styles.pickerRow, { borderColor: formErrors.checkInLocation ? '#EF4444' : '#D1D5DB' }]}
-                            >
-                                <Ionicons name="location-outline" size={17} color="#9CA3AF" style={styles.inputIcon} />
-                                <View style={styles.locationTextWrapper}>
-                                    {checkInLocation?.address ? (
-                                        <Text style={styles.pickerTextDark} numberOfLines={2}>
-                                            {checkInLocation.address}
-                                        </Text>
-                                    ) : (
-                                        <Text style={styles.pickerTextPlaceholder}>
-                                            Chọn địa điểm trên bản đồ
-                                        </Text>
-                                    )}
-                                </View>
-                                <Ionicons name="map-outline" size={18} color="#9CA3AF" />
-                            </TouchableOpacity>
-                            {formErrors.checkInLocation && (
-                                <Text style={styles.errorText}>{formErrors.checkInLocation}</Text>
+                        {/* ── Ảnh hoạt động ── */}
+                        <View style={styles.card}>
+                            <Text style={[styles.sectionTitle, { marginBottom: 12 }]}>Ảnh hoạt động</Text>
+                            <DocumentUploadBox
+                                label="Ảnh đại diện sự kiện"
+                                required
+                                subtitle="PNG, JPG (tối đa 5MB)"
+                                document={eventImageDoc}
+                                onPress={handlePickEventImage}
+                                onRemove={handleRemoveEventImage}
+                            />
+                            {formErrors.eventImage && (
+                                <Text style={styles.errorTextNeg}>{formErrors.eventImage}</Text>
                             )}
                         </View>
 
-                        {/* Bán kính cho phép */}
-                        <View style={{ marginBottom: 0 }}>
-                            <Text style={styles.fieldLabel}>
-                                Bán kính cho phép <Text style={styles.required}>*</Text>
-                            </Text>
-                            <View style={[styles.inputRow, { borderColor: formErrors.checkInRadius ? '#EF4444' : '#D1D5DB' }]}>
-                                <Ionicons name="radio-button-on-outline" size={17} color="#9CA3AF" style={styles.inputIcon} />
-                                <TextInput
-                                    style={styles.textInput}
-                                    placeholder="300"
-                                    placeholderTextColor="#9CA3AF"
-                                    keyboardType="numeric"
-                                    value={checkInRadius}
-                                    onBlur={() => validateRadiusField(checkInRadius)}
-                                    onChangeText={(text) => {
-                                        const sanitized = sanitizeNaturalNumberInput(text);
-                                        setCheckInRadius(sanitized);
-                                        validateRadiusField(sanitized);
-                                    }}
+                        {/* ── Lịch tổ chức sự kiện ── */}
+                        <View style={styles.card}>
+                            <Text style={styles.sectionTitle}>Lịch tổ chức sự kiện</Text>
+
+                            {eventDays.map((day, index) => (
+                                <EventDayCard
+                                    key={day.id}
+                                    day={day}
+                                    index={index}
+                                    totalDays={eventDays.length}
+                                    errors={eventDayErrors[day.id]}
+                                    todayStart={todayStart}
+                                    onRemove={removeEventDay}
+                                    onUpdateDay={updateEventDay}
+                                    onSetDayFieldError={setDayFieldError}
+                                    onValidateQuantity={validateQuantityField}
+                                    sanitizeInput={sanitizeNaturalNumberInput}
                                 />
-                                <Text style={styles.unitText}>Mét</Text>
-                            </View>
-                            <Text style={styles.fieldHint}>
-                                Tiêu chuẩn: 300m - 500m (có thể yêu cầu lên đến 3000m cho sự kiện lớn)
-                            </Text>
-                            {formErrors.checkInRadius && (
-                                <Text style={styles.errorText}>{formErrors.checkInRadius}</Text>
-                            )}
-                        </View>
-                    </View>
+                            ))}
 
-                    {/* Action Buttons */}
-                    <View style={styles.btnRow}>
-                        <TouchableOpacity
-                            onPress={handleSaveDraft}
-                            style={styles.draftBtn}
-                        >
-                            <Text style={styles.draftBtnText}>
-                                Lưu bản thảo
-                            </Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                            onPress={handleSubmit}
-                            style={styles.submitBtn}
-                        >
-                            <Text style={styles.submitBtnText}>
-                                Gửi phê duyệt
-                            </Text>
-                        </TouchableOpacity>
-                    </View>
-                </ScrollView>
+                            {/* Thêm ngày button */}
+                            <TouchableOpacity onPress={addEventDay} style={styles.addDayBtn}>
+                                <Ionicons name="add" size={20} color="#42A5F5" />
+                                <Text style={styles.addDayText}>Thêm ngày</Text>
+                            </TouchableOpacity>
+                        </View>
+
+                        {/* ── Cài đặt địa điểm điểm danh ── */}
+                        <View style={styles.card}>
+                            <Text style={styles.sectionTitle}>Cài đặt địa điểm điểm danh</Text>
+
+                            {/* Địa điểm điểm danh */}
+                            <View style={styles.fieldWrapper}>
+                                <Text style={styles.fieldLabel}>
+                                    Địa điểm điểm danh <Text style={styles.required}>*</Text>
+                                </Text>
+                                <TouchableOpacity
+                                    onPress={() => setShowMapPicker(true)}
+                                    activeOpacity={0.7}
+                                    style={[styles.pickerRow, { borderColor: formErrors.checkInLocation ? '#EF4444' : '#D1D5DB' }]}
+                                >
+                                    <Ionicons name="location-outline" size={17} color="#9CA3AF" style={styles.inputIcon} />
+                                    <View style={styles.locationTextWrapper}>
+                                        {checkInLocation?.address ? (
+                                            <Text style={styles.pickerTextDark} numberOfLines={2}>
+                                                {checkInLocation.address}
+                                            </Text>
+                                        ) : (
+                                            <Text style={styles.pickerTextPlaceholder}>
+                                                Chọn địa điểm trên bản đồ
+                                            </Text>
+                                        )}
+                                    </View>
+                                    <Ionicons name="map-outline" size={18} color="#9CA3AF" />
+                                </TouchableOpacity>
+                                {formErrors.checkInLocation && (
+                                    <Text style={styles.errorText}>{formErrors.checkInLocation}</Text>
+                                )}
+                            </View>
+
+                            {/* Bán kính cho phép */}
+                            <View style={{ marginBottom: 0 }}>
+                                <Text style={styles.fieldLabel}>
+                                    Bán kính cho phép <Text style={styles.required}>*</Text>
+                                </Text>
+                                <View style={styles.inputRow}>
+                                    <Ionicons name="radio-button-on-outline" size={17} color="#9CA3AF" style={styles.inputIcon} />
+                                    <TextInput
+                                        style={styles.textInput}
+                                        placeholder="300"
+                                        placeholderTextColor="#9CA3AF"
+                                        keyboardType="numeric"
+                                        value={checkInRadius}
+                                        onChangeText={setCheckInRadius}
+                                    />
+                                    <Text style={styles.unitText}>Mét</Text>
+                                </View>
+                                <Text style={styles.fieldHint}>
+                                    Tiêu chuẩn: 300m - 500m (có thể yêu cầu lên đến 3000m cho sự kiện lớn)
+                                </Text>
+                                {/* {formErrors.checkInRadius && (
+                                    <Text style={styles.errorText}>{formErrors.checkInRadius}</Text>
+                                )} */}
+                            </View>
+                        </View>
+
+                        {/* Action Buttons */}
+                        <View style={styles.btnRow}>
+                            <TouchableOpacity onPress={handleSaveDraft} style={styles.draftBtn}>
+                                <Text style={styles.draftBtnText}>Lưu bản thảo</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity onPress={handleSubmit} style={styles.submitBtn}>
+                                <Text style={styles.submitBtnText}>Gửi phê duyệt</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </ScrollView>
                 </KeyboardAvoidingView>
             </SafeAreaView>
 
-            {/* Bottom Sheet Pickers - Rendered outside SafeAreaView */}
+            {/* Bottom Sheet Pickers */}
             <BottomSheetPicker
                 visible={showTargetPicker}
                 onClose={() => {
@@ -1152,6 +964,14 @@ const styles = StyleSheet.create({
         paddingHorizontal: 12,
         paddingVertical: 3,
     },
+    descriptionInputRow: {
+        backgroundColor: '#FFFFFF',
+        borderWidth: 1,
+        borderColor: '#D1D5DB',
+        borderRadius: 10,
+        paddingHorizontal: 12,
+        paddingVertical: 8,
+    },
     inputIcon: {
         marginRight: 8,
     },
@@ -1161,13 +981,18 @@ const styles = StyleSheet.create({
         fontSize: 14,
         paddingVertical: 10,
     },
+    descriptionInput: {
+        color: '#1F2937',
+        fontSize: 14,
+        minHeight: 88,
+    },
     unitText: {
         color: '#6B7280',
         fontSize: 13,
         marginRight: 4,
     },
 
-    // Picker row (TouchableOpacity as select)
+    // Picker row (map location — kept inline due to unique layout)
     pickerRow: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -1176,10 +1001,6 @@ const styles = StyleSheet.create({
         borderRadius: 10,
         paddingHorizontal: 12,
         paddingVertical: 13,
-    },
-    pickerText: {
-        flex: 1,
-        fontSize: 14,
     },
     pickerTextDark: {
         color: '#1F2937',
@@ -1217,42 +1038,6 @@ const styles = StyleSheet.create({
     toggleBtnText: {
         fontWeight: '600',
         fontSize: 13,
-    },
-
-    // Event day card
-    dayCard: {
-        marginBottom: 16,
-        backgroundColor: '#FFFFFF',
-        borderRadius: 12,
-        padding: 14,
-        borderWidth: 1,
-        borderColor: '#E5E7EB',
-    },
-    dayCardHeader: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: 12,
-    },
-    dayCardTitle: {
-        color: '#374151',
-        fontWeight: '700',
-        fontSize: 14,
-    },
-    trashBtn: {
-        padding: 4,
-    },
-    timeRow: {
-        flexDirection: 'row',
-        gap: 10,
-        marginBottom: 0,
-    },
-    halfCol: {
-        flex: 1,
-    },
-    dayFieldWrapper: {
-        marginBottom: 12,
-        marginTop: 12,
     },
 
     // Add-day dashed button

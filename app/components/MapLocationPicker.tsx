@@ -5,7 +5,7 @@ import * as Location from 'expo-location';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-// Nominatim (OpenStreetMap) - miễn phí, không cần API key
+// Nominatim (OpenStreetMap) for search autocomplete 
 const NOMINATIM_URL = 'https://nominatim.openstreetmap.org/search';
 
 interface PlaceSuggestion {
@@ -16,7 +16,7 @@ interface PlaceSuggestion {
     longitude: number;
 }
 
-interface LocationData {
+export interface LocationData {
     latitude: number;
     longitude: number;
     address?: string;
@@ -37,7 +37,6 @@ export default function MapLocationPicker({
     initialLocation,
     radius = 300,
 }: MapLocationPickerProps) {
-    const logTag = '[MapLocationPicker]';
     const insets = useSafeAreaInsets();
     const mapRef = useRef<MapView>(null);
     const [selectedLocation, setSelectedLocation] = useState<LocationData | undefined>(initialLocation);
@@ -70,7 +69,7 @@ export default function MapLocationPicker({
             setSearchQuery('');
             setSuggestions([]);
             setShowSuggestions(false);
-            console.log(`${logTag} Modal opened`, {
+            console.log(`[MapLocationPicker] Modal opened`, {
                 platform: Platform.OS,
                 mapProvider: 'google',
                 initialLocation,
@@ -102,7 +101,7 @@ export default function MapLocationPicker({
                     });
                     reverseAddress = reversed[0];
                 } catch (reverseError) {
-                    console.warn(`${logTag} Reverse geocode current location failed`, reverseError);
+                    console.warn(`[MapLocationPicker] Reverse geocode current location failed`, reverseError);
                 }
 
                 const street = [reverseAddress?.streetNumber, reverseAddress?.street]
@@ -111,7 +110,7 @@ export default function MapLocationPicker({
                 const city = reverseAddress?.city || reverseAddress?.subregion || reverseAddress?.district || 'N/A';
 
                 console.log(
-                    `${logTag} Current location details\n` +
+                    `[MapLocationPicker] Current location details\n` +
                     `platform: ${Platform.OS}\n` +
                     `provider: google\n` +
                     `latitude: ${location.coords.latitude}\n` +
@@ -143,7 +142,7 @@ export default function MapLocationPicker({
         })();
     }, [visible, initialLocation]);
 
-    // Debounced Nominatim autocomplete (OpenStreetMap, không cần API key)
+    // Debounced Nominatim autocomplete 
     useEffect(() => {
         const trimmed = searchQuery.trim();
         if (trimmed.length < 2) {
@@ -228,7 +227,7 @@ export default function MapLocationPicker({
         Keyboard.dismiss();
         setSuggestions([]);
         setShowSuggestions(false);
-        console.log(`${logTag} Map pressed`, {
+        console.log(`[MapLocationPicker] Map pressed`, {
             platform: Platform.OS,
             latitude,
             longitude,
@@ -237,11 +236,11 @@ export default function MapLocationPicker({
 
         try {
             const result = await Location.reverseGeocodeAsync({ latitude, longitude });
-            console.log(`${logTag} Reverse geocoding raw response`, result);
+            console.log(`[MapLocationPicker] Reverse geocoding raw response`, result);
             if (result.length > 0) {
                 const addr = result[0];
                 const addressParts = [
-                    addr.name,
+                    addr.name !== addr.district ? addr.name : null,
                     addr.district,
                     addr.subregion !== addr.district ? addr.subregion : null,
                     addr.region,
@@ -251,10 +250,7 @@ export default function MapLocationPicker({
                     longitude,
                     address: addressParts.filter(Boolean).join(', ') || 'Địa chỉ không xác định',
                 };
-                console.log(`${logTag} Selected place from reverse geocoding`, {
-                    selected,
-                    firstResult: addr,
-                });
+                console.log(`[MapLocationPicker] Selected place from reverse geocoding: ${JSON.stringify(selected)}`);
                 setSelectedLocation(selected);
                 return;
             }
@@ -267,23 +263,8 @@ export default function MapLocationPicker({
 
     const handleConfirm = () => {
         if (selectedLocation) {
-            console.log(`${logTag} Confirm selected location`, {
-                selectedLocation,
-                currentLocation,
-            });
             onSelectLocation(selectedLocation);
             onClose();
-        }
-    };
-
-    const handleMyLocation = () => {
-        if (currentLocation) {
-            mapRef.current?.animateToRegion({
-                latitude: currentLocation.coords.latitude,
-                longitude: currentLocation.coords.longitude,
-                latitudeDelta: 0.01,
-                longitudeDelta: 0.01,
-            }, 1000);
         }
     };
 
@@ -295,7 +276,6 @@ export default function MapLocationPicker({
 
         try {
             const results = await Location.geocodeAsync(searchQuery);
-            console.log(`${logTag} Search geocoding raw response`, results);
 
             if (results.length > 0) {
                 const { latitude, longitude } = results[0];
@@ -303,12 +283,11 @@ export default function MapLocationPicker({
                 let resolvedAddress = searchQuery;
                 try {
                     const reversed = await Location.reverseGeocodeAsync({ latitude, longitude });
-                    console.log(`${logTag} Search reverse geocoding raw response`, reversed);
 
                     if (reversed.length > 0) {
                         const addr = reversed[0];
                         const addressParts = [
-                            addr.name,
+                            addr.name !== addr.district ? addr.name : null,
                             addr.district,
                             addr.subregion !== addr.district ? addr.subregion : null,
                             addr.region,
@@ -316,7 +295,7 @@ export default function MapLocationPicker({
                         resolvedAddress = addressParts.filter(Boolean).join(', ') || searchQuery;
                     }
                 } catch (reverseError) {
-                    console.warn(`${logTag} Search reverse geocoding failed`, reverseError);
+                    console.warn(`[MapLocationPicker] Search reverse geocoding failed`, reverseError);
                 }
 
                 setSelectedLocation({ latitude, longitude, address: resolvedAddress });
@@ -354,7 +333,7 @@ export default function MapLocationPicker({
                     </TouchableOpacity>
                 </View>
 
-                {/* Search Bar - no suggestions inside, just the input row */}
+                {/* Search Bar */}
                 <View
                     style={styles.searchContainer}
                     onLayout={(e) => {
@@ -406,7 +385,7 @@ export default function MapLocationPicker({
                             style={styles.map}
                             provider={PROVIDER_GOOGLE}
                             onMapReady={() => {
-                                console.log(`${logTag} Map ready`, {
+                                console.log(`[MapLocationPicker] Map ready`, {
                                     platform: Platform.OS,
                                     mapProvider: 'google',
                                     isGoogleProviderApplied: true,
@@ -470,7 +449,7 @@ export default function MapLocationPicker({
                     </View>
                 )}
 
-                {/* Suggestions Overlay - rendered LAST to float above MapView (native) */}
+                {/* Suggestions Overlay */}
                 {showSuggestions && suggestions.length > 0 && overlayTop > 0 && (
                     <View style={[styles.suggestionsBox, { top: overlayTop }]}>
                         <ScrollView

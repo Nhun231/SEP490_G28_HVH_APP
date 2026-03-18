@@ -24,23 +24,23 @@ export default function DatePickerInput({
 }: DatePickerInputProps) {
     const [show, setShow] = useState(false);
     const [pendingDate, setPendingDate] = useState<Date | undefined>(undefined);
-    const normalizedMinimumDate = minimumDate
-        ? new Date(minimumDate.getFullYear(), minimumDate.getMonth(), minimumDate.getDate())
-        : undefined;
 
-    const getInitialPickerDate = () => value || normalizedMinimumDate || new Date();
+    // get date value when modal open
+    const getInitialPickerDate = () => value || minimumDate || new Date();
 
     const openPicker = () => {
         setPendingDate(getInitialPickerDate());
         setShow(true);
     };
 
+    // close date picker modal without changes
     const dismissPicker = () => {
         setShow(false);
         setPendingDate(undefined);
         onDismiss?.();
     };
 
+    // commit selected date and close modal
     const commitDate = (date: Date) => {
         const normalizedSelectedDate = new Date(
             date.getFullYear(),
@@ -48,7 +48,7 @@ export default function DatePickerInput({
             date.getDate()
         );
 
-        if (normalizedMinimumDate && normalizedSelectedDate < normalizedMinimumDate) {
+        if (minimumDate && normalizedSelectedDate < minimumDate) {
             return;
         }
 
@@ -57,6 +57,7 @@ export default function DatePickerInput({
         setPendingDate(undefined);
     };
 
+    // handle date change from picker
     const handleChange = (event: any, selectedDate?: Date) => {
         if (Platform.OS === 'android') {
             setShow(false);
@@ -130,7 +131,7 @@ export default function DatePickerInput({
                                 value={pendingDate || getInitialPickerDate()}
                                 mode="date"
                                 display="spinner"
-                                minimumDate={normalizedMinimumDate}
+                                minimumDate={minimumDate}
                                 onChange={handleChange}
                                 themeVariant="light"
                                 style={styles.spinner}
@@ -145,7 +146,7 @@ export default function DatePickerInput({
                     value={value || new Date()}
                     mode="date"
                     display="default"
-                    minimumDate={normalizedMinimumDate}
+                    minimumDate={minimumDate}
                     onChange={handleChange}
                 />
             )}

@@ -9,9 +9,6 @@ interface TimePickerInputProps {
     onChange: (time: Date) => void;
     onDismiss?: () => void;
     placeholder?: string;
-    minHour?: number;
-    maxHour?: number;
-    onInvalidSelection?: (message: string) => void;
     required?: boolean;
 }
 
@@ -21,40 +18,48 @@ export default function TimePickerInput({
     onChange,
     onDismiss,
     placeholder = 'Chọn thời gian',
-    minHour,
-    maxHour,
-    onInvalidSelection,
     required = false,
 }: TimePickerInputProps) {
     const [show, setShow] = useState(false);
+    const [pendingTime, setPendingTime] = useState<Date | undefined>(undefined);
 
-    const isWithinAllowedRange = (time: Date) => {
-        const minutes = time.getHours() * 60 + time.getMinutes();
-        const minMinutes = typeof minHour === 'number' ? minHour * 60 : 0;
-        const maxMinutes = typeof maxHour === 'number' ? maxHour * 60 : 24 * 60 - 1;
-        return minutes >= minMinutes && minutes <= maxMinutes;
+    // get time value when modal open
+    const getInitialPickerTime = () => value || new Date();
+
+    const openPicker = () => {
+        setPendingTime(getInitialPickerTime());
+        setShow(true);
     };
 
+    // close time picker modal without changes
+    const dismissPicker = () => {
+        setShow(false);
+        setPendingTime(undefined);
+        onDismiss?.();
+    };
+
+    // commit selected time and close modal
+    const commitTime = (date: Date) => {
+        onChange(date);
+        setShow(false);
+        setPendingTime(undefined);
+    };
+
+    // handle time change from picker
     const handleChange = (event: any, selectedTime?: Date) => {
-        // On Android, the picker is automatically dismissed after selection or cancellation
-        // On iOS, we need to handle it manually
         if (Platform.OS === 'android') {
             setShow(false);
+            if (event.type === 'set' && selectedTime) {
+                onChange(selectedTime);
+            } else if (event.type === 'dismissed') {
+                onDismiss?.();
+            }
+            return;
         }
-        
-        // Only update the value if user didn't cancel
         if (event.type === 'set' && selectedTime) {
-            if (!isWithinAllowedRange(selectedTime)) {
-                onInvalidSelection?.(`Giờ chỉ được chọn trong khoảng ${String(minHour ?? 0).padStart(2, '0')}:00 đến ${String(maxHour ?? 23).padStart(2, '0')}:00`);
-                return;
-            }
-            onChange(selectedTime);
-            if (Platform.OS === 'ios') {
-                setShow(false);
-            }
+            setPendingTime(selectedTime);
         } else if (event.type === 'dismissed') {
-            setShow(false);
-            onDismiss?.();
+            dismissPicker();
         }
     };
 
@@ -71,7 +76,7 @@ export default function TimePickerInput({
                 {required && <Text style={styles.required}> *</Text>}
             </Text>
             <TouchableOpacity
-                onPress={() => setShow(true)}
+                onPress={openPicker}
                 style={styles.inputBox}
             >
                 <Ionicons name="time-outline" size={18} color="#9CA3AF" style={styles.icon} />
@@ -86,42 +91,33 @@ export default function TimePickerInput({
                     transparent={true}
                     animationType="slide"
                     visible={show}
-                    onRequestClose={() => {
-                        setShow(false);
-                        onDismiss?.();
-                    }}
+                    onRequestClose={dismissPicker}
                 >
-                    <Pressable 
+                    <Pressable
                         className="flex-1 bg-black/50 justify-end"
-                        onPress={() => {
-                            setShow(false);
-                            onDismiss?.();
-                        }}
+                        onPress={dismissPicker}
                     >
                         <Pressable className="bg-white rounded-t-3xl" onPress={(e) => e.stopPropagation()}>
                             <View className="flex-row justify-between items-center px-4 py-3 border-b border-gray-200">
-                                <TouchableOpacity onPress={() => {
-                                    setShow(false);
-                                    onDismiss?.();
-                                }}>
+                                <TouchableOpacity onPress={dismissPicker}>
                                     <Text className="text-[#42A4F5] text-base font-semibold">Hủy</Text>
                                 </TouchableOpacity>
                                 <Text className="text-gray-800 font-semibold">Chọn thời gian</Text>
-                                <TouchableOpacity 
+                                <TouchableOpacity
                                     onPress={() => {
-                                        handleChange({ type: 'set' }, value || new Date());
+                                        commitTime(pendingTime || getInitialPickerTime());
                                     }}
                                 >
                                     <Text className="text-[#42A4F5] text-base font-semibold">Xong</Text>
                                 </TouchableOpacity>
                             </View>
                             <DateTimePicker
-                                value={value || new Date()}
+                                value={pendingTime || getInitialPickerTime()}
                                 mode="time"
                                 is24Hour={true}
                                 display="spinner"
                                 onChange={handleChange}
-                                textColor="#000000"
+                                themeVariant="light"
                                 style={styles.spinner}
                             />
                         </Pressable>
