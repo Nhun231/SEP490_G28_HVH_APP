@@ -3,8 +3,13 @@ import { Stack } from "expo-router";
 import { StatusBar } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import "./globals.css";
-
+import { useEffect } from "react";
+import { requestUserPermission } from "@/services/request-noti-permission";
 export default function RootLayout() {
+  useEffect(() => {
+    requestUserPermission();
+  }, []);
+
   return (
     <SafeAreaProvider>
       <AuthProvider>

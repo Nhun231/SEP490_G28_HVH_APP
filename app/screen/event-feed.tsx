@@ -51,22 +51,32 @@ const EventFeed = () => {
     const [events, setEvents] = useState<EventSimpleResponse[]>([]);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
+    const [pageNumber, setPageNumber] = useState(0);
+    const [hasMore, setHasMore] = useState(true);
+    const [loadingMore, setLoadingMore] = useState(false);
 
     const dates = useMemo(() => generateDates(7), []);
 
     // ─── fetch events ────────────────────────────────────────────────
-    const fetchEvents = useCallback(async (dateIso?: string) => {
+    const fetchEvents = useCallback(async (dateIso?: string, page: number = 0) => {
         try {
             const response = await getEventFeeds({
-                pageNumber: 0,
+                pageNumber: page,
                 pageSize: 20,
-                refresh: true,
+                refresh: false,
                 ...(dateIso && { startDate: dateIso, endDate: dateIso }),
             });
-            setEvents(response.events || []);
+            
+            if (page === 0) {
+                setEvents(response.events || []);
+            } else {
+                setEvents(prev => [...prev, ...(response.events || [])]);
+            }
+            setHasMore(response.hasMore ?? false);
+            setPageNumber(page);
         } catch (error) {
             console.error('Error fetching events:', error);
-            setEvents([]);
+            if (page === 0) setEvents([]);
         }
     }, []);
 
@@ -84,9 +94,9 @@ const EventFeed = () => {
         setSelectedDateIndex(index);
         setLoading(true);
         if (index === null) {
-            await fetchEvents();
+            await fetchEvents(undefined, 0);
         } else {
-            await fetchEvents(dates[index].iso);
+            await fetchEvents(dates[index].iso, 0);
         }
         setLoading(false);
     }, [dates, fetchEvents]);
@@ -95,9 +105,18 @@ const EventFeed = () => {
     const handleRefresh = useCallback(async () => {
         setRefreshing(true);
         const dateIso = selectedDateIndex !== null ? dates[selectedDateIndex].iso : undefined;
-        await fetchEvents(dateIso);
+        await fetchEvents(dateIso, 0);
         setRefreshing(false);
     }, [selectedDateIndex, dates, fetchEvents]);
+
+    // load more (pagination)
+    const loadMoreEvents = useCallback(async () => {
+        if (!hasMore || loadingMore || loading || refreshing) return;
+        setLoadingMore(true);
+        const dateIso = selectedDateIndex !== null ? dates[selectedDateIndex].iso : undefined;
+        await fetchEvents(dateIso, pageNumber + 1);
+        setLoadingMore(false);
+    }, [hasMore, loadingMore, loading, refreshing, selectedDateIndex, dates, pageNumber, fetchEvents]);
 
     const handleGoBack = () => {
         if (router.canGoBack()) {
@@ -217,6 +236,13 @@ const EventFeed = () => {
                     )}
                     contentContainerStyle={styles.listContent}
                     showsVerticalScrollIndicator={false}
+                    onEndReached={loadMoreEvents}
+                    onEndReachedThreshold={0.5}
+                    ListFooterComponent={
+                        loadingMore ? (
+                            <ActivityIndicator style={{ padding: 16 }} size="small" color="#42A4F5" />
+                        ) : null
+                    }
                     refreshControl={
                         <RefreshControl
                             refreshing={refreshing}

@@ -5,14 +5,14 @@ import React, { useState } from 'react'
 import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
-type AccountType = 'volunteer' | 'organizer'
+type AccountType = 'volunteer' | 'host'
 
 export default function Auth() {
     const router = useRouter()
     const [email, setEmail] = useState('')
     const [password, setPassword] = useState('')
     const [loading, setLoading] = useState(false)
-    const [accountType, setAccountType] = useState<AccountType>('organizer')
+    const [accountType, setAccountType] = useState<AccountType>('host')
     const [showPassword, setShowPassword] = useState(false)
     const [rememberMe, setRememberMe] = useState(false)
 
@@ -90,19 +90,19 @@ export default function Auth() {
                                 style={[
                                     styles.toggleButton,
                                     styles.toggleButtonRight,
-                                    accountType === 'organizer' && styles.toggleButtonActive
+                                    accountType === 'host' && styles.toggleButtonActive
                                 ]}
-                                onPress={() => setAccountType('organizer')}
+                                onPress={() => setAccountType('host')}
                             >
                                 <Ionicons
                                     name="briefcase"
                                     size={20}
-                                    color={accountType === 'organizer' ? '#42A4F5' : '#6B7280'}
+                                    color={accountType === 'host' ? '#42A4F5' : '#6B7280'}
                                     style={styles.toggleIcon}
                                 />
                                 <Text style={[
                                     styles.toggleText,
-                                    accountType === 'organizer' && styles.toggleTextActive
+                                    accountType === 'host' && styles.toggleTextActive
                                 ]}>
                                     Người tổ chức
                                 </Text>

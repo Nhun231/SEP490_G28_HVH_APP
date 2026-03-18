@@ -29,6 +29,35 @@ function isRecruiting(endDate: string): boolean {
     return new Date(endDate) >= new Date();
 }
 
+/** Get the full image URL from Supabase relative path */
+function getFullImageUrl(path: string | null | undefined): string {
+    if (!path) {
+        // Return a generic placeholder image if null or undefined
+        return 'https://placehold.co/400x300/e2e8f0/64748b.png?text=No+Image';
+    }
+    
+    // If it's already an absolute URL, return it
+    if (path.startsWith('http')) {
+        return path;
+    }
+    
+    // Get the Supabase URL from environment
+    const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL || 'https://kbmxlrqkzgjbtkmlbaei.supabase.co';
+    
+    // Usually signed URLs start with /object/sign/...
+    // Supabase REST endpoints require /storage/v1 before /object/sign
+    if (path.startsWith('/object/')) {
+        return `${supabaseUrl}/storage/v1${path}`;
+    }
+    
+    // If it already has /storage/v1
+    if (path.startsWith('/storage/v1')) {
+        return `${supabaseUrl}${path}`;
+    }
+    
+    return path;
+}
+
 export default function EventCard({ event, onPress }: EventCardProps) {
     const recruiting = isRecruiting(event.recruitmentEndDate);
 
@@ -41,7 +70,7 @@ export default function EventCard({ event, onPress }: EventCardProps) {
             {/* Left: Image with status badge */}
             <View style={styles.imageContainer}>
                 <Image
-                    source={{ uri: event.imageUrl }}
+                    source={{ uri: getFullImageUrl(event.imageUrl) }}
                     style={styles.image}
                     resizeMode="cover"
                 />

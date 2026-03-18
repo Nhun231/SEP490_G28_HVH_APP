@@ -15,7 +15,7 @@ const Home = () => {
 
     const fetchEvents = useCallback(async () => {
         try {
-            const response = await getEventFeeds({ pageNumber: 0, pageSize: 4, refresh: true });
+            const response = await getEventFeeds({ pageNumber: 0, pageSize: 20, refresh: false });
             setEvents(response.events || []);
         } catch (error) {
             console.error('Error fetching events:', error);
