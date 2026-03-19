@@ -1,10 +1,22 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, TouchableOpacity, Modal, TextInput, Alert, ActivityIndicator, Platform, StyleSheet } from 'react-native';
-import MapView, { Marker, Circle } from 'react-native-maps';
+import { View, Text, TouchableOpacity, Modal, TextInput, Alert, ActivityIndicator, Platform, StyleSheet, ScrollView, Keyboard } from 'react-native';
+import MapView, { Marker, Circle, PROVIDER_GOOGLE } from 'react-native-maps';
 import * as Location from 'expo-location';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-interface LocationData {
+// Nominatim (OpenStreetMap) for search autocomplete 
+const NOMINATIM_URL = 'https://nominatim.openstreetmap.org/search';
+
+interface PlaceSuggestion {
+    placeId: string;
+    mainText: string;
+    secondaryText: string;
+    latitude: number;
+    longitude: number;
+}
+
+export interface LocationData {
     latitude: number;
     longitude: number;
     address?: string;
@@ -25,6 +37,7 @@ export default function MapLocationPicker({
     initialLocation,
     radius = 300,
 }: MapLocationPickerProps) {
+    const insets = useSafeAreaInsets();
     const mapRef = useRef<MapView>(null);
     const [selectedLocation, setSelectedLocation] = useState<LocationData | undefined>(initialLocation);
     // Default to Hanoi center while loading current location
@@ -43,10 +56,25 @@ export default function MapLocationPicker({
     const [searchQuery, setSearchQuery] = useState('');
     const [isLoadingLocation, setIsLoadingLocation] = useState(false);
 
+    // Autocomplete states
+    const [suggestions, setSuggestions] = useState<PlaceSuggestion[]>([]);
+    const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
+    const [showSuggestions, setShowSuggestions] = useState(false);
+    // Height of [header + search bar] to position the overlay correctly
+    const [overlayTop, setOverlayTop] = useState(0);
+
     useEffect(() => {
         if (visible) {
             setSelectedLocation(initialLocation);
             setSearchQuery('');
+            setSuggestions([]);
+            setShowSuggestions(false);
+            console.log(`[MapLocationPicker] Modal opened`, {
+                platform: Platform.OS,
+                mapProvider: 'google',
+                initialLocation,
+                radius,
+            });
         }
     }, [visible, initialLocation]);
 
@@ -65,11 +93,44 @@ export default function MapLocationPicker({
 
                 let location = await Location.getCurrentPositionAsync({});
                 setCurrentLocation(location);
-                
-                // Animate map to user's location
+                let reverseAddress: Location.LocationGeocodedAddress | undefined;
+                try {
+                    const reversed = await Location.reverseGeocodeAsync({
+                        latitude: location.coords.latitude,
+                        longitude: location.coords.longitude,
+                    });
+                    reverseAddress = reversed[0];
+                } catch (reverseError) {
+                    console.warn(`[MapLocationPicker] Reverse geocode current location failed`, reverseError);
+                }
+
+                const street = [reverseAddress?.streetNumber, reverseAddress?.street]
+                    .filter(Boolean)
+                    .join(' ') || 'N/A';
+                const city = reverseAddress?.city || reverseAddress?.subregion || reverseAddress?.district || 'N/A';
+
+                console.log(
+                    `[MapLocationPicker] Current location details\n` +
+                    `platform: ${Platform.OS}\n` +
+                    `provider: google\n` +
+                    `latitude: ${location.coords.latitude}\n` +
+                    `longitude: ${location.coords.longitude}\n` +
+                    `street: ${street}\n` +
+                    `city: ${city}\n` +
+                    `district: ${reverseAddress?.district || 'N/A'}\n` +
+                    `region: ${reverseAddress?.region || 'N/A'}\n` +
+                    `country: ${reverseAddress?.country || 'N/A'}`
+                );
+
+                // Reopen behavior:
+                // - If user already selected a check-in location, keep focusing that location.
+                // - Otherwise, focus current GPS location.
+                const targetLatitude = initialLocation?.latitude ?? location.coords.latitude;
+                const targetLongitude = initialLocation?.longitude ?? location.coords.longitude;
+
                 mapRef.current?.animateToRegion({
-                    latitude: location.coords.latitude,
-                    longitude: location.coords.longitude,
+                    latitude: targetLatitude,
+                    longitude: targetLongitude,
                     latitudeDelta: 0.01,
                     longitudeDelta: 0.01,
                 }, 1000);
@@ -79,102 +140,125 @@ export default function MapLocationPicker({
                 setIsLoadingLocation(false);
             }
         })();
-    }, [visible]);
+    }, [visible, initialLocation]);
+
+    // Debounced Nominatim autocomplete 
+    useEffect(() => {
+        const trimmed = searchQuery.trim();
+        if (trimmed.length < 2) {
+            setSuggestions([]);
+            setShowSuggestions(false);
+            return;
+        }
+
+        const timer = setTimeout(async () => {
+            setIsLoadingSuggestions(true);
+            try {
+                // Manual URL string (avoids iOS URLSearchParams issues with hyphenated keys)
+                const url =
+                    `${NOMINATIM_URL}` +
+                    `?q=${encodeURIComponent(trimmed)}` +
+                    `&format=json` +
+                    `&limit=5` +
+                    `&countrycodes=vn` +
+                    `&accept-language=vi` +
+                    `&addressdetails=1`;
+
+                const res = await fetch(url, {
+                    headers: { 'User-Agent': 'SEP490-HVH-App/1.0' },
+                });
+
+                const text = await res.text();
+                const json: any[] = JSON.parse(text);
+
+                if (json && json.length > 0) {
+                    const items: PlaceSuggestion[] = json.map((place) => {
+                        const parts = (place.display_name as string).split(', ');
+                        const mainText = parts[0] || place.display_name;
+                        const secondaryText = parts.slice(1, 4).join(', ');
+                        return {
+                            placeId: String(place.place_id),
+                            mainText,
+                            secondaryText,
+                            latitude: parseFloat(place.lat),
+                            longitude: parseFloat(place.lon),
+                        };
+                    });
+                    setSuggestions(items);
+                    setShowSuggestions(true);
+                } else {
+                    setSuggestions([]);
+                    setShowSuggestions(false);
+                }
+            } catch {
+                setSuggestions([]);
+                setShowSuggestions(false);
+            } finally {
+                setIsLoadingSuggestions(false);
+            }
+        }, 500);
+
+        return () => clearTimeout(timer);
+    }, [searchQuery]);
+
+    const handleSelectSuggestion = (suggestion: PlaceSuggestion) => {
+        Keyboard.dismiss();
+        setSuggestions([]);
+        setShowSuggestions(false);
+        const address = [suggestion.mainText, suggestion.secondaryText]
+            .filter(Boolean).join(', ');
+        setSearchQuery(suggestion.mainText);
+        const selected: LocationData = {
+            latitude: suggestion.latitude,
+            longitude: suggestion.longitude,
+            address,
+        };
+        setSelectedLocation(selected);
+        mapRef.current?.animateToRegion({
+            latitude: suggestion.latitude,
+            longitude: suggestion.longitude,
+            latitudeDelta: 0.01,
+            longitudeDelta: 0.01,
+        }, 800);
+    };
 
     const handleMapPress = async (event: any) => {
         const { latitude, longitude } = event.nativeEvent.coordinate;
-        
-        // Use Apple Maps reverse geocoding
-        // try {
-        //     const result = await Location.reverseGeocodeAsync({
-        //         latitude,
-        //         longitude,
-        //     });
+        Keyboard.dismiss();
+        setSuggestions([]);
+        setShowSuggestions(false);
+        console.log(`[MapLocationPicker] Map pressed`, {
+            platform: Platform.OS,
+            latitude,
+            longitude,
+            mapProvider: 'google',
+        });
 
-        //     if (result.length > 0) {
-        //         const addr = result[0];
-                
-        //         // Log full geocoding result
-        //         console.log('=== APPLE MAPS GEOCODING RESULT ===');
-        //         console.log('Full object:', JSON.stringify(addr, null, 2));
-        //         console.log('streetNumber:', addr.streetNumber);
-        //         console.log('street:', addr.street);
-        //         console.log('name:', addr.name);
-        //         console.log('subregion:', addr.subregion);
-        //         console.log('district:', addr.district);
-        //         console.log('city:', addr.city);
-        //         console.log('region:', addr.region);
-        //         console.log('postalCode:', addr.postalCode);
-        //         console.log('country:', addr.country);
-        //         console.log('isoCountryCode:', addr.isoCountryCode);
-        //         console.log('timezone:', addr.timezone);
-        //         console.log('===================================');
-                
-        //         // Build full address from all available fields
-        //         const addressParts = [];
-                
-        //         if (addr.streetNumber) addressParts.push(addr.streetNumber);
-        //         if (addr.street) addressParts.push(addr.street);
-        //         if (addr.name && addr.name !== addr.street) addressParts.push(addr.name);
-        //         if (addr.subregion) addressParts.push(addr.subregion);
-        //         if (addr.district && addr.district !== addr.subregion) addressParts.push(addr.district);
-        //         if (addr.city) addressParts.push(addr.city);
-        //         if (addr.region && addr.region !== addr.city) addressParts.push(addr.region);
-                
-        //         const address = addressParts.filter(part => part).join(', ').trim();
-                
-        //         setSelectedLocation({
-        //             latitude,
-        //             longitude,
-        //             address: address || 'Địa chỉ không xác định',
-        //         });
-        //     }
-        // } catch (error) {
-        //     console.error('Apple Maps Geocoding error:', error);
-        //     setSelectedLocation({
-        //         latitude,
-        //         longitude,
-        //         address: `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`,
-        //     });
-        // }
-        
-        // GOOGLE GEOCODING API - Commented out for testing Apple Maps
         try {
-            const GOOGLE_API_KEY = 'AIzaSyAyAwvegpdwoKWZiuNo__1wTUc9RK89yg4';
-            const response = await fetch(
-                `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=${GOOGLE_API_KEY}&language=vi`
-            );
-            const data = await response.json();
-            
-            console.log('=== GOOGLE GEOCODING RESULT ===');
-            console.log('Status:', data.status);
-            console.log('Full response:', JSON.stringify(data, null, 2));
-            console.log('================================');
-            
-            if (data.status === 'OK' && data.results && data.results.length > 0) {
-                const address = data.results[0].formatted_address;
-                
-                setSelectedLocation({
+            const result = await Location.reverseGeocodeAsync({ latitude, longitude });
+            console.log(`[MapLocationPicker] Reverse geocoding raw response`, result);
+            if (result.length > 0) {
+                const addr = result[0];
+                const addressParts = [
+                    addr.name !== addr.district ? addr.name : null,
+                    addr.district,
+                    addr.subregion !== addr.district ? addr.subregion : null,
+                    addr.region,
+                ];
+                const selected = {
                     latitude,
                     longitude,
-                    address: address || 'Địa chỉ không xác định',
-                });
-            } else {
-                // Fallback to coordinates
-                setSelectedLocation({
-                    latitude,
-                    longitude,
-                    address: `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`,
-                });
+                    address: addressParts.filter(Boolean).join(', ') || 'Địa chỉ không xác định',
+                };
+                console.log(`[MapLocationPicker] Selected place from reverse geocoding: ${JSON.stringify(selected)}`);
+                setSelectedLocation(selected);
+                return;
             }
         } catch (error) {
-            console.error('Google Geocoding error:', error);
-            setSelectedLocation({
-                latitude,
-                longitude,
-                address: `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`,
-            });
+            console.error('Reverse Geocoding error:', error);
         }
+
+        setSelectedLocation({ latitude, longitude, address: `${latitude.toFixed(6)}, ${longitude.toFixed(6)}` });
     };
 
     const handleConfirm = () => {
@@ -184,78 +268,44 @@ export default function MapLocationPicker({
         }
     };
 
-    const handleMyLocation = () => {
-        if (currentLocation) {
-            mapRef.current?.animateToRegion({
-                latitude: currentLocation.coords.latitude,
-                longitude: currentLocation.coords.longitude,
-                latitudeDelta: 0.01,
-                longitudeDelta: 0.01,
-            }, 1000);
-        }
-    };
-
     const handleSearch = async () => {
         if (!searchQuery) return;
+        Keyboard.dismiss();
+        setSuggestions([]);
+        setShowSuggestions(false);
 
         try {
-            // Use Apple Maps geocoding for search
             const results = await Location.geocodeAsync(searchQuery);
+
             if (results.length > 0) {
                 const { latitude, longitude } = results[0];
-                setSelectedLocation({
-                    latitude,
-                    longitude,
-                    address: searchQuery,
-                });
-                
-                // Animate map to searched location
-                mapRef.current?.animateToRegion({
-                    latitude,
-                    longitude,
-                    latitudeDelta: 0.01,
-                    longitudeDelta: 0.01,
-                }, 1000);
+
+                let resolvedAddress = searchQuery;
+                try {
+                    const reversed = await Location.reverseGeocodeAsync({ latitude, longitude });
+
+                    if (reversed.length > 0) {
+                        const addr = reversed[0];
+                        const addressParts = [
+                            addr.name !== addr.district ? addr.name : null,
+                            addr.district,
+                            addr.subregion !== addr.district ? addr.subregion : null,
+                            addr.region,
+                        ];
+                        resolvedAddress = addressParts.filter(Boolean).join(', ') || searchQuery;
+                    }
+                } catch (reverseError) {
+                    console.warn(`[MapLocationPicker] Search reverse geocoding failed`, reverseError);
+                }
+
+                setSelectedLocation({ latitude, longitude, address: resolvedAddress });
+                mapRef.current?.animateToRegion({ latitude, longitude, latitudeDelta: 0.01, longitudeDelta: 0.01 }, 1000);
             } else {
                 Alert.alert('Không tìm thấy', 'Không tìm thấy địa điểm này');
             }
         } catch (error) {
             Alert.alert('Lỗi', 'Không thể tìm kiếm địa điểm');
         }
-        
-        /* GOOGLE GEOCODING API - Commented out
-        try {
-            const GOOGLE_API_KEY = 'AIzaSyAyAwvegpdwoKWZiuNo__1wTUc9RK89yg4';
-            const response = await fetch(
-                `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(searchQuery)}&key=${GOOGLE_API_KEY}&language=vi`
-            );
-            const data = await response.json();
-            
-            if (data.status === 'OK' && data.results && data.results.length > 0) {
-                const result = data.results[0];
-                const { lat, lng } = result.geometry.location;
-                const address = result.formatted_address;
-                
-                setSelectedLocation({
-                    latitude: lat,
-                    longitude: lng,
-                    address: address,
-                });
-                
-                // Animate map to searched location
-                mapRef.current?.animateToRegion({
-                    latitude: lat,
-                    longitude: lng,
-                    latitudeDelta: 0.01,
-                    longitudeDelta: 0.01,
-                }, 1000);
-            } else {
-                Alert.alert('Không tìm thấy', 'Không tìm thấy địa điểm này');
-            }
-        } catch (error) {
-            Alert.alert('Lỗi', 'Không thể tìm kiếm địa điểm');
-        }
-        */
     };
 
     return (
@@ -266,7 +316,10 @@ export default function MapLocationPicker({
         >
             <View className="flex-1">
                 {/* Header */}
-                <View className="bg-white px-4 py-3 border-b border-gray-200 flex-row items-center">
+                <View
+                    className="bg-white px-4 py-3 border-b border-gray-200 flex-row items-center"
+                    style={{ paddingTop: Math.max(insets.top + 8, 20) }}
+                >
                     <TouchableOpacity onPress={onClose} className="mr-3">
                         <Ionicons name="arrow-back" size={24} color="#000" />
                     </TouchableOpacity>
@@ -276,103 +329,259 @@ export default function MapLocationPicker({
                         disabled={!selectedLocation}
                         className={selectedLocation ? '' : 'opacity-50'}
                     >
-                        <Text className="text-[#42A5F5] font-semibold text-base">Xong</Text>
+                        <Text className="text-[#42A4F5] font-semibold text-base">Xong</Text>
                     </TouchableOpacity>
                 </View>
 
-                    {/* Search Bar */}
-                    <View className="bg-white px-4 py-3 border-b border-gray-200">
-                        <View className="flex-row items-center bg-gray-100 rounded-lg px-3">
-                            <Ionicons name="search" size={20} color="#666" />
-                            <TextInput
-                                className="flex-1 py-2 px-2 text-gray-800"
-                                placeholder="Tìm kiếm địa điểm..."
-                                value={searchQuery}
-                                onChangeText={setSearchQuery}
-                                onSubmitEditing={handleSearch}
-                            />
-                        </View>
-                    </View>
-
-                    {/* Map */}
-                    {currentLocation && (
-                        <View style={styles.mapContainer}>
-                            <MapView
-                                ref={mapRef}
-                                style={styles.map}
-                                initialRegion={{
-                                    latitude: selectedLocation?.latitude || currentLocation.coords.latitude,
-                                    longitude: selectedLocation?.longitude || currentLocation.coords.longitude,
-                                    latitudeDelta: 0.01,
-                                    longitudeDelta: 0.01,
+                {/* Search Bar */}
+                <View
+                    style={styles.searchContainer}
+                    onLayout={(e) => {
+                        // overlayTop = header height + search bar height
+                        setOverlayTop(e.nativeEvent.layout.y + e.nativeEvent.layout.height);
+                    }}
+                >
+                    <View style={styles.searchRow}>
+                        <Ionicons name="search" size={20} color="#666" style={styles.searchIcon} />
+                        <TextInput
+                            style={styles.searchInput}
+                            placeholder="Tìm kiếm địa điểm..."
+                            placeholderTextColor="#9CA3AF"
+                            value={searchQuery}
+                            onChangeText={(text) => {
+                                setSearchQuery(text);
+                                if (!text.trim()) {
+                                    setSuggestions([]);
+                                    setShowSuggestions(false);
+                                }
+                            }}
+                            onSubmitEditing={handleSearch}
+                            returnKeyType="search"
+                            blurOnSubmit={true}
+                        />
+                        {isLoadingSuggestions && (
+                            <ActivityIndicator size="small" color="#42A4F5" style={styles.searchLoader} />
+                        )}
+                        {searchQuery.length > 0 && !isLoadingSuggestions && (
+                            <TouchableOpacity
+                                onPress={() => {
+                                    setSearchQuery('');
+                                    setSuggestions([]);
+                                    setShowSuggestions(false);
                                 }}
-                                onPress={handleMapPress}
-                                showsUserLocation={true}
-                                showsMyLocationButton={true}
+                                style={styles.clearBtn}
                             >
-                                {selectedLocation && (
-                                    <>
-                                        <Marker
-                                            coordinate={{
-                                                latitude: selectedLocation.latitude,
-                                                longitude: selectedLocation.longitude,
-                                            }}
-                                            title="Địa điểm đã chọn"
-                                        />
-                                        <Circle
-                                            center={{
-                                                latitude: selectedLocation.latitude,
-                                                longitude: selectedLocation.longitude,
-                                            }}
-                                            radius={radius}
-                                            strokeColor="rgba(66, 165, 245, 0.5)"
-                                            fillColor="rgba(66, 165, 245, 0.2)"
-                                        />
-                                    </>
-                                )}
-                            </MapView>
-                            
-                            {/* Loading Indicator */}
-                            {isLoadingLocation && (
-                                <View className="absolute top-2 left-0 right-0 items-center">
-                                    <View className="bg-white rounded-full px-4 py-2 flex-row items-center shadow-md">
-                                        <ActivityIndicator size="small" color="#14B8A6" />
-                                        <Text className="ml-2 text-gray-700 text-sm">Đang lấy vị trí...</Text>
-                                    </View>
-                                </View>
-                            )}
-                            
-                            {/* My Location Button */}
-                            {!isLoadingLocation && currentLocation && (
-                                <TouchableOpacity
-                                    onPress={handleMyLocation}
-                                    className="absolute bottom-4 right-4 bg-white rounded-full p-3 shadow-lg"
-                                    style={{ elevation: 5 }}
-                                >
-                                    <Ionicons name="locate" size={24} color="#14B8A6" />
-                                </TouchableOpacity>
-                            )}
-                        </View>
-                    )}
-
-                    {/* Selected Location Info */}
-                    {selectedLocation && (
-                        <View className="bg-white px-4 py-3 border-t border-gray-200">
-                            <Text className="text-gray-600 text-xs">Địa điểm đã chọn:</Text>
-                            <Text className="text-gray-800 font-medium mt-1">
-                                {selectedLocation.address}
-                            </Text>
-                            <Text className="text-gray-400 text-xs mt-1">
-                                {selectedLocation.latitude.toFixed(6)}, {selectedLocation.longitude.toFixed(6)}
-                            </Text>
-                        </View>
-                    )}
+                                <Ionicons name="close-circle" size={18} color="#9CA3AF" />
+                            </TouchableOpacity>
+                        )}
+                    </View>
                 </View>
+
+                {/* Map */}
+                {currentLocation && (
+                    <View style={styles.mapContainer}>
+                        <MapView
+                            ref={mapRef}
+                            style={styles.map}
+                            provider={PROVIDER_GOOGLE}
+                            onMapReady={() => {
+                                console.log(`[MapLocationPicker] Map ready`, {
+                                    platform: Platform.OS,
+                                    mapProvider: 'google',
+                                    isGoogleProviderApplied: true,
+                                });
+                            }}
+                            initialRegion={{
+                                latitude: selectedLocation?.latitude || currentLocation.coords.latitude,
+                                longitude: selectedLocation?.longitude || currentLocation.coords.longitude,
+                                latitudeDelta: 0.01,
+                                longitudeDelta: 0.01,
+                            }}
+                            onPress={handleMapPress}
+                            showsUserLocation={true}
+                            showsMyLocationButton={true}
+                        >
+                            {selectedLocation && (
+                                <>
+                                    <Marker
+                                        coordinate={{
+                                            latitude: selectedLocation.latitude,
+                                            longitude: selectedLocation.longitude,
+                                        }}
+                                        title="Địa điểm đã chọn"
+                                    />
+                                    <Circle
+                                        center={{
+                                            latitude: selectedLocation.latitude,
+                                            longitude: selectedLocation.longitude,
+                                        }}
+                                        radius={radius}
+                                        strokeColor="rgba(66, 164, 245, 0.5)"
+                                        fillColor="rgba(66, 164, 245, 0.2)"
+                                    />
+                                </>
+                            )}
+                        </MapView>
+
+                        {/* Loading Indicator */}
+                        {isLoadingLocation && (
+                            <View className="absolute top-2 left-0 right-0 items-center">
+                                <View className="bg-white rounded-full px-4 py-2 flex-row items-center shadow-md">
+                                    <ActivityIndicator size="small" color="#42A4F5" />
+                                    <Text className="ml-2 text-gray-700 text-sm">Đang lấy vị trí...</Text>
+                                </View>
+                            </View>
+                        )}
+
+                    </View>
+                )}
+
+                {/* Selected Location Info */}
+                {selectedLocation && (
+                    <View className="bg-white px-4 py-3 border-t border-gray-200">
+                        <Text className="text-gray-600 text-xs">Địa điểm đã chọn:</Text>
+                        <Text className="text-gray-800 font-medium mt-1">
+                            {selectedLocation.address}
+                        </Text>
+                        <Text className="text-gray-400 text-xs mt-1">
+                            {selectedLocation.latitude.toFixed(6)}, {selectedLocation.longitude.toFixed(6)}
+                        </Text>
+                    </View>
+                )}
+
+                {/* Suggestions Overlay */}
+                {showSuggestions && suggestions.length > 0 && overlayTop > 0 && (
+                    <View style={[styles.suggestionsBox, { top: overlayTop }]}>
+                        <ScrollView
+                            keyboardShouldPersistTaps="handled"
+                            bounces={false}
+                        >
+                            {(suggestions as PlaceSuggestion[]).map((item, index) => (
+                                <TouchableOpacity
+                                    key={item.placeId}
+                                    style={[
+                                        styles.suggestionItem,
+                                        index < suggestions.length - 1 && styles.suggestionItemBorder,
+                                    ]}
+                                    onPress={() => handleSelectSuggestion(item)}
+                                    activeOpacity={0.7}
+                                >
+                                    <Ionicons
+                                        name="location-outline"
+                                        size={16}
+                                        color="#42A4F5"
+                                        style={styles.suggestionIcon}
+                                    />
+                                    <View style={styles.suggestionTextWrapper}>
+                                        <Text style={styles.suggestionMainText} numberOfLines={1}>
+                                            {item.mainText}
+                                        </Text>
+                                        {item.secondaryText ? (
+                                            <Text style={styles.suggestionSubText} numberOfLines={1}>
+                                                {item.secondaryText}
+                                            </Text>
+                                        ) : null}
+                                    </View>
+                                </TouchableOpacity>
+                            ))}
+                        </ScrollView>
+                    </View>
+                )}
+            </View>
         </Modal>
     );
 }
 
 const styles = StyleSheet.create({
+    // Search bar
+    searchContainer: {
+        backgroundColor: '#FFFFFF',
+        borderBottomWidth: 1,
+        borderBottomColor: '#E5E7EB',
+        zIndex: 10,
+    },
+    searchRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#F3F4F6',
+        margin: 12,
+        borderRadius: 10,
+        paddingHorizontal: 10,
+    },
+    searchIcon: {
+        marginRight: 6,
+    },
+    searchInput: {
+        flex: 1,
+        paddingVertical: 10,
+        fontSize: 14,
+        color: '#1F2937',
+    },
+    searchLoader: {
+        marginLeft: 6,
+    },
+    clearBtn: {
+        padding: 4,
+        marginLeft: 4,
+    },
+
+    // Suggestions dropdown (absolute overlay above MapView)
+    suggestionsBox: {
+        position: 'absolute',
+        left: 0,
+        right: 0,
+        backgroundColor: '#FFFFFF',
+        maxHeight: 260,
+        shadowColor: '#000',
+        shadowOpacity: 0.12,
+        shadowRadius: 6,
+        shadowOffset: { width: 0, height: 2 },
+        elevation: 20,
+        zIndex: 9999,
+        borderBottomLeftRadius: 12,
+        borderBottomRightRadius: 12,
+        borderWidth: 1,
+        borderTopWidth: 0,
+        borderColor: '#E5E7EB',
+    },
+    suggestionsList: {
+        flex: 1,
+    },
+    suggestionItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 16,
+        paddingVertical: 12,
+    },
+    suggestionItemBorder: {
+        borderBottomWidth: 1,
+        borderBottomColor: '#F3F4F6',
+    },
+    suggestionIcon: {
+        marginRight: 10,
+        flexShrink: 0,
+    },
+    suggestionText: {
+        flex: 1,
+        fontSize: 13,
+        color: '#374151',
+        lineHeight: 18,
+    },
+    suggestionTextWrapper: {
+        flex: 1,
+    },
+    suggestionMainText: {
+        fontSize: 13,
+        color: '#1F2937',
+        fontWeight: '600',
+    },
+    suggestionSubText: {
+        fontSize: 11,
+        color: '#6B7280',
+        marginTop: 1,
+    },
+
+    // Map
     mapContainer: {
         flex: 1,
         position: 'relative',

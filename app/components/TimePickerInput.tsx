@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, Platform, Modal, Pressable } from 'react-native';
+import { View, Text, TouchableOpacity, Platform, Modal, Pressable, StyleSheet } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -7,34 +7,59 @@ interface TimePickerInputProps {
     label: string;
     value?: Date;
     onChange: (time: Date) => void;
-    required?: boolean;
+    onDismiss?: () => void;
     placeholder?: string;
+    required?: boolean;
 }
 
 export default function TimePickerInput({
     label,
     value,
     onChange,
-    required = false,
+    onDismiss,
     placeholder = 'Chọn thời gian',
+    required = false,
 }: TimePickerInputProps) {
     const [show, setShow] = useState(false);
+    const [pendingTime, setPendingTime] = useState<Date | undefined>(undefined);
 
+    // get time value when modal open
+    const getInitialPickerTime = () => value || new Date();
+
+    const openPicker = () => {
+        setPendingTime(getInitialPickerTime());
+        setShow(true);
+    };
+
+    // close time picker modal without changes
+    const dismissPicker = () => {
+        setShow(false);
+        setPendingTime(undefined);
+        onDismiss?.();
+    };
+
+    // commit selected time and close modal
+    const commitTime = (date: Date) => {
+        onChange(date);
+        setShow(false);
+        setPendingTime(undefined);
+    };
+
+    // handle time change from picker
     const handleChange = (event: any, selectedTime?: Date) => {
-        // On Android, the picker is automatically dismissed after selection or cancellation
-        // On iOS, we need to handle it manually
         if (Platform.OS === 'android') {
             setShow(false);
-        }
-        
-        // Only update the value if user didn't cancel
-        if (event.type === 'set' && selectedTime) {
-            onChange(selectedTime);
-            if (Platform.OS === 'ios') {
-                setShow(false);
+            if (event.type === 'set' && selectedTime) {
+                onChange(selectedTime);
+            } else if (event.type === 'dismissed') {
+                onDismiss?.();
             }
+            return;
+        }
+        if (event.type === 'set' && selectedTime) {
+            setPendingTime(selectedTime);
         } else if (event.type === 'dismissed') {
-            setShow(false);
+            dismissPicker();
         }
     };
 
@@ -47,17 +72,18 @@ export default function TimePickerInput({
     return (
         <View className="mb-4">
             <Text className="text-gray-700 text-sm font-medium mb-2">
-                {required && <Text className="text-red-500">* </Text>}
                 {label}
+                {required && <Text style={styles.required}> *</Text>}
             </Text>
             <TouchableOpacity
-                onPress={() => setShow(true)}
-                className="bg-[#E3F2FD] border-b border-gray-200 rounded-lg px-4 py-3 flex-row justify-between items-center"
+                onPress={openPicker}
+                style={styles.inputBox}
             >
-                <Text className={value ? 'text-gray-800' : 'text-gray-400'}>
+                <Ionicons name="time-outline" size={18} color="#9CA3AF" style={styles.icon} />
+                <Text style={[styles.valueText, { color: value ? '#1F2937' : '#9CA3AF' }]}>
                     {value ? formatTime(value) : placeholder}
                 </Text>
-                <Ionicons name="time-outline" size={20} color="#9CA3AF" />
+                <Ionicons name="chevron-down-outline" size={16} color="#9CA3AF" />
             </TouchableOpacity>
 
             {show && Platform.OS === 'ios' && (
@@ -65,36 +91,34 @@ export default function TimePickerInput({
                     transparent={true}
                     animationType="slide"
                     visible={show}
-                    onRequestClose={() => setShow(false)}
+                    onRequestClose={dismissPicker}
                 >
-                    <Pressable 
+                    <Pressable
                         className="flex-1 bg-black/50 justify-end"
-                        onPress={() => setShow(false)}
+                        onPress={dismissPicker}
                     >
                         <Pressable className="bg-white rounded-t-3xl" onPress={(e) => e.stopPropagation()}>
                             <View className="flex-row justify-between items-center px-4 py-3 border-b border-gray-200">
-                                <TouchableOpacity onPress={() => setShow(false)}>
-                                    <Text className="text-[#42A5F5] text-base font-semibold">Hủy</Text>
+                                <TouchableOpacity onPress={dismissPicker}>
+                                    <Text className="text-[#42A4F5] text-base font-semibold">Hủy</Text>
                                 </TouchableOpacity>
                                 <Text className="text-gray-800 font-semibold">Chọn thời gian</Text>
-                                <TouchableOpacity 
+                                <TouchableOpacity
                                     onPress={() => {
-                                        handleChange({ type: 'set' }, value || new Date());
+                                        commitTime(pendingTime || getInitialPickerTime());
                                     }}
                                 >
-                                    <Text className="text-[#42A5F5] text-base font-semibold">Xong</Text>
+                                    <Text className="text-[#42A4F5] text-base font-semibold">Xong</Text>
                                 </TouchableOpacity>
                             </View>
                             <DateTimePicker
-                                value={value || new Date()}
+                                value={pendingTime || getInitialPickerTime()}
                                 mode="time"
                                 is24Hour={true}
                                 display="spinner"
-                                onChange={(event, time) => {
-                                    if (time) onChange(time);
-                                }}
-                                textColor="#000000"
-                                style={{ backgroundColor: '#FFFFFF', height: 200 }}
+                                onChange={handleChange}
+                                themeVariant="light"
+                                style={styles.spinner}
                             />
                         </Pressable>
                     </Pressable>
@@ -113,3 +137,30 @@ export default function TimePickerInput({
         </View>
     );
 }
+
+const styles = StyleSheet.create({
+    required: {
+        color: '#EF4444',
+    },
+    inputBox: {
+        backgroundColor: '#FFFFFF',
+        borderWidth: 1,
+        borderColor: '#D1D5DB',
+        borderRadius: 10,
+        paddingHorizontal: 12,
+        paddingVertical: 13,
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    icon: {
+        marginRight: 8,
+    },
+    valueText: {
+        flex: 1,
+        fontSize: 14,
+    },
+    spinner: {
+        backgroundColor: '#FFFFFF',
+        height: 200,
+    },
+});

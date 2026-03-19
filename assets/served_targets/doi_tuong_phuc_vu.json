@@ -2,35 +2,43 @@
   "doi_tuong_phuc_vu": [
     {
       "id": 1,
-      "label": "Phụ nữ"
+      "label": "Phụ nữ",
+      "value": "WOMEN"
     },
     {
       "id": 2,
-      "label": "Trẻ em"
+      "label": "Trẻ em",
+      "value": "CHILDREN"
     },
     {
       "id": 3,
-      "label": "Thanh thiếu niên"
+      "label": "Thanh thiếu niên",
+      "value": "ADOLESCENTS"
     },
     {
       "id": 4,
-      "label": "Trung niên"
+      "label": "Trung niên",
+      "value": "ADULTS"
     },
     {
       "id": 5,
-      "label": "Người cao tuổi"
+      "label": "Người cao tuổi",
+      "value": "ELDERLY"
     },
     {
       "id": 6,
-      "label": "Người tàn tật"
+      "label": "Người tàn tật",
+      "value": "PEOPLE_WITH_DISABILITIES"
     },
     {
       "id": 7,
-      "label": "Người yếu thế, người có hoàn cảnh khó khăn"
+      "label": "Người yếu thế, người có hoàn cảnh khó khăn",
+      "value": "VULNERABLE_GROUPS"
     },
     {
       "id": 8,
-      "label": "Không xác định"
+      "label": "Không xác định",
+      "value": "UNSPECIFIED"
     }
   ]
 }

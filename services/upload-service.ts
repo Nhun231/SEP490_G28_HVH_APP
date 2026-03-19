@@ -1,6 +1,5 @@
 /**
  * Upload Service - Handles file uploads to Supabase storage using signed URLs
- * Uses the official Supabase JS client for React Native compatibility.
  */
 
 import { supabase } from '@/lib/supabase'
@@ -18,18 +17,13 @@ export interface UploadOptions {
 
 /**
  * Upload an image file to Supabase using a signed upload URL.
- * Uses supabase.storage.uploadToSignedUrl() which works correctly on React Native.
- *
- * @param signedUrl - The full signed URL returned by the backend
- * @param file      - The file object with uri and mimeType
- */
+ **/
 export const uploadImageToSupabase = async (
     signedUrl: string,
     file: { uri: string; mimeType: string },
     _options?: UploadOptions
 ): Promise<void> => {
-    // Parse bucket, path, and token from the signed URL
-    // e.g. https://xxx.supabase.co/storage/v1/object/upload/sign/my-bucket/folder/file.jpg?token=TOKEN
+    
     const urlObj = new URL(signedUrl)
     const token = urlObj.searchParams.get('token')
     const bucketAndPath = urlObj.pathname.match(/\/object\/upload\/sign\/([^/]+)\/(.+)/)
@@ -41,7 +35,7 @@ export const uploadImageToSupabase = async (
     const bucket = bucketAndPath[1]   // e.g. "file-store"
     const path = bucketAndPath[2]     // e.g. "identity-verification/uuid/cid-front.jpg"
 
-    // Fetch the local file as a blob
+    // Fetch the local file as a blob (a file-like object of raw data)
     const localResponse = await fetch(file.uri)
     const blob = await localResponse.blob()
 

@@ -2,9 +2,10 @@ import React from 'react';
 import { View, Text, TouchableOpacity, Modal, FlatList, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
-interface OptionItem {
+export interface OptionItem {
     id: number;
     label: string;
+    value?: string;
 }
 
 interface BottomSheetPickerProps {

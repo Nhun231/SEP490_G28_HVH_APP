@@ -11,9 +11,6 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.sep490.hvhapp",
-      "config": {
-        "googleMapsApiKey": "AIzaSyAyAwvegpdwoKWZiuNo__1wTUc9RK89yg4"
-      },
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "supportsTablet": true
@@ -29,12 +26,7 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.sep490.hvhapp",
-      "config": {
-        "googleMaps": {
-          "apiKey": "AIzaSyAyAwvegpdwoKWZiuNo__1wTUc9RK89yg4"
-        }
-      }
+      "package": "com.sep490.hvhapp"
     },
     "web": {
       "bundler": "metro",
