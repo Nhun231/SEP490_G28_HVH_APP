@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import {
     View,
     Text,
@@ -8,8 +8,10 @@ import {
     Image,
     ScrollView,
     RefreshControl,
-    ActivityIndicator,
-    Dimensions,
+    TextInput,
+    Animated,
+    Keyboard,
+    Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -18,8 +20,6 @@ import { MyEventStatus } from '@/services/event-service';
 
 // TODO: Uncomment when API is ready
 // import { getMyEvents, MyEventItem } from '@/services/event-service';
-
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 // ── Types ──
 
@@ -38,20 +38,20 @@ export interface HostEvent {
 // ── Status Config ──
 
 const STATUS_CONFIG: Record<EventStatus, { label: string; color: string; bgColor: string; icon: string }> = {
-    EDITING:         { label: 'Đang soạn thảo',    color: '#6B7280', bgColor: '#F3F4F6', icon: 'create-outline' },
-    SUBMITTED:       { label: 'Chờ phê duyệt',     color: '#3B82F6', bgColor: '#DBEAFE', icon: 'time-outline' },
-    APPROVED_BY_MNG: { label: 'Quản lý duyệt',     color: '#10B981', bgColor: '#D1FAE5', icon: 'checkmark-circle-outline' },
-    REJECTED_BY_MNG: { label: 'Quản lý từ chối',   color: '#EF4444', bgColor: '#FEE2E2', icon: 'close-circle-outline' },
-    REJECTED_BY_AD:  { label: 'Admin từ chối',      color: '#DC2626', bgColor: '#FEE2E2', icon: 'close-circle-outline' },
+    EDITING:         { label: 'Đang soạn thảo',             color: '#6B7280', bgColor: '#F3F4F6', icon: 'create-outline' },
+    SUBMITTED:       { label: 'Chờ phê duyệt',              color: '#3B82F6', bgColor: '#DBEAFE', icon: 'time-outline' },
+    APPROVED_BY_MNG: { label: 'Quản lý duyệt',              color: '#10B981', bgColor: '#D1FAE5', icon: 'checkmark-circle-outline' },
+    REJECTED_BY_MNG: { label: 'Quản lý từ chối',            color: '#EF4444', bgColor: '#FEE2E2', icon: 'close-circle-outline' },
+    REJECTED_BY_AD:  { label: 'Admin từ chối',               color: '#DC2626', bgColor: '#FEE2E2', icon: 'close-circle-outline' },
     RECRUITING:      { label: 'Đang tuyển tình nguyện viên', color: '#7C3AED', bgColor: '#EDE9FE', icon: 'people-outline' },
-    UPCOMING:        { label: 'Sắp diễn ra',        color: '#D97706', bgColor: '#FEF3C7', icon: 'alarm-outline' },
-    ONGOING:         { label: 'Đang diễn ra',       color: '#059669', bgColor: '#D1FAE5', icon: 'play-circle-outline' },
-    ENDED:           { label: 'Đã kết thúc',        color: '#6B7280', bgColor: '#F3F4F6', icon: 'flag-outline' },
-    COMPLETED:       { label: 'Hoàn thành',         color: '#0EA5E9', bgColor: '#E0F2FE', icon: 'ribbon-outline' },
-    CANCELLED:       { label: 'Đã hủy',             color: '#9CA3AF', bgColor: '#F9FAFB', icon: 'ban-outline' },
+    UPCOMING:        { label: 'Sắp diễn ra',                 color: '#D97706', bgColor: '#FEF3C7', icon: 'alarm-outline' },
+    ONGOING:         { label: 'Đang diễn ra',                color: '#059669', bgColor: '#D1FAE5', icon: 'play-circle-outline' },
+    ENDED:           { label: 'Đã kết thúc',                 color: '#6B7280', bgColor: '#F3F4F6', icon: 'flag-outline' },
+    COMPLETED:       { label: 'Hoàn thành',                  color: '#0EA5E9', bgColor: '#E0F2FE', icon: 'ribbon-outline' },
+    CANCELLED:       { label: 'Đã hủy',                      color: '#9CA3AF', bgColor: '#F9FAFB', icon: 'ban-outline' },
 };
 
-// ── Two master tabs ──
+// ── Filter config ──
 
 type MasterTab = 'active' | 'history';
 
@@ -61,15 +61,15 @@ interface ChipFilter {
 }
 
 const ACTIVE_CHIPS: ChipFilter[] = [
-    { key: 'ALL',            label: 'Tất cả' },
-    { key: 'EDITING',        label: 'Soạn thảo' },
-    { key: 'SUBMITTED',      label: 'Chờ duyệt' },
-    { key: 'APPROVED_BY_MNG',label: 'QL duyệt' },
-    { key: 'REJECTED_BY_MNG',label: 'QL từ chối' },
-    { key: 'REJECTED_BY_AD', label: 'Admin từ chối' },
-    { key: 'RECRUITING',     label: 'Tuyển TNV' },
-    { key: 'UPCOMING',       label: 'Sắp diễn ra' },
-    { key: 'ONGOING',        label: 'Đang diễn ra' },
+    { key: 'ALL',             label: 'Tất cả' },
+    { key: 'EDITING',         label: 'Soạn thảo' },
+    { key: 'SUBMITTED',       label: 'Chờ duyệt' },
+    { key: 'APPROVED_BY_MNG', label: 'QL duyệt' },
+    { key: 'REJECTED_BY_MNG', label: 'QL từ chối' },
+    { key: 'REJECTED_BY_AD',  label: 'Admin từ chối' },
+    { key: 'RECRUITING',      label: 'Tuyển TNV' },
+    { key: 'UPCOMING',        label: 'Sắp diễn ra' },
+    { key: 'ONGOING',         label: 'Đang diễn ra' },
 ];
 
 const HISTORY_CHIPS: ChipFilter[] = [
@@ -79,27 +79,28 @@ const HISTORY_CHIPS: ChipFilter[] = [
     { key: 'CANCELLED', label: 'Đã hủy' },
 ];
 
-const ACTIVE_STATUSES: EventStatus[] = ['EDITING', 'SUBMITTED', 'APPROVED_BY_MNG', 'REJECTED_BY_MNG', 'REJECTED_BY_AD', 'RECRUITING', 'UPCOMING', 'ONGOING'];
+const ACTIVE_STATUSES: EventStatus[]  = ['EDITING', 'SUBMITTED', 'APPROVED_BY_MNG', 'REJECTED_BY_MNG', 'REJECTED_BY_AD', 'RECRUITING', 'UPCOMING', 'ONGOING'];
 const HISTORY_STATUSES: EventStatus[] = ['ENDED', 'COMPLETED', 'CANCELLED'];
 
 // ── Mock Data ──
+
 const DEFAULT_IMAGE = 'https://images.unsplash.com/photo-1532629345422-7515f3d16bb6?w=400';
 
 const MOCK_EVENTS: HostEvent[] = [
-    { id: '1', name: 'Làm sạch môi trường Hồ Hoàn Kiếm', imageUrl: 'https://images.unsplash.com/photo-1532629345422-7515f3d16bb6?w=400', status: 'RECRUITING', startDate: '2026-04-15', address: 'Công viên Hồ Hoàn Kiếm, Quận Hoàn Kiếm, Hà Nội', recruitmentEndDate: '2026-04-10' },
-    { id: '2', name: 'Hiến máu nhân đạo 2026', imageUrl: 'https://images.unsplash.com/photo-1615461066841-6116e61058f4?w=400', status: 'UPCOMING', startDate: '2026-04-20', address: 'Bệnh viện Bạch Mai, Đống Đa, Hà Nội', recruitmentEndDate: '2026-04-15' },
-    { id: '3', name: 'Trồng cây xanh tại trường học', imageUrl: 'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?w=400', status: 'ONGOING', startDate: '2026-03-21', address: 'Trường THPT Chu Văn An, Ba Đình, Hà Nội', recruitmentEndDate: '2026-03-15' },
-    { id: '4', name: 'Hỗ trợ học tập cho trẻ em vùng cao', imageUrl: 'https://images.unsplash.com/photo-1497633762265-9d179a990aa6?w=400', status: 'SUBMITTED', startDate: '2026-05-01', address: 'Trường Tiểu học Tà Phìn, Sa Pa, Lào Cai', recruitmentEndDate: '2026-04-25' },
-    { id: '5', name: 'Chăm sóc người già tại viện dưỡng lão', imageUrl: 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=400', status: 'APPROVED_BY_MNG', startDate: '2026-04-25', address: 'Viện dưỡng lão Hà Đông, Hà Nội', recruitmentEndDate: '2026-04-20' },
-    { id: '6', name: 'Hội chợ từ thiện ủng hộ trẻ em khuyết tật', imageUrl: 'https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?w=400', status: 'EDITING', startDate: '2026-05-10', address: 'Quảng trường Đông Kinh Nghĩa Thục, Hoàn Kiếm, Hà Nội', recruitmentEndDate: '2026-05-05' },
-    { id: '7', name: 'Dọn rác bãi biển Sầm Sơn', imageUrl: 'https://images.unsplash.com/photo-1618477461853-cf6ed80faba5?w=400', status: 'COMPLETED', startDate: '2026-03-10', address: 'Bãi biển Sầm Sơn, Thanh Hóa', recruitmentEndDate: '2026-03-05' },
-    { id: '8', name: 'Hỗ trợ xây dựng nhà tình thương', imageUrl: 'https://images.unsplash.com/photo-1503387762-592deb58ef4e?w=400', status: 'ENDED', startDate: '2026-02-20', address: 'Xã Hòa Bình, Huyện Phú Xuyên, Hà Nội', recruitmentEndDate: '2026-02-15' },
-    { id: '9', name: 'Tặng quà trung thu cho trẻ em nghèo', imageUrl: 'https://images.unsplash.com/photo-1509062522246-3755977927d7?w=400', status: 'REJECTED_BY_MNG', startDate: '2026-09-15', address: 'Làng trẻ SOS Hà Nội, Từ Liêm, Hà Nội', recruitmentEndDate: '2026-09-10' },
-    { id: '10', name: 'Chiến dịch bảo vệ rừng nguyên sinh', imageUrl: 'https://images.unsplash.com/photo-1448375240586-882707db888b?w=400', status: 'CANCELLED', startDate: '2026-01-12', address: 'Vườn Quốc gia Cúc Phương, Ninh Bình', recruitmentEndDate: '2026-01-05' },
-    { id: '11', name: 'Khám chữa bệnh miễn phí vùng sâu', imageUrl: 'https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=400', status: 'REJECTED_BY_AD', startDate: '2026-06-20', address: 'Xã Chiềng Bằng, Quỳnh Nhai, Sơn La', recruitmentEndDate: '2026-06-10' },
+    { id: '1',  name: 'Làm sạch môi trường Hồ Hoàn Kiếm',          imageUrl: 'https://images.unsplash.com/photo-1532629345422-7515f3d16bb6?w=400', status: 'RECRUITING',      startDate: '2026-04-15', address: 'Công viên Hồ Hoàn Kiếm, Quận Hoàn Kiếm, Hà Nội',               recruitmentEndDate: '2026-04-10' },
+    { id: '2',  name: 'Hiến máu nhân đạo 2026',                     imageUrl: 'https://images.unsplash.com/photo-1615461066841-6116e61058f4?w=400', status: 'UPCOMING',        startDate: '2026-04-20', address: 'Bệnh viện Bạch Mai, Đống Đa, Hà Nội',                          recruitmentEndDate: '2026-04-15' },
+    { id: '3',  name: 'Trồng cây xanh tại trường học',              imageUrl: 'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?w=400', status: 'ONGOING',         startDate: '2026-03-21', address: 'Trường THPT Chu Văn An, Ba Đình, Hà Nội',                      recruitmentEndDate: '2026-03-15' },
+    { id: '4',  name: 'Hỗ trợ học tập cho trẻ em vùng cao',        imageUrl: 'https://images.unsplash.com/photo-1497633762265-9d179a990aa6?w=400', status: 'SUBMITTED',       startDate: '2026-05-01', address: 'Trường Tiểu học Tà Phìn, Sa Pa, Lào Cai',                     recruitmentEndDate: '2026-04-25' },
+    { id: '5',  name: 'Chăm sóc người già tại viện dưỡng lão',     imageUrl: 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=400', status: 'APPROVED_BY_MNG', startDate: '2026-04-25', address: 'Viện dưỡng lão Hà Đông, Hà Nội',                               recruitmentEndDate: '2026-04-20' },
+    { id: '6',  name: 'Hội chợ từ thiện ủng hộ trẻ em khuyết tật', imageUrl: 'https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?w=400', status: 'EDITING',         startDate: '2026-05-10', address: 'Quảng trường Đông Kinh Nghĩa Thục, Hoàn Kiếm, Hà Nội',       recruitmentEndDate: '2026-05-05' },
+    { id: '7',  name: 'Dọn rác bãi biển Sầm Sơn',                  imageUrl: 'https://images.unsplash.com/photo-1618477461853-cf6ed80faba5?w=400', status: 'COMPLETED',       startDate: '2026-03-10', address: 'Bãi biển Sầm Sơn, Thanh Hóa',                                 recruitmentEndDate: '2026-03-05' },
+    { id: '8',  name: 'Hỗ trợ xây dựng nhà tình thương',           imageUrl: 'https://images.unsplash.com/photo-1503387762-592deb58ef4e?w=400', status: 'ENDED',           startDate: '2026-02-20', address: 'Xã Hòa Bình, Huyện Phú Xuyên, Hà Nội',                        recruitmentEndDate: '2026-02-15' },
+    { id: '9',  name: 'Tặng quà trung thu cho trẻ em nghèo',       imageUrl: 'https://images.unsplash.com/photo-1509062522246-3755977927d7?w=400', status: 'REJECTED_BY_MNG', startDate: '2026-09-15', address: 'Làng trẻ SOS Hà Nội, Từ Liêm, Hà Nội',                       recruitmentEndDate: '2026-09-10' },
+    { id: '10', name: 'Chiến dịch bảo vệ rừng nguyên sinh',        imageUrl: 'https://images.unsplash.com/photo-1448375240586-882707db888b?w=400', status: 'CANCELLED',       startDate: '2026-01-12', address: 'Vườn Quốc gia Cúc Phương, Ninh Bình',                         recruitmentEndDate: '2026-01-05' },
+    { id: '11', name: 'Khám chữa bệnh miễn phí vùng sâu',          imageUrl: 'https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=400', status: 'REJECTED_BY_AD',  startDate: '2026-06-20', address: 'Xã Chiềng Bằng, Quỳnh Nhai, Sơn La',                         recruitmentEndDate: '2026-06-10' },
 ];
 
-// ── Helper functions ──
+// ── Helpers ──
 
 const formatDate = (dateStr: string): string => {
     if (!dateStr) return '';
@@ -107,7 +108,7 @@ const formatDate = (dateStr: string): string => {
     return `${d}/${m}/${y}`;
 };
 
-// ── Sub-components ──
+// ── StatusChip ──
 
 interface StatusChipProps {
     chip: ChipFilter;
@@ -122,18 +123,16 @@ const StatusChip = ({ chip, isActive, count, onPress }: StatusChipProps) => (
         onPress={onPress}
         activeOpacity={0.7}
     >
-        <Text style={[styles.chipText, isActive && styles.chipTextActive]}>
-            {chip.label}
-        </Text>
+        <Text style={[styles.chipText, isActive && styles.chipTextActive]}>{chip.label}</Text>
         {count > 0 && (
             <View style={[styles.chipBadge, isActive && styles.chipBadgeActive]}>
-                <Text style={[styles.chipBadgeText, isActive && styles.chipBadgeTextActive]}>
-                    {count}
-                </Text>
+                <Text style={[styles.chipBadgeText, isActive && styles.chipBadgeTextActive]}>{count}</Text>
             </View>
         )}
     </TouchableOpacity>
 );
+
+// ── HostEventCard ──
 
 interface EventCardProps {
     item: HostEvent;
@@ -143,30 +142,18 @@ interface EventCardProps {
 const HostEventCard = ({ item, onPress }: EventCardProps) => {
     const cfg = STATUS_CONFIG[item.status];
     return (
-        <TouchableOpacity
-            style={styles.card}
-            onPress={() => onPress(item.id)}
-            activeOpacity={0.75}
-        >
-            {/* Thumbnail */}
+        <TouchableOpacity style={styles.card} onPress={() => onPress(item.id)} activeOpacity={0.75}>
             <Image
                 source={{ uri: item.imageUrl || DEFAULT_IMAGE }}
                 style={styles.cardImage}
                 resizeMode="cover"
             />
-
-            {/* Info */}
             <View style={styles.cardBody}>
-                {/* Status badge */}
                 <View style={[styles.statusBadge, { backgroundColor: cfg.bgColor }]}>
                     <Ionicons name={cfg.icon as any} size={11} color={cfg.color} style={{ marginRight: 4 }} />
                     <Text style={[styles.statusText, { color: cfg.color }]}>{cfg.label}</Text>
                 </View>
-
-                {/* Name */}
                 <Text style={styles.cardTitle} numberOfLines={2}>{item.name}</Text>
-
-                {/* Meta rows */}
                 <View style={styles.metaRow}>
                     <Ionicons name="calendar-outline" size={13} color="#9CA3AF" />
                     <Text style={styles.metaText}>{formatDate(item.startDate)}</Text>
@@ -186,14 +173,28 @@ const HostEventCard = ({ item, onPress }: EventCardProps) => {
 
 // ── Main Screen ──
 
+const SEARCH_BAR_HEIGHT = 52;
+
 const EventManagement = () => {
     const router = useRouter();
-    const [masterTab, setMasterTab] = useState<MasterTab>('active');
-    const [activeChip, setActiveChip] = useState<EventStatus | 'ALL'>('ALL');
+    const inputRef = useRef<TextInput>(null);
+
+    // Master tab & chip filter
+    const [masterTab, setMasterTab]     = useState<MasterTab>('active');
+    const [activeChip, setActiveChip]   = useState<EventStatus | 'ALL'>('ALL');
     const [historyChip, setHistoryChip] = useState<EventStatus | 'ALL'>('ALL');
+
+    // Search
+    const [searchVisible, setSearchVisible] = useState(false);
+    const [searchText, setSearchText]       = useState('');
+    const [searchQuery, setSearchQuery]     = useState(''); // debounced value actually sent to filter / API
+    const searchAnim = useRef(new Animated.Value(0)).current;
+    const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    // Misc
     const [refreshing, setRefreshing] = useState(false);
 
-    // TODO: Replace with real API state
+    // TODO: Replace with real API state when ready
     // const [events, setEvents] = useState<HostEvent[]>([]);
     // const [loading, setLoading] = useState(false);
     // const [loadingMore, setLoadingMore] = useState(false);
@@ -201,18 +202,72 @@ const EventManagement = () => {
     // const [hasMore, setHasMore] = useState(true);
     // const PAGE_SIZE = 10;
 
-    // TODO: Uncomment when API is ready
+    // ── Search bar animation ──
+
+    const openSearch = () => {
+        setSearchVisible(true);
+        Animated.spring(searchAnim, {
+            toValue: 1,
+            useNativeDriver: false,
+            bounciness: 6,
+        }).start(() => {
+            // Focus after animation
+            setTimeout(() => inputRef.current?.focus(), 50);
+        });
+    };
+
+    const closeSearch = () => {
+        Keyboard.dismiss();
+        setSearchText('');
+        setSearchQuery('');
+        Animated.timing(searchAnim, {
+            toValue: 0,
+            duration: 200,
+            useNativeDriver: false,
+        }).start(() => setSearchVisible(false));
+    };
+
+    const handleSearchChange = (text: string) => {
+        setSearchText(text);
+        // Debounce: update query after 400 ms of inactivity
+        if (debounceRef.current) clearTimeout(debounceRef.current);
+        debounceRef.current = setTimeout(() => {
+            setSearchQuery(text.trim());
+            // TODO: Uncomment when API is ready – call fetchEvents(0) here so the
+            // API receives the updated `name` param:
+            // setEvents([]); setCurrentPage(0); setHasMore(true); fetchEvents(0);
+        }, 400);
+    };
+
+    useEffect(() => () => {
+        if (debounceRef.current) clearTimeout(debounceRef.current);
+    }, []);
+
+    // Animated height for the search bar container
+    const searchBarHeight = searchAnim.interpolate({
+        inputRange: [0, 1],
+        outputRange: [0, SEARCH_BAR_HEIGHT],
+    });
+
+    // ── API fetch (commented until API is ready) ──
+
     // const fetchEvents = useCallback(async (page: number, isRefresh = false) => {
     //     if (isRefresh) setRefreshing(true);
     //     else if (page === 0) setLoading(true);
     //     else setLoadingMore(true);
     //     try {
-    //         const targetStatuses = masterTab === 'active' ? ACTIVE_STATUSES : HISTORY_STATUSES;
-    //         const chipFilter = masterTab === 'active' ? activeChip : historyChip;
-    //         const statusesToFetch: MyEventStatus[] = chipFilter === 'ALL' ? targetStatuses : [chipFilter as MyEventStatus];
-    //         // Note: API currently supports one status at a time, so you'll need to
-    //         // either loop or update the API to accept multiple status params.
-    //         const response = await getMyEvents({ pageNumber: page, pageSize: PAGE_SIZE, status: statusesToFetch[0] });
+    //         const masterStatuses = masterTab === 'active' ? ACTIVE_STATUSES : HISTORY_STATUSES;
+    //         const chipFilter     = masterTab === 'active' ? activeChip : historyChip;
+    //         const statusesToFetch: MyEventStatus[] = chipFilter === 'ALL'
+    //             ? masterStatuses
+    //             : [chipFilter as MyEventStatus];
+    //         // Example URL: /api/v1/host/event/my-events?pageNumber=0&pageSize=10&name=Làm sạch&status=EDITING
+    //         const response = await getMyEvents({
+    //             pageNumber: page,
+    //             pageSize:   PAGE_SIZE,
+    //             statuses:   statusesToFetch,
+    //             name:       searchQuery || undefined,
+    //         });
     //         const mapped = response.content.map(item => ({ ...item, status: item.status as EventStatus }));
     //         if (isRefresh || page === 0) { setEvents(mapped); setCurrentPage(0); }
     //         else setEvents(prev => [...prev, ...mapped]);
@@ -223,11 +278,13 @@ const EventManagement = () => {
     //     } finally {
     //         setLoading(false); setRefreshing(false); setLoadingMore(false);
     //     }
-    // }, [masterTab, activeChip, historyChip]);
+    // }, [masterTab, activeChip, historyChip, searchQuery]);
     //
-    // useEffect(() => { setEvents([]); setCurrentPage(0); setHasMore(true); fetchEvents(0); }, [masterTab, activeChip, historyChip]);
+    // useEffect(() => {
+    //     setEvents([]); setCurrentPage(0); setHasMore(true); fetchEvents(0);
+    // }, [masterTab, activeChip, historyChip, searchQuery]);
     //
-    // const handleRefresh = () => fetchEvents(0, true);
+    // const handleRefresh  = () => fetchEvents(0, true);
     // const handleLoadMore = () => { if (!loadingMore && !loading && hasMore) fetchEvents(currentPage + 1); };
 
     const handleRefresh = useCallback(() => {
@@ -235,49 +292,63 @@ const EventManagement = () => {
         setTimeout(() => setRefreshing(false), 800);
     }, []);
 
-    const currentChip = masterTab === 'active' ? activeChip : historyChip;
+    // ── Derived state ──
+
+    const currentChip    = masterTab === 'active' ? activeChip : historyChip;
     const setCurrentChip = masterTab === 'active' ? setActiveChip : setHistoryChip;
-    const chips = masterTab === 'active' ? ACTIVE_CHIPS : HISTORY_CHIPS;
+    const chips          = masterTab === 'active' ? ACTIVE_CHIPS : HISTORY_CHIPS;
     const masterStatuses = masterTab === 'active' ? ACTIVE_STATUSES : HISTORY_STATUSES;
 
+    // Client-side filter (for mock data only – remove when API is ready)
     const filteredEvents = MOCK_EVENTS.filter(e => {
         if (!masterStatuses.includes(e.status)) return false;
-        if (currentChip === 'ALL') return true;
-        return e.status === currentChip;
+        if (currentChip !== 'ALL' && e.status !== currentChip) return false;
+        if (searchQuery && !e.name.toLowerCase().includes(searchQuery.toLowerCase())) return false;
+        return true;
     });
 
-    // Count per chip for badges
     const chipCounts = chips.reduce<Record<string, number>>((acc, chip) => {
-        if (chip.key === 'ALL') {
-            acc['ALL'] = MOCK_EVENTS.filter(e => masterStatuses.includes(e.status)).length;
-        } else {
-            acc[chip.key] = MOCK_EVENTS.filter(e => e.status === chip.key).length;
-        }
+        const base = MOCK_EVENTS.filter(e => {
+            if (!masterStatuses.includes(e.status)) return false;
+            if (chip.key !== 'ALL' && e.status !== chip.key) return false;
+            if (searchQuery && !e.name.toLowerCase().includes(searchQuery.toLowerCase())) return false;
+            return true;
+        }).length;
+        acc[chip.key] = base;
         return acc;
     }, {});
 
-    const handleEventPress = (id: string) => {
-        console.log('Event pressed:', id);
-        // TODO: Navigate to event detail
-    };
-
     const handleMasterTab = (tab: MasterTab) => {
         setMasterTab(tab);
-        // Reset chip to ALL when switching tabs
         if (tab === 'active') setActiveChip('ALL');
         else setHistoryChip('ALL');
     };
 
+    const handleEventPress = (id: string) => {
+        console.log('Event pressed:', id);
+        // TODO: router.push(`/screen/event-detail?id=${id}`);
+    };
+
+    // ── Render helpers ──
+
     const renderEmpty = () => (
         <View style={styles.emptyContainer}>
             <View style={styles.emptyIconWrapper}>
-                <Ionicons name="calendar-outline" size={52} color="#CBD5E1" />
+                <Ionicons
+                    name={searchQuery ? 'search-outline' : 'calendar-outline'}
+                    size={52}
+                    color="#CBD5E1"
+                />
             </View>
-            <Text style={styles.emptyTitle}>Chưa có sự kiện</Text>
+            <Text style={styles.emptyTitle}>
+                {searchQuery ? 'Không tìm thấy sự kiện' : 'Chưa có sự kiện'}
+            </Text>
             <Text style={styles.emptySubtitle}>
-                {masterTab === 'active'
-                    ? 'Tạo sự kiện mới để bắt đầu hoạt động tình nguyện!'
-                    : 'Các sự kiện đã kết thúc sẽ được hiển thị tại đây.'}
+                {searchQuery
+                    ? `Không có sự kiện nào khớp với "${searchQuery}"`
+                    : masterTab === 'active'
+                        ? 'Tạo sự kiện mới để bắt đầu hoạt động tình nguyện!'
+                        : 'Các sự kiện đã kết thúc sẽ được hiển thị tại đây.'}
             </Text>
         </View>
     );
@@ -294,18 +365,56 @@ const EventManagement = () => {
         return null;
     };
 
+    // ── JSX ──
+
     return (
         <SafeAreaView style={styles.container} edges={['top']}>
             {/* ── Header ── */}
             <View style={styles.header}>
-                <View>
+                <View style={{ flex: 1 }}>
                     <Text style={styles.headerTitle}>Sự kiện của tôi</Text>
                     <Text style={styles.headerSub}>Quản lý toàn bộ sự kiện bạn tổ chức</Text>
                 </View>
-                <TouchableOpacity style={styles.headerSearch} activeOpacity={0.7}>
-                    <Ionicons name="search-outline" size={22} color="#FFFFFF" />
+                <TouchableOpacity
+                    style={[styles.headerIconBtn, searchVisible && styles.headerIconBtnActive]}
+                    onPress={searchVisible ? closeSearch : openSearch}
+                    activeOpacity={0.7}
+                >
+                    <Ionicons
+                        name={searchVisible ? 'close' : 'search-outline'}
+                        size={22}
+                        color="#FFFFFF"
+                    />
                 </TouchableOpacity>
             </View>
+
+            {/* ── Animated Search Bar ── */}
+            <Animated.View style={[styles.searchWrapper, { height: searchBarHeight }]}>
+                {searchVisible && (
+                    <View style={styles.searchBar}>
+                        <Ionicons name="search-outline" size={18} color="#94A3B8" style={styles.searchIcon} />
+                        <TextInput
+                            ref={inputRef}
+                            style={styles.searchInput}
+                            placeholder="Tìm kiếm sự kiện..."
+                            placeholderTextColor="#94A3B8"
+                            value={searchText}
+                            onChangeText={handleSearchChange}
+                            returnKeyType="search"
+                            autoCorrect={false}
+                            autoCapitalize="none"
+                        />
+                        {searchText.length > 0 && (
+                            <TouchableOpacity
+                                onPress={() => { setSearchText(''); setSearchQuery(''); }}
+                                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                            >
+                                <Ionicons name="close-circle" size={18} color="#CBD5E1" />
+                            </TouchableOpacity>
+                        )}
+                    </View>
+                )}
+            </Animated.View>
 
             {/* ── Master Tabs ── */}
             <View style={styles.masterTabRow}>
@@ -316,8 +425,8 @@ const EventManagement = () => {
                 >
                     <Ionicons
                         name="flash-outline"
-                        size={16}
-                        color={masterTab === 'active' ? '#FFFFFF' : '#64748B'}
+                        size={15}
+                        color={masterTab === 'active' ? BLUE : 'rgba(255,255,255,0.8)'}
                         style={{ marginRight: 5 }}
                     />
                     <Text style={[styles.masterTabText, masterTab === 'active' && styles.masterTabTextActive]}>
@@ -331,8 +440,8 @@ const EventManagement = () => {
                 >
                     <Ionicons
                         name="archive-outline"
-                        size={16}
-                        color={masterTab === 'history' ? '#FFFFFF' : '#64748B'}
+                        size={15}
+                        color={masterTab === 'history' ? BLUE : 'rgba(255,255,255,0.8)'}
                         style={{ marginRight: 5 }}
                     />
                     <Text style={[styles.masterTabText, masterTab === 'history' && styles.masterTabTextActive]}>
@@ -341,14 +450,15 @@ const EventManagement = () => {
                 </TouchableOpacity>
             </View>
 
-            {/* ── Chip bar + List (always white background) ── */}
+            {/* ── Chip bar + List (always light background) ── */}
             <View style={styles.listWrapper}>
-                {/* ── Status Chip Filters (horizontal scroll) ── */}
+                {/* Chip filter */}
                 <View style={styles.chipBar}>
                     <ScrollView
                         horizontal
                         showsHorizontalScrollIndicator={false}
                         contentContainerStyle={styles.chipBarContent}
+                        keyboardShouldPersistTaps="handled"
                     >
                         {chips.map(chip => (
                             <StatusChip
@@ -362,7 +472,7 @@ const EventManagement = () => {
                     </ScrollView>
                 </View>
 
-                {/* ── Event List ── */}
+                {/* Event list */}
                 <FlatList
                     data={filteredEvents}
                     keyExtractor={item => item.id}
@@ -370,14 +480,15 @@ const EventManagement = () => {
                     style={styles.list}
                     contentContainerStyle={styles.listContent}
                     showsVerticalScrollIndicator={false}
+                    keyboardShouldPersistTaps="handled"
                     ListEmptyComponent={renderEmpty}
                     ListFooterComponent={renderFooter}
                     refreshControl={
                         <RefreshControl
                             refreshing={refreshing}
                             onRefresh={handleRefresh}
-                            colors={['#42A4F5']}
-                            tintColor="#42A4F5"
+                            colors={[BLUE]}
+                            tintColor={BLUE}
                         />
                     }
                     // TODO: Uncomment when API is ready
@@ -402,7 +513,6 @@ const EventManagement = () => {
 // ── Styles ──
 
 const BLUE = '#42A4F5';
-const DARK_BLUE = '#1E88D8';
 
 const styles = StyleSheet.create({
     container: {
@@ -415,7 +525,7 @@ const styles = StyleSheet.create({
         backgroundColor: BLUE,
         paddingHorizontal: 20,
         paddingTop: 4,
-        paddingBottom: 16,
+        paddingBottom: 12,
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
@@ -431,16 +541,47 @@ const styles = StyleSheet.create({
         fontSize: 13,
         marginTop: 2,
     },
-    headerSearch: {
+    headerIconBtn: {
         width: 40,
         height: 40,
         borderRadius: 20,
         backgroundColor: 'rgba(255,255,255,0.2)',
         alignItems: 'center',
         justifyContent: 'center',
+        marginLeft: 10,
+    },
+    headerIconBtnActive: {
+        backgroundColor: 'rgba(255,255,255,0.35)',
     },
 
-    // Master tabs (pill-style)
+    // Animated search bar
+    searchWrapper: {
+        overflow: 'hidden',
+        paddingHorizontal: 16,
+        backgroundColor: BLUE,
+    },
+    searchBar: {
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: 'rgba(255,255,255,0.95)',
+        borderRadius: 12,
+        paddingHorizontal: 12,
+        marginBottom: 10,
+        height: 42,
+    },
+    searchIcon: {
+        marginRight: 8,
+    },
+    searchInput: {
+        flex: 1,
+        fontSize: 15,
+        color: '#1E293B',
+        paddingVertical: 0,
+        height: '100%',
+    },
+
+    // Master tabs
     masterTabRow: {
         flexDirection: 'row',
         backgroundColor: 'rgba(255,255,255,0.18)',
@@ -478,8 +619,6 @@ const styles = StyleSheet.create({
     // Chip bar
     chipBar: {
         backgroundColor: '#F8FAFC',
-        borderTopLeftRadius: 20,
-        borderTopRightRadius: 20,
         paddingTop: 14,
         paddingBottom: 10,
     },
@@ -530,12 +669,10 @@ const styles = StyleSheet.create({
         color: '#FFFFFF',
     },
 
-    // List wrapper — always white background so the FAB stands out
+    // List
     listWrapper: {
         flex: 1,
         backgroundColor: '#F8FAFC',
-        borderTopLeftRadius: 0,
-        borderTopRightRadius: 0,
     },
     list: {
         flex: 1,
@@ -547,7 +684,7 @@ const styles = StyleSheet.create({
         paddingBottom: 110,
     },
 
-    // Event Card
+    // Event card
     card: {
         backgroundColor: '#FFFFFF',
         borderRadius: 16,
