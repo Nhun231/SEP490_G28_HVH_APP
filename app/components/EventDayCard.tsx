@@ -28,7 +28,8 @@ interface EventDayCardProps {
     onUpdateDay: (id: string, field: keyof EventDay, value: any) => void;
     onSetDayFieldError: (id: string, field: DayErrorField, message?: string) => void;
     onValidateQuantity: (id: string, field: 'volunteerCount' | 'servedCount', value: string, emptyMessage: string) => void;
-    sanitizeInput: (value: string) => string;
+    sanitizeVolunteerInput: (value: string) => string;
+    sanitizeServedInput: (value: string) => string;
 }
 
 export default function EventDayCard({
@@ -41,7 +42,8 @@ export default function EventDayCard({
     onUpdateDay,
     onSetDayFieldError,
     onValidateQuantity,
-    sanitizeInput,
+    sanitizeVolunteerInput,
+    sanitizeServedInput,
 }: EventDayCardProps) {
     return (
         <View style={styles.dayCard}>
@@ -60,6 +62,7 @@ export default function EventDayCard({
                 label="Ngày tổ chức"
                 required
                 value={day.date}
+                error={errors.date}
                 onDismiss={() =>
                     onSetDayFieldError(day.id, 'date', day.date ? undefined : 'Vui lòng chọn ngày tổ chức')
                 }
@@ -80,6 +83,7 @@ export default function EventDayCard({
                             label="Giờ bắt đầu"
                             required
                             value={day.startTime}
+                            error={errors.startTime}
                             onDismiss={() =>
                                 onSetDayFieldError(day.id, 'startTime', day.startTime ? undefined : 'Vui lòng chọn giờ bắt đầu')
                             }
@@ -92,6 +96,7 @@ export default function EventDayCard({
                             label="Giờ kết thúc"
                             required
                             value={day.endTime}
+                            error={errors.endTime}
                             onDismiss={() =>
                                 onSetDayFieldError(day.id, 'endTime', day.endTime ? undefined : 'Vui lòng chọn giờ kết thúc')
                             }
@@ -122,7 +127,7 @@ export default function EventDayCard({
                     onValidateQuantity(day.id, 'volunteerCount', day.volunteerCount, 'Vui lòng nhập số lượng TNV cần tuyển')
                 }
                 onChangeText={(text) =>
-                    onUpdateDay(day.id, 'volunteerCount', sanitizeInput(text))
+                    onUpdateDay(day.id, 'volunteerCount', sanitizeVolunteerInput(text))
                 }
             />
 
@@ -138,7 +143,7 @@ export default function EventDayCard({
                     onValidateQuantity(day.id, 'servedCount', day.servedCount, 'Vui lòng nhập số lượng đối tượng phục vụ')
                 }
                 onChangeText={(text) =>
-                    onUpdateDay(day.id, 'servedCount', sanitizeInput(text))
+                    onUpdateDay(day.id, 'servedCount', sanitizeServedInput(text))
                 }
             />
         </View>
