@@ -126,7 +126,7 @@ export default function TimePickerInput({
                     </Pressable>
                 </Modal>
             )}
-            
+
             {show && Platform.OS === 'android' && (
                 <DateTimePicker
                     value={value || new Date()}

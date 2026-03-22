@@ -325,8 +325,11 @@ const EventManagement = () => {
     };
 
     const handleEventPress = (id: string) => {
-        console.log('Event pressed:', id);
-        // TODO: router.push(`/screen/event-detail?id=${id}`);
+        const event = MOCK_EVENTS.find(e => e.id === id);
+        router.push({
+            pathname: '/screen/event-detail',
+            params: { id, status: event?.status },
+        });
     };
 
     // ── Render helpers ──
