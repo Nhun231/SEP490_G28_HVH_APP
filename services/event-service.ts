@@ -181,6 +181,7 @@ export interface MyEventItem {
     name: string;
     imageUrl: string | null;
     address: string;
+    status: MyEventStatus;       // event lifecycle status returned by the API
     startDate: string;          // ISO date e.g. "2026-04-10"
     recruitmentEndDate: string; // ISO date e.g. "2026-03-25"
     createdAt: string;          // ISO datetime with timezone
@@ -201,10 +202,7 @@ export interface MyEventsParams {
     pageNumber?: number;
     pageSize?: number;
     name?: string;
-    /** Single status filter (legacy) */
     status?: MyEventStatus;
-    /** Multiple status filter — when provided, appends each as a separate `status` query param */
-    statuses?: MyEventStatus[];
 }
 
 export interface EventFeedParams {
@@ -232,8 +230,8 @@ export interface UpdateImage {
 export interface EventSession {
     eventSessionId?: string | null;
     updateAction: SessionUpdateAction;
-    startDateTime: string; // ISO 8601 format with timezone (e.g., "2026-04-01T05:30:00+07:00")
-    endDateTime: string;   // ISO 8601 format with timezone
+    startDateTime: string;
+    endDateTime: string;
     expectedVolAmount: number;
     expectedSerAmount: number;
 }
@@ -246,9 +244,9 @@ export interface EventCreateRequest {
     address: string;
     autoApprove: boolean;
     activitySubDomainId: number;
-    servedTarget: string;          // e.g., "WOMEN", "CHILDREN", etc.
-    servingPlaceType: string;      // e.g., "SCHOOL", "HOSPITAL", etc.
-    recruitmentEndDate: string;    // Format: "YYYY-MM-DD"
+    servedTarget: string;
+    servingPlaceType: string;
+    recruitmentEndDate: string;
     eventSessions: EventSession[];
     checkInPlaceLat: number;
     checkInPlaceLng: number;
@@ -331,8 +329,6 @@ export const getAllActivityDomains = async (): Promise<ActivityDomain[]> => {
  */
 export const saveDraftEvent = async (data: EventCreateRequest): Promise<EventCreateResponse> => {
     const endpoint = `${API_BASE}/api/v1/event/draft`
-    console.log('[EventService] Request body:', JSON.stringify(data, null, 2))
-
     const response = await baseAxios.post<EventCreateResponse>(endpoint, data)
     return response.data
 }
@@ -343,37 +339,69 @@ export const saveDraftEvent = async (data: EventCreateRequest): Promise<EventCre
  */
 export const submitEvent = async (data: EventCreateRequest): Promise<EventCreateResponse> => {
     const endpoint = `${API_BASE}/api/v1/event/submit`
-    console.log('[EventService] Request body:', JSON.stringify(data, null, 2))
-
     const response = await baseAxios.post<EventCreateResponse>(endpoint, data)
     return response.data
 }
 
 /**
- * Fetch host's events with pagination and filters
+ * Fetch host's events with pagination and filters.
  * GET /api/v1/host/event/my-events
  */
 export const getMyEvents = async (params: MyEventsParams = {}): Promise<MyEventsResponse> => {
     const endpoint = `${API_BASE}/api/v1/host/event/my-events`
 
-    // Build URLSearchParams to support multiple `status` values
     const query = new URLSearchParams()
     query.append('pageNumber', String(params.pageNumber ?? 0))
     query.append('pageSize', String(params.pageSize ?? 10))
     if (params.name) query.append('name', params.name)
+    if (params.status) query.append('status', params.status)
 
-    if (params.statuses && params.statuses.length > 0) {
-        // Append each status separately so server receives: ?status=X&status=Y
-        params.statuses.forEach(s => query.append('status', s))
-    } else if (params.status) {
-        query.append('status', params.status)
-    }
+    const response = await baseAxios.get<MyEventsResponse>(`${endpoint}?${query.toString()}`)
+    console.log('[getMyEvents] response:', JSON.stringify(response.data, null, 2))
+    return response.data
+}
 
-    const url = `${endpoint}?${query.toString()}`
-    console.log('[EventService] Fetching my events:', url)
+// ── Event Detail Types ──
 
-    const response = await baseAxios.get<MyEventsResponse>(url)
+export interface EventDetailSession {
+    eventSessionId: string;
+    startDateTime: string;   // ISO datetime e.g. "2026-04-10T07:00:00"
+    endDateTime: string;     // ISO datetime e.g. "2026-04-10T17:00:00"
+    expectedVolAmount: number;
+    expectedSerAmount: number;
+}
 
-    console.log('[EventService] My events fetched:', response.data.content.length, 'events')
+export interface EventDetailResponse {
+    id: string;
+    name: string;
+    orgName: string;
+    status: MyEventStatus;
+    imageUrls: string[];
+    activityDomain: string;
+    address: string;
+    checkInCode: string | null;
+    totalVolunteers: number;
+    totalServed: number;
+    servedTarget: string;
+    servingPlaceType: string;
+    description: string;
+    recruitmentEndDate: string;   // ISO date e.g. "2026-03-25"
+    eventSessions: EventDetailSession[];
+    checkInPlaceLat: number;
+    checkInPlaceLng: number;
+    checkInPlaceAccuracyMeters: number;
+    autoApprove: boolean;
+    activitySubDomainId: number;
+}
+
+/**
+ * Fetch event detail for the host.
+ * GET /api/v1/host/event/event-details/{id}
+ */
+export const getEventDetail = async (id: string): Promise<EventDetailResponse> => {
+    const endpoint = `${API_BASE}/api/v1/host/event/event-details/${id}`
+    console.log('[getEventDetail] GET', endpoint)
+    const response = await baseAxios.get<EventDetailResponse>(endpoint)
+    console.log('[getEventDetail] response:', JSON.stringify(response.data, null, 2))
     return response.data
 }

@@ -1,12 +1,20 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, TouchableOpacity, Modal, TextInput, Alert, ActivityIndicator, Platform, StyleSheet, ScrollView, Keyboard } from 'react-native';
-import MapView, { Marker, Circle, PROVIDER_GOOGLE } from 'react-native-maps';
+import MapView, { Marker, Circle, Polygon, PROVIDER_GOOGLE } from 'react-native-maps';
+import { HANOI_MAIN_RING } from '../data/hanoi-boundary';
 import * as Location from 'expo-location';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 // Nominatim (OpenStreetMap) for search autocomplete 
 const NOMINATIM_URL = 'https://nominatim.openstreetmap.org/search';
+
+const HANOI_BOUNDS = {
+    minLatitude: 20.53,
+    maxLatitude: 21.40,
+    minLongitude: 105.28,
+    maxLongitude: 106.02,
+};
 
 interface PlaceSuggestion {
     placeId: string;
@@ -63,18 +71,37 @@ export default function MapLocationPicker({
     // Height of [header + search bar] to position the overlay correctly
     const [overlayTop, setOverlayTop] = useState(0);
 
+    /**
+     * Ray-casting point-in-polygon test against the real Hanoi boundary.
+     * Returns true if (lat, lng) lies inside HANOI_MAIN_RING.
+     */
+    const isWithinHanoiBounds = (latitude: number, longitude: number): boolean => {
+        const ring = HANOI_MAIN_RING;
+        const n = ring.length;
+        let inside = false;
+        for (let i = 0, j = n - 1; i < n; j = i++) {
+            const xi = ring[i].longitude, yi = ring[i].latitude;
+            const xj = ring[j].longitude, yj = ring[j].latitude;
+            const intersect =
+                yi > latitude !== yj > latitude &&
+                longitude < ((xj - xi) * (latitude - yi)) / (yj - yi) + xi;
+            if (intersect) inside = !inside;
+        }
+        return inside;
+    };
+
+    // Clamps the given coordinates to be within Hanoi bounds 
+    const clampToHanoiBounds = (latitude: number, longitude: number) => ({
+        latitude: Math.min(Math.max(latitude, HANOI_BOUNDS.minLatitude), HANOI_BOUNDS.maxLatitude),
+        longitude: Math.min(Math.max(longitude, HANOI_BOUNDS.minLongitude), HANOI_BOUNDS.maxLongitude),
+    });
+
     useEffect(() => {
         if (visible) {
             setSelectedLocation(initialLocation);
             setSearchQuery('');
             setSuggestions([]);
             setShowSuggestions(false);
-            console.log(`[MapLocationPicker] Modal opened`, {
-                platform: Platform.OS,
-                mapProvider: 'google',
-                initialLocation,
-                radius,
-            });
         }
     }, [visible, initialLocation]);
 
@@ -104,33 +131,13 @@ export default function MapLocationPicker({
                     console.warn(`[MapLocationPicker] Reverse geocode current location failed`, reverseError);
                 }
 
-                const street = [reverseAddress?.streetNumber, reverseAddress?.street]
-                    .filter(Boolean)
-                    .join(' ') || 'N/A';
-                const city = reverseAddress?.city || reverseAddress?.subregion || reverseAddress?.district || 'N/A';
-
-                console.log(
-                    `[MapLocationPicker] Current location details\n` +
-                    `platform: ${Platform.OS}\n` +
-                    `provider: google\n` +
-                    `latitude: ${location.coords.latitude}\n` +
-                    `longitude: ${location.coords.longitude}\n` +
-                    `street: ${street}\n` +
-                    `city: ${city}\n` +
-                    `district: ${reverseAddress?.district || 'N/A'}\n` +
-                    `region: ${reverseAddress?.region || 'N/A'}\n` +
-                    `country: ${reverseAddress?.country || 'N/A'}`
-                );
-
-                // Reopen behavior:
-                // - If user already selected a check-in location, keep focusing that location.
-                // - Otherwise, focus current GPS location.
+                // Focus the previously selected location if present, otherwise current GPS
                 const targetLatitude = initialLocation?.latitude ?? location.coords.latitude;
                 const targetLongitude = initialLocation?.longitude ?? location.coords.longitude;
 
                 mapRef.current?.animateToRegion({
-                    latitude: targetLatitude,
-                    longitude: targetLongitude,
+                    latitude: clampToHanoiBounds(targetLatitude, targetLongitude).latitude,
+                    longitude: clampToHanoiBounds(targetLatitude, targetLongitude).longitude,
                     latitudeDelta: 0.01,
                     longitudeDelta: 0.01,
                 }, 1000);
@@ -154,15 +161,17 @@ export default function MapLocationPicker({
         const timer = setTimeout(async () => {
             setIsLoadingSuggestions(true);
             try {
-                // Manual URL string (avoids iOS URLSearchParams issues with hyphenated keys)
+                // Manual URL string construction to include viewbox and bounded parameters for better Hanoi-focused results
                 const url =
                     `${NOMINATIM_URL}` +
-                    `?q=${encodeURIComponent(trimmed)}` +
+                    `?q=${encodeURIComponent(`${trimmed}, Hà Nội`)}` +
                     `&format=json` +
                     `&limit=5` +
                     `&countrycodes=vn` +
                     `&accept-language=vi` +
-                    `&addressdetails=1`;
+                    `&addressdetails=1` +
+                    `&bounded=1` +
+                    `&viewbox=${HANOI_BOUNDS.minLongitude},${HANOI_BOUNDS.maxLatitude},${HANOI_BOUNDS.maxLongitude},${HANOI_BOUNDS.minLatitude}`;
 
                 const res = await fetch(url, {
                     headers: { 'User-Agent': 'SEP490-HVH-App/1.0' },
@@ -183,7 +192,7 @@ export default function MapLocationPicker({
                             latitude: parseFloat(place.lat),
                             longitude: parseFloat(place.lon),
                         };
-                    });
+                    }).filter((item) => isWithinHanoiBounds(item.latitude, item.longitude));
                     setSuggestions(items);
                     setShowSuggestions(true);
                 } else {
@@ -202,6 +211,11 @@ export default function MapLocationPicker({
     }, [searchQuery]);
 
     const handleSelectSuggestion = (suggestion: PlaceSuggestion) => {
+        if (!isWithinHanoiBounds(suggestion.latitude, suggestion.longitude)) {
+            Alert.alert('Thông báo', 'Vị trí đã chọn nằm ngoài khu vực Hà Nội');
+            return;
+        }
+
         Keyboard.dismiss();
         setSuggestions([]);
         setShowSuggestions(false);
@@ -224,15 +238,15 @@ export default function MapLocationPicker({
 
     const handleMapPress = async (event: any) => {
         const { latitude, longitude } = event.nativeEvent.coordinate;
+
+        if (!isWithinHanoiBounds(latitude, longitude)) {
+            Alert.alert('Thông báo', 'Chỉ được chọn vị trí trong khu vực Hà Nội');
+            return;
+        }
+
         Keyboard.dismiss();
         setSuggestions([]);
         setShowSuggestions(false);
-        console.log(`[MapLocationPicker] Map pressed`, {
-            platform: Platform.OS,
-            latitude,
-            longitude,
-            mapProvider: 'google',
-        });
 
         try {
             const result = await Location.reverseGeocodeAsync({ latitude, longitude });
@@ -250,7 +264,6 @@ export default function MapLocationPicker({
                     longitude,
                     address: addressParts.filter(Boolean).join(', ') || 'Địa chỉ không xác định',
                 };
-                console.log(`[MapLocationPicker] Selected place from reverse geocoding: ${JSON.stringify(selected)}`);
                 setSelectedLocation(selected);
                 return;
             }
@@ -275,10 +288,16 @@ export default function MapLocationPicker({
         setShowSuggestions(false);
 
         try {
-            const results = await Location.geocodeAsync(searchQuery);
+            const results = await Location.geocodeAsync(`${searchQuery}, Hà Nội`);
 
             if (results.length > 0) {
-                const { latitude, longitude } = results[0];
+                const matched = results.find((item) => isWithinHanoiBounds(item.latitude, item.longitude));
+                if (!matched) {
+                    Alert.alert('Thông báo', 'Không tìm thấy địa điểm trong khu vực Hà Nội');
+                    return;
+                }
+
+                const { latitude, longitude } = matched;
 
                 let resolvedAddress = searchQuery;
                 try {
@@ -384,23 +403,53 @@ export default function MapLocationPicker({
                             ref={mapRef}
                             style={styles.map}
                             provider={PROVIDER_GOOGLE}
-                            onMapReady={() => {
-                                console.log(`[MapLocationPicker] Map ready`, {
-                                    platform: Platform.OS,
-                                    mapProvider: 'google',
-                                    isGoogleProviderApplied: true,
-                                });
-                            }}
+                            onMapReady={() => { }}
                             initialRegion={{
-                                latitude: selectedLocation?.latitude || currentLocation.coords.latitude,
-                                longitude: selectedLocation?.longitude || currentLocation.coords.longitude,
-                                latitudeDelta: 0.01,
-                                longitudeDelta: 0.01,
+                                latitude: clampToHanoiBounds(selectedLocation?.latitude || currentLocation.coords.latitude, selectedLocation?.longitude || currentLocation.coords.longitude).latitude,
+                                longitude: clampToHanoiBounds(selectedLocation?.latitude || currentLocation.coords.latitude, selectedLocation?.longitude || currentLocation.coords.longitude).longitude,
+                                latitudeDelta: 0.18,
+                                longitudeDelta: 0.18,
+                            }}
+                            onRegionChangeComplete={(region) => {
+                                if (isWithinHanoiBounds(region.latitude, region.longitude)) return;
+                                const clamped = clampToHanoiBounds(region.latitude, region.longitude);
+                                mapRef.current?.animateToRegion({
+                                    latitude: clamped.latitude,
+                                    longitude: clamped.longitude,
+                                    latitudeDelta: region.latitudeDelta,
+                                    longitudeDelta: region.longitudeDelta,
+                                }, 250);
                             }}
                             onPress={handleMapPress}
                             showsUserLocation={true}
                             showsMyLocationButton={true}
                         >
+                            {/* left half of the world darkening mask */}
+                            <Polygon
+                                coordinates={[
+                                    { latitude: 85, longitude: -179.9 },
+                                    { latitude: 85, longitude: 0 },
+                                    { latitude: -85, longitude: 0 },
+                                    { latitude: -85, longitude: -179.9 },
+                                ]}
+                                fillColor="rgba(206, 199, 199, 0.52)"
+                                strokeWidth={0}
+                            />
+
+                            {/* right half of the world darkening mask and Hanoi boundary */}
+                            <Polygon
+                                coordinates={[
+                                    { latitude: 85, longitude: 0 },
+                                    { latitude: 85, longitude: 179.9 },
+                                    { latitude: -85, longitude: 179.9 },
+                                    { latitude: -85, longitude: 0 },
+                                ]}
+                                holes={[HANOI_MAIN_RING]}
+                                fillColor="rgba(206, 199, 199, 0.52)"
+                                strokeColor='#42A4F5'
+                                strokeWidth={3.5}
+                            />
+
                             {selectedLocation && (
                                 <>
                                     <Marker

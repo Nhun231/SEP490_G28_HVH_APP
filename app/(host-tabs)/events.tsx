@@ -11,15 +11,11 @@ import {
     TextInput,
     Animated,
     Keyboard,
-    Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { MyEventStatus } from '@/services/event-service';
-
-// TODO: Uncomment when API is ready
-// import { getMyEvents, MyEventItem } from '@/services/event-service';
+import { getMyEvents, MyEventItem, MyEventStatus, getApiErrorMessage } from '@/services/event-service';
 
 // ── Types ──
 
@@ -56,12 +52,11 @@ const STATUS_CONFIG: Record<EventStatus, { label: string; color: string; bgColor
 type MasterTab = 'active' | 'history';
 
 interface ChipFilter {
-    key: EventStatus | 'ALL';
+    key: EventStatus;
     label: string;
 }
 
 const ACTIVE_CHIPS: ChipFilter[] = [
-    { key: 'ALL',             label: 'Tất cả' },
     { key: 'EDITING',         label: 'Soạn thảo' },
     { key: 'SUBMITTED',       label: 'Chờ duyệt' },
     { key: 'APPROVED_BY_MNG', label: 'QL duyệt' },
@@ -73,7 +68,6 @@ const ACTIVE_CHIPS: ChipFilter[] = [
 ];
 
 const HISTORY_CHIPS: ChipFilter[] = [
-    { key: 'ALL',       label: 'Tất cả' },
     { key: 'ENDED',     label: 'Đã kết thúc' },
     { key: 'COMPLETED', label: 'Hoàn thành' },
     { key: 'CANCELLED', label: 'Đã hủy' },
@@ -140,7 +134,12 @@ interface EventCardProps {
 }
 
 const HostEventCard = ({ item, onPress }: EventCardProps) => {
-    const cfg = STATUS_CONFIG[item.status];
+    const cfg = STATUS_CONFIG[item.status] ?? {
+        label: item.status,
+        color: '#6B7280',
+        bgColor: '#F3F4F6',
+        icon: 'help-circle-outline',
+    };
     return (
         <TouchableOpacity style={styles.card} onPress={() => onPress(item.id)} activeOpacity={0.75}>
             <Image
@@ -181,8 +180,8 @@ const EventManagement = () => {
 
     // Master tab & chip filter
     const [masterTab, setMasterTab]     = useState<MasterTab>('active');
-    const [activeChip, setActiveChip]   = useState<EventStatus | 'ALL'>('ALL');
-    const [historyChip, setHistoryChip] = useState<EventStatus | 'ALL'>('ALL');
+    const [activeChip, setActiveChip]   = useState<EventStatus>('EDITING');
+    const [historyChip, setHistoryChip] = useState<EventStatus>('ENDED');
 
     // Search
     const [searchVisible, setSearchVisible] = useState(false);
@@ -191,16 +190,16 @@ const EventManagement = () => {
     const searchAnim = useRef(new Animated.Value(0)).current;
     const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-    // Misc
-    const [refreshing, setRefreshing] = useState(false);
-
-    // TODO: Replace with real API state when ready
-    // const [events, setEvents] = useState<HostEvent[]>([]);
-    // const [loading, setLoading] = useState(false);
-    // const [loadingMore, setLoadingMore] = useState(false);
-    // const [currentPage, setCurrentPage] = useState(0);
-    // const [hasMore, setHasMore] = useState(true);
-    // const PAGE_SIZE = 10;
+    // API state
+    const [events, setEvents]           = useState<HostEvent[]>([]);
+    const [loading, setLoading]         = useState(false);
+    const [loadingMore, setLoadingMore] = useState(false);
+    const [refreshing, setRefreshing]   = useState(false);
+    const [error, setError]             = useState<string | null>(null);
+    const [currentPage, setCurrentPage] = useState(0);
+    const [hasMore, setHasMore]         = useState(true);
+    const isFetching                    = useRef(false); // guard against concurrent / loop calls
+    const PAGE_SIZE = 10;
 
     // ── Search bar animation ──
 
@@ -249,83 +248,95 @@ const EventManagement = () => {
         outputRange: [0, SEARCH_BAR_HEIGHT],
     });
 
-    // ── API fetch (commented until API is ready) ──
+    // ── API fetch ──
 
-    // const fetchEvents = useCallback(async (page: number, isRefresh = false) => {
-    //     if (isRefresh) setRefreshing(true);
-    //     else if (page === 0) setLoading(true);
-    //     else setLoadingMore(true);
-    //     try {
-    //         const masterStatuses = masterTab === 'active' ? ACTIVE_STATUSES : HISTORY_STATUSES;
-    //         const chipFilter     = masterTab === 'active' ? activeChip : historyChip;
-    //         const statusesToFetch: MyEventStatus[] = chipFilter === 'ALL'
-    //             ? masterStatuses
-    //             : [chipFilter as MyEventStatus];
-    //         // Example URL: /api/v1/host/event/my-events?pageNumber=0&pageSize=10&name=Làm sạch&status=EDITING
-    //         const response = await getMyEvents({
-    //             pageNumber: page,
-    //             pageSize:   PAGE_SIZE,
-    //             statuses:   statusesToFetch,
-    //             name:       searchQuery || undefined,
-    //         });
-    //         const mapped = response.content.map(item => ({ ...item, status: item.status as EventStatus }));
-    //         if (isRefresh || page === 0) { setEvents(mapped); setCurrentPage(0); }
-    //         else setEvents(prev => [...prev, ...mapped]);
-    //         setHasMore(response.page.number + 1 < response.page.totalPages);
-    //         setCurrentPage(page);
-    //     } catch (e) {
-    //         console.error('Failed to fetch events', e);
-    //     } finally {
-    //         setLoading(false); setRefreshing(false); setLoadingMore(false);
-    //     }
-    // }, [masterTab, activeChip, historyChip, searchQuery]);
-    //
-    // useEffect(() => {
-    //     setEvents([]); setCurrentPage(0); setHasMore(true); fetchEvents(0);
-    // }, [masterTab, activeChip, historyChip, searchQuery]);
-    //
-    // const handleRefresh  = () => fetchEvents(0, true);
-    // const handleLoadMore = () => { if (!loadingMore && !loading && hasMore) fetchEvents(currentPage + 1); };
+    const fetchEvents = useCallback(async (page: number, isRefresh = false) => {
+        // Prevent concurrent calls (which can cause infinite loops on error)
+        if (isFetching.current) return;
+        isFetching.current = true;
 
-    const handleRefresh = useCallback(() => {
-        setRefreshing(true);
-        setTimeout(() => setRefreshing(false), 800);
-    }, []);
+        if (isRefresh) setRefreshing(true);
+        else if (page === 0) setLoading(true);
+        else setLoadingMore(true);
 
-    // ── Derived state ──
+        setError(null);
 
+        try {
+            const chipFilter = masterTab === 'active' ? activeChip : historyChip;
+            // Always send a status — API requires it
+            const response = await getMyEvents({
+                pageNumber: page,
+                pageSize:   PAGE_SIZE,
+                status:     chipFilter as MyEventStatus,
+                name:       searchQuery || undefined,
+            });
+
+            const mapped: HostEvent[] = response.content.map(item => ({
+                ...item,
+                status: item.status as EventStatus,
+                imageUrl: item.imageUrl ?? null,
+            }));
+
+            if (isRefresh || page === 0) {
+                setEvents(mapped);
+                setCurrentPage(0);
+            } else {
+                setEvents(prev => [...prev, ...mapped]);
+            }
+
+            setHasMore(response.page.number + 1 < response.page.totalPages);
+            setCurrentPage(page);
+        } catch (e) {
+            // On error we set error state and do NOT retry — prevents infinite loop
+            const msg = getApiErrorMessage(e);
+            setError(msg || 'Không thể tải danh sách sự kiện');
+        } finally {
+            isFetching.current = false;
+            setLoading(false);
+            setRefreshing(false);
+            setLoadingMore(false);
+        }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [masterTab, activeChip, historyChip, searchQuery]);
+
+    // Re-fetch from page 0 whenever filters or search change.
+    // fetchEvents is intentionally NOT in deps to avoid stale-closure loops;
+    // the callback already captures all relevant state via its own deps.
+    useEffect(() => {
+        setEvents([]);
+        setCurrentPage(0);
+        setHasMore(true);
+        setError(null);
+        fetchEvents(0);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [masterTab, activeChip, historyChip, searchQuery]);
+
+    const handleRefresh  = useCallback(() => fetchEvents(0, true), [fetchEvents]);
+    const handleLoadMore = useCallback(() => {
+        if (!loadingMore && !loading && hasMore && !error) fetchEvents(currentPage + 1);
+    }, [loadingMore, loading, hasMore, error, currentPage, fetchEvents]);
+
+    // Derived state
     const currentChip    = masterTab === 'active' ? activeChip : historyChip;
-    const setCurrentChip = masterTab === 'active' ? setActiveChip : setHistoryChip;
+    const setCurrentChip = masterTab === 'active'
+        ? (v: EventStatus) => setActiveChip(v)
+        : (v: EventStatus) => setHistoryChip(v);
     const chips          = masterTab === 'active' ? ACTIVE_CHIPS : HISTORY_CHIPS;
-    const masterStatuses = masterTab === 'active' ? ACTIVE_STATUSES : HISTORY_STATUSES;
 
-    // Client-side filter (for mock data only – remove when API is ready)
-    const filteredEvents = MOCK_EVENTS.filter(e => {
-        if (!masterStatuses.includes(e.status)) return false;
-        if (currentChip !== 'ALL' && e.status !== currentChip) return false;
-        if (searchQuery && !e.name.toLowerCase().includes(searchQuery.toLowerCase())) return false;
-        return true;
-    });
-
+    // Chip counts reflect currently loaded events
     const chipCounts = chips.reduce<Record<string, number>>((acc, chip) => {
-        const base = MOCK_EVENTS.filter(e => {
-            if (!masterStatuses.includes(e.status)) return false;
-            if (chip.key !== 'ALL' && e.status !== chip.key) return false;
-            if (searchQuery && !e.name.toLowerCase().includes(searchQuery.toLowerCase())) return false;
-            return true;
-        }).length;
-        acc[chip.key] = base;
+        acc[chip.key] = events.filter(e => e.status === chip.key).length;
         return acc;
     }, {});
 
     const handleMasterTab = (tab: MasterTab) => {
         setMasterTab(tab);
-        if (tab === 'active') setActiveChip('ALL');
-        else setHistoryChip('ALL');
+        if (tab === 'active') setActiveChip('EDITING');
+        else setHistoryChip('ENDED');
     };
 
     const handleEventPress = (id: string) => {
-        const event = MOCK_EVENTS.find(e => e.id === id);
+        const event = events.find(e => e.id === id);
         router.push({
             pathname: '/screen/event-detail',
             params: { id, status: event?.status },
@@ -334,38 +345,55 @@ const EventManagement = () => {
 
     // ── Render helpers ──
 
-    const renderEmpty = () => (
-        <View style={styles.emptyContainer}>
-            <View style={styles.emptyIconWrapper}>
-                <Ionicons
-                    name={searchQuery ? 'search-outline' : 'calendar-outline'}
-                    size={52}
-                    color="#CBD5E1"
-                />
+    const renderEmpty = () => {
+        if (loading) return null; // skeleton shown separately
+        if (error) return (
+            <View style={styles.emptyContainer}>
+                <View style={styles.emptyIconWrapper}>
+                    <Ionicons name="cloud-offline-outline" size={52} color="#CBD5E1" />
+                </View>
+                <Text style={styles.emptyTitle}>Không thể tải dữ liệu</Text>
+                <Text style={styles.emptySubtitle}>{error}</Text>
+                <TouchableOpacity
+                    style={styles.retryBtn}
+                    onPress={() => fetchEvents(0)}
+                    activeOpacity={0.8}
+                >
+                    <Text style={styles.retryBtnText}>Thử lại</Text>
+                </TouchableOpacity>
             </View>
-            <Text style={styles.emptyTitle}>
-                {searchQuery ? 'Không tìm thấy sự kiện' : 'Chưa có sự kiện'}
-            </Text>
-            <Text style={styles.emptySubtitle}>
-                {searchQuery
-                    ? `Không có sự kiện nào khớp với "${searchQuery}"`
-                    : masterTab === 'active'
-                        ? 'Tạo sự kiện mới để bắt đầu hoạt động tình nguyện!'
-                        : 'Các sự kiện đã kết thúc sẽ được hiển thị tại đây.'}
-            </Text>
-        </View>
-    );
+        );
+        return (
+            <View style={styles.emptyContainer}>
+                <View style={styles.emptyIconWrapper}>
+                    <Ionicons
+                        name={searchQuery ? 'search-outline' : 'calendar-outline'}
+                        size={52}
+                        color="#CBD5E1"
+                    />
+                </View>
+                <Text style={styles.emptyTitle}>
+                    {searchQuery ? 'Không tìm thấy sự kiện' : 'Chưa có sự kiện'}
+                </Text>
+                <Text style={styles.emptySubtitle}>
+                    {searchQuery
+                        ? `Không có sự kiện nào khớp với "${searchQuery}"`
+                        : masterTab === 'active'
+                            ? 'Tạo sự kiện mới để bắt đầu hoạt động tình nguyện!'
+                            : 'Các sự kiện đã kết thúc sẽ được hiển thị tại đây.'}
+                </Text>
+            </View>
+        );
+    };
 
     const renderFooter = () => {
-        // TODO: Uncomment when API is ready
-        // if (!loadingMore) return null;
-        // return (
-        //     <View style={styles.footerLoader}>
-        //         <ActivityIndicator size="small" color="#42A4F5" />
-        //         <Text style={styles.footerLoaderText}>Đang tải thêm...</Text>
-        //     </View>
-        // );
-        return null;
+        if (!loadingMore) return null;
+        return (
+            <View style={styles.footerLoader}>
+                <Ionicons name="sync-outline" size={18} color="#42A4F5" />
+                <Text style={styles.footerLoaderText}>Đang tải thêm...</Text>
+            </View>
+        );
     };
 
     // ── JSX ──
@@ -477,7 +505,7 @@ const EventManagement = () => {
 
                 {/* Event list */}
                 <FlatList
-                    data={filteredEvents}
+                    data={events}
                     keyExtractor={item => item.id}
                     renderItem={({ item }) => <HostEventCard item={item} onPress={handleEventPress} />}
                     style={styles.list}
@@ -494,9 +522,8 @@ const EventManagement = () => {
                             tintColor={BLUE}
                         />
                     }
-                    // TODO: Uncomment when API is ready
-                    // onEndReached={handleLoadMore}
-                    // onEndReachedThreshold={0.3}
+                    onEndReached={handleLoadMore}
+                    onEndReachedThreshold={0.3}
                 />
             </View>
 
@@ -769,6 +796,18 @@ const styles = StyleSheet.create({
         color: '#94A3B8',
         textAlign: 'center',
         lineHeight: 20,
+    },
+    retryBtn: {
+        marginTop: 16,
+        paddingHorizontal: 24,
+        paddingVertical: 10,
+        backgroundColor: BLUE,
+        borderRadius: 10,
+    },
+    retryBtnText: {
+        color: '#FFFFFF',
+        fontSize: 14,
+        fontWeight: '700',
     },
 
     // Footer loader

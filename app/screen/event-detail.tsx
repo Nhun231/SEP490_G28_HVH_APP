@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
     View,
     Text,
@@ -8,106 +8,31 @@ import {
     Image,
     Alert,
     Dimensions,
+    ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams, Stack } from 'expo-router';
-import { MyEventStatus } from '@/services/event-service';
-
-// ─── Types ───────────────────────────────────────────────────────────────────
-
-export type EventStatus = MyEventStatus;
-
-export interface EventSession {
-    date: string;        // e.g. "20/01/2025"
-    startTime: string;   // e.g. "07:00"
-    endTime: string;     // e.g. "17:00"
-    volunteerCount: number;
-    servedCount: number;
-}
-
-export interface EventDetail {
-    id: string;
-    name: string;
-    orgName: string;
-    status: EventStatus;
-    imageUrls: string[];
-    activityDomain: string;    // e.g. "Y tế - Chăm sóc sức khoẻ"
-    sessions: EventSession[];
-    eventPlace: string;        // Nơi diễn ra
-    checkInPlace: string;      // Địa điểm check-in
-    address: string;           // Địa chỉ cụ thể
-    checkInCode: string;       // e.g. "EVT2025-001"
-    totalVolunteers: number;
-    totalServed: number;
-    servedTarget: string;      // e.g. "Người cao tuổi trên 60 tuổi"
-    description: string;
-    recruitmentEndDate: string;
-}
-
-// ─── Status config ────────────────────────────────────────────────────────────
-
-const STATUS_CONFIG: Record<EventStatus, { label: string; color: string; bgColor: string }> = {
-    EDITING: { label: 'Đang soạn thảo', color: '#6B7280', bgColor: '#F3F4F6' },
-    SUBMITTED: { label: 'Chờ phê duyệt', color: '#3B82F6', bgColor: '#DBEAFE' },
-    APPROVED_BY_MNG: { label: 'Quản lý đã duyệt', color: '#10B981', bgColor: '#D1FAE5' },
-    REJECTED_BY_MNG: { label: 'Quản lý từ chối', color: '#EF4444', bgColor: '#FEE2E2' },
-    REJECTED_BY_AD: { label: 'Admin từ chối', color: '#DC2626', bgColor: '#FEE2E2' },
-    RECRUITING: { label: 'Đang tuyển TNV', color: '#7C3AED', bgColor: '#EDE9FE' },
-    UPCOMING: { label: 'Sắp diễn ra', color: '#D97706', bgColor: '#FEF3C7' },
-    ONGOING: { label: 'Đang diễn ra', color: '#059669', bgColor: '#D1FAE5' },
-    ENDED: { label: 'Đã kết thúc', color: '#6B7280', bgColor: '#F3F4F6' },
-    COMPLETED: { label: 'Hoàn thành', color: '#0EA5E9', bgColor: '#E0F2FE' },
-    CANCELLED: { label: 'Đã hủy', color: '#9CA3AF', bgColor: '#F9FAFB' },
-};
-
-// ─── Service option definitions ───────────────────────────────────────────────
-
-interface ServiceOption {
-    key: string;
-    label: string;
-    icon: string;
-    iconColor: string;
-    bgColor: string;
-    onPress: () => void;
-}
-
-// ─── Mock data ────────────────────────────────────────────────────────────────
-
-const MOCK_EVENT: EventDetail = {
-    id: 'EVT2025-001',
-    name: 'Khám sức khoẻ miễn phí cho người cao tuổi',
-    orgName: 'Hội Chữ thập đỏ TP.HCM',
-    status: 'ONGOING',
-    imageUrls: [
-        'https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=400',
-        'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=400',
-        'https://images.unsplash.com/photo-1532629345422-7515f3d16bb6?w=400',
-    ],
-    activityDomain: 'Y tế - Chăm sóc sức khoẻ',
-    sessions: [
-        { date: '20/01/2025', startTime: '07:00', endTime: '17:00', volunteerCount: 50, servedCount: 200 },
-        { date: '22/01/2025', startTime: '07:00', endTime: '17:00', volunteerCount: 50, servedCount: 200 },
-    ],
-    eventPlace: 'Bệnh viện Đa khoa Thành phố',
-    checkInPlace: 'Sảnh chính tầng 1',
-    address: '123 Đường Nguyễn Văn Linh, Quận 7, TP.HCM',
-    checkInCode: 'EVT2025-001',
-    totalVolunteers: 50,
-    totalServed: 200,
-    servedTarget: 'Người cao tuổi trên 60 tuổi',
-    description: 'Chương trình khám sức khoẻ miễn phí dành cho người cao tuổi bao gồm: khám nội tổng quát, đo huyết áp, xét nghiệm đường huyết, tư vấn dinh dưỡng và phát thuốc miễn phí. Mỗi tình nguyện viên sẽ được phân công hỗ trợ 4-5 người cao tuổi trong suốt buổi khám.',
-    recruitmentEndDate: '15/01/2025',
-};
+import {
+    MyEventStatus,
+    EventDetailResponse,
+    getEventDetail,
+    getApiErrorMessage,
+} from '@/services/event-service';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const IMAGE_WIDTH = (SCREEN_WIDTH - 48 - 16) / 3; // 3 images in a row with gaps
 
-function dayCount(sessions: EventSession[]): number {
-    const unique = new Set(sessions.map(s => s.date));
-    return unique.size;
+/**
+ * Parse an ISO datetime string into { date, startTime, endTime } display values.
+ * e.g. "2026-04-10T07:00:00" → { date: "10/04/2026", time: "07:00" }
+ */
+function parseIsoDateTime(iso: string): { date: string; time: string } {
+    const [datePart, timePart] = iso.split('T');
+    const [y, m, d] = datePart.split('-');
+    const time = timePart?.slice(0, 5) ?? '';
+    return { date: `${d}/${m}/${y}`, time };
 }
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
@@ -131,6 +56,31 @@ const InfoRow = ({ icon, label, value, valueColor, bold }: InfoRowProps) => (
         </View>
     </View>
 );
+
+export type EventStatus = MyEventStatus;
+
+const STATUS_CONFIG: Record<EventStatus, { label: string; color: string; bgColor: string }> = {
+    EDITING:         { label: 'Đang soạn thảo',   color: '#6B7280', bgColor: '#F3F4F6' },
+    SUBMITTED:       { label: 'Chờ phê duyệt',    color: '#3B82F6', bgColor: '#DBEAFE' },
+    APPROVED_BY_MNG: { label: 'Quản lý đã duyệt', color: '#10B981', bgColor: '#D1FAE5' },
+    REJECTED_BY_MNG: { label: 'Quản lý từ chối', color: '#EF4444', bgColor: '#FEE2E2' },
+    REJECTED_BY_AD:  { label: 'Admin từ chối',    color: '#DC2626', bgColor: '#FEE2E2' },
+    RECRUITING:      { label: 'Đang tuyển TNV',    color: '#7C3AED', bgColor: '#EDE9FE' },
+    UPCOMING:        { label: 'Sắp diễn ra',       color: '#D97706', bgColor: '#FEF3C7' },
+    ONGOING:         { label: 'Đang diễn ra',       color: '#059669', bgColor: '#D1FAE5' },
+    ENDED:           { label: 'Đã kết thúc',       color: '#6B7280', bgColor: '#F3F4F6' },
+    COMPLETED:       { label: 'Hoàn thành',         color: '#0EA5E9', bgColor: '#E0F2FE' },
+    CANCELLED:       { label: 'Đã hủy',            color: '#9CA3AF', bgColor: '#F9FAFB' },
+};
+
+interface ServiceOption {
+    key: string;
+    label: string;
+    icon: string;
+    iconColor: string;
+    bgColor: string;
+    onPress: () => void;
+}
 
 interface ServiceGridProps {
     options: ServiceOption[];
@@ -158,19 +108,103 @@ const ServiceGrid = ({ options }: ServiceGridProps) => (
 
 const EventDetailScreen = () => {
     const router = useRouter();
-    const params = useLocalSearchParams<{ id?: string; status?: EventStatus }>();
+    const { id } = useLocalSearchParams<{ id: string }>();
     const [showCheckinCode, setShowCheckinCode] = useState(false);
 
-    // In real usage, fetch event by params.id
-    // For now, allow overriding status via params for dev/demo
-    const event: EventDetail = {
-        ...MOCK_EVENT,
-        status: (params.status as EventStatus) || MOCK_EVENT.status,
+    // API state
+    const [event, setEvent] = useState<EventDetailResponse | null>(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+
+    const fetchDetail = useCallback(async () => {
+        if (!id) return;
+        setLoading(true);
+        setError(null);
+        try {
+            const data = await getEventDetail(id);
+            setEvent(data);
+        } catch (e) {
+            setError(getApiErrorMessage(e) || 'Không thể tải thông tin sự kiện');
+        } finally {
+            setLoading(false);
+        }
+    }, [id]);
+
+    useEffect(() => { fetchDetail(); }, [fetchDetail]);
+
+    // ── Loading state ─────────────────────────────────────────────────────────
+
+    if (loading) {
+        return (
+            <>
+                <Stack.Screen options={{ headerShown: false }} />
+                <SafeAreaView style={styles.container} edges={['top']}>
+                    <View style={styles.header}>
+                        <TouchableOpacity style={styles.backBtn} onPress={() => router.back()} activeOpacity={0.7}>
+                            <Ionicons name="arrow-back" size={22} color="#FFFFFF" />
+                        </TouchableOpacity>
+                        <Text style={styles.headerTitle}>Chi tiết sự kiện</Text>
+                        <View style={styles.bellBtn} />
+                    </View>
+                    <View style={styles.centerBox}>
+                        <ActivityIndicator size="large" color={BLUE} />
+                        <Text style={styles.loadingText}>Đang tải...</Text>
+                    </View>
+                </SafeAreaView>
+            </>
+        );
+    }
+
+    // ── Error state ───────────────────────────────────────────────────────────
+
+    if (error || !event) {
+        return (
+            <>
+                <Stack.Screen options={{ headerShown: false }} />
+                <SafeAreaView style={styles.container} edges={['top']}>
+                    <View style={styles.header}>
+                        <TouchableOpacity style={styles.backBtn} onPress={() => router.back()} activeOpacity={0.7}>
+                            <Ionicons name="arrow-back" size={22} color="#FFFFFF" />
+                        </TouchableOpacity>
+                        <Text style={styles.headerTitle}>Chi tiết sự kiện</Text>
+                        <View style={styles.bellBtn} />
+                    </View>
+                    <View style={styles.centerBox}>
+                        <Ionicons name="cloud-offline-outline" size={52} color="#CBD5E1" />
+                        <Text style={styles.errorTitle}>Không thể tải dữ liệu</Text>
+                        <Text style={styles.errorMsg}>{error}</Text>
+                        <TouchableOpacity style={styles.retryBtn} onPress={fetchDetail} activeOpacity={0.8}>
+                            <Text style={styles.retryBtnText}>Thử lại</Text>
+                        </TouchableOpacity>
+                    </View>
+                </SafeAreaView>
+            </>
+        );
+    }
+
+    // ── Derive display values ─────────────────────────────────────────────────
+
+    const statusCfg = STATUS_CONFIG[event.status] ?? {
+        label: event.status, color: '#6B7280', bgColor: '#F3F4F6',
     };
 
-    const statusCfg = STATUS_CONFIG[event.status];
+    // Parse sessions for display
+    const sessions = event.eventSessions.map(s => ({
+        date: parseIsoDateTime(s.startDateTime).date,
+        startTime: parseIsoDateTime(s.startDateTime).time,
+        endTime: parseIsoDateTime(s.endDateTime).time,
+        volunteerCount: s.expectedVolAmount,
+        servedCount: s.expectedSerAmount,
+    }));
 
-    // ── Build service options per status ──────────────────────────────────────
+    const uniqueDates = [...new Set(sessions.map(s => s.date))];
+    const days = uniqueDates.length;
+    const timeRange = sessions.length > 0
+        ? `${sessions[0].startTime} - ${sessions[sessions.length - 1].endTime}`
+        : '';
+    const dateRange = sessions.length > 0
+        ? (days === 1 ? sessions[0].date : `${sessions[0].date} - ${sessions[sessions.length - 1].date}`)
+        : '';
 
     const handleCancel = () => Alert.alert('Xác nhận', 'Bạn có chắc muốn hủy sự kiện này?', [
         { text: 'Không', style: 'cancel' },
@@ -181,8 +215,8 @@ const EventDetailScreen = () => {
     const handleParticipants = () => console.log('View participants', event.id);
     const handleCheckin = () => setShowCheckinCode(prev => !prev);
     // TODO: call API to generate/fetch check-in code, then setShowCheckinCode(true)
-    const handleReviews = () => console.log('View reviews', event.id);
-    const handleMoments = () => console.log('View moments', event.id);
+    const handleReviews = () => router.push({ pathname: '/screen/event-rating', params: { eventId: event.id } });
+    const handleMoments = () => router.push({ pathname: '/screen/event-moments', params: { eventId: event.id } });
     const handleComplaint = () => console.log('Complain about points', event.id);
 
     const serviceOptions: ServiceOption[] = (() => {
@@ -236,15 +270,6 @@ const EventDetailScreen = () => {
         return [];
     })();
 
-    const days = dayCount(event.sessions);
-    const timeRange = event.sessions.length > 0
-        ? `${event.sessions[0].startTime} - ${event.sessions[event.sessions.length - 1].endTime}`
-        : '';
-    const dateRange = event.sessions.length > 0
-        ? (days === 1
-            ? event.sessions[0].date
-            : `${event.sessions[0].date} - ${event.sessions[event.sessions.length - 1].date}`)
-        : '';
 
     // ── JSX ──────────────────────────────────────────────────────────────────
 
@@ -338,9 +363,9 @@ const EventDetailScreen = () => {
                             label="Giờ làm việc"
                             value={timeRange}
                         />
-                        {event.sessions.length > 1 && (
+                        {sessions.length > 1 && (
                             <View style={styles.sessionsList}>
-                                {event.sessions.map((session, idx) => (
+                                {sessions.map((session, idx) => (
                                     <View key={idx} style={styles.sessionItem}>
                                         <Text style={styles.sessionDay}>Ngày {idx + 1}: {session.date}</Text>
                                         <Text style={styles.sessionTime}>{session.startTime} – {session.endTime}</Text>
@@ -353,9 +378,9 @@ const EventDetailScreen = () => {
                     {/* ── Địa điểm ── */}
                     <View style={styles.card}>
                         <Text style={styles.sectionTitle}>Địa điểm</Text>
-                        <InfoRow icon="location-outline" label="Nơi diễn ra sự kiện" value={event.eventPlace} />
+                        <InfoRow icon="location-outline" label="Nơi diễn ra sự kiện" value={event.servingPlaceType} />
                         <View style={styles.rowDivider} />
-                        <InfoRow icon="navigate-outline" label="Địa điểm check-in" value={event.checkInPlace} />
+                        <InfoRow icon="navigate-outline" label="Địa điểm check-in" value={`${event.checkInPlaceLat}, ${event.checkInPlaceLng}`} />
                         <View style={styles.rowDivider} />
                         <InfoRow icon="map-outline" label="Địa chỉ cụ thể" value={event.address} />
                     </View>
@@ -444,8 +469,8 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         paddingHorizontal: 16,
-        paddingTop: 0,
         paddingBottom: 12,
+        marginTop: -8,
         gap: 12,
     },
     backBtn: {
@@ -474,6 +499,44 @@ const styles = StyleSheet.create({
 
     scroll: { flex: 1, backgroundColor: '#F8FAFC' },
     scrollContent: { paddingTop: 12, paddingHorizontal: 16, paddingBottom: 24 },
+
+    // Loading / error center
+    centerBox: {
+        flex: 1,
+        backgroundColor: '#F8FAFC',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: 32,
+        gap: 12,
+    },
+    loadingText: {
+        fontSize: 15,
+        color: '#94A3B8',
+        marginTop: 8,
+    },
+    errorTitle: {
+        fontSize: 17,
+        fontWeight: '700',
+        color: '#475569',
+    },
+    errorMsg: {
+        fontSize: 14,
+        color: '#94A3B8',
+        textAlign: 'center',
+        lineHeight: 20,
+    },
+    retryBtn: {
+        marginTop: 4,
+        paddingHorizontal: 28,
+        paddingVertical: 11,
+        backgroundColor: BLUE,
+        borderRadius: 10,
+    },
+    retryBtnText: {
+        color: '#FFFFFF',
+        fontSize: 14,
+        fontWeight: '700',
+    },
 
     // Card
     card: {

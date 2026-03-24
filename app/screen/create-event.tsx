@@ -44,7 +44,6 @@ interface EventFormErrors {
     registrationDeadline?: string;
     eventImage?: string;
     checkInLocation?: string;
-    checkInRadius?: string;
 }
 
 const CreateEvent = () => {
@@ -153,16 +152,22 @@ const CreateEvent = () => {
         return digitsOnly;
     };
 
-    // helper function to check if a string is a positive natural number (integer > 0)
+    // check if a string is a positive natural number (integer > 0)
     const isPositiveNaturalNumber = (value: string) => {
         const parsed = Number(value);
         return Number.isInteger(parsed) && parsed > 0;
     };
 
+    // check if a string contains special characters (anything other than letters, numbers, and whitespace)
     const containsSpecialCharacters = (value: string) => /[^\p{L}\p{N}\s]/u.test(value);
 
-    // helper function to check duration of event session does not exceed limits
+    // check duration of event session does not exceed limits
     const getDurationValidationError = (startTime: Date, endTime: Date) => {
+        // Only validate duration after required domain selections are completed.
+        if (!servedField || !servedSpecificField) {
+            return undefined;
+        }
+
         const durationMinutes = getMinutesOfDay(endTime) - getMinutesOfDay(startTime);
         const baseLimitMinutes = 4 * 60;
 
@@ -177,13 +182,13 @@ const CreateEvent = () => {
 
         const specialLimitMinutes = specialLimitHours * 60;
         if (durationMinutes > specialLimitMinutes) {
-            return `Thời lượng vượt quá giới hạn của lĩnh vực đã chọn (${specialLimitHours} giờ)`;
+            return `Thời lượng vượt quá giới hạn của lĩnh vực đã chọn (Tối đa ${specialLimitHours} tiếng)`;
         }
 
         return undefined;
     };
 
-    // helper function to set error message for a specific field of a specific event day
+    // set error message for a specific field of a specific event day
     const setDayFieldError = (dayId: string, field: DayErrorField, message?: string) => {
         setEventDayErrors((prev) => {
             const current = prev[dayId] || {};
@@ -208,7 +213,7 @@ const CreateEvent = () => {
         });
     };
 
-    // helper function to set error message for a specific field in the main form
+    // set error message for a specific field in the main form
     const setFormFieldError = (field: keyof EventFormErrors, message?: string) => {
         setFormErrors((prev) => ({
             ...prev,
@@ -216,11 +221,13 @@ const CreateEvent = () => {
         }));
     };
 
+    // validate required fields in the main form and set error messages accordingly
     const validateRequiredFormField = (field: keyof EventFormErrors, value: unknown, message: string) => {
         const hasValue = value instanceof Date ? true : Boolean(value);
         setFormFieldError(field, hasValue ? undefined : message);
     };
 
+    // validate quantity fields in event days and set error messages accordingly
     const validateQuantityField = (dayId: string, field: 'volunteerCount' | 'servedCount', value: string, emptyMessage: string) => {
         if (!value.trim()) {
             setDayFieldError(dayId, field, emptyMessage);
@@ -244,6 +251,7 @@ const CreateEvent = () => {
         setDayFieldError(dayId, field);
     };
 
+    // fetch activity domains on component mount 
     useEffect(() => {
         const fetchAllActivityDomains = async () => {
             try {
@@ -258,9 +266,7 @@ const CreateEvent = () => {
         fetchAllActivityDomains();
     }, []);
 
-    /**
-     * Format date to YYYY-MM-DD
-     */
+    // format date to "YYYY-MM-DD" for API request
     const formatDateToYMD = (date: Date): string => {
         const year = date.getFullYear();
         const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -268,10 +274,7 @@ const CreateEvent = () => {
         return `${year}-${month}-${day}`;
     };
 
-    /**
-     * Combine date and time into ISO 8601 format with timezone
-     * e.g., "2026-04-01T05:30:00+07:00"
-     */
+    // combine date and time into ISO string with Vietnam timezone for API request
     const combineDateTimeToISO = (date: Date, time: Date): string => {
         const year = date.getFullYear();
         const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -284,9 +287,7 @@ const CreateEvent = () => {
         return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}${timezoneOffset}`;
     };
 
-    /**
-     * Build the request body for draft/submit API
-     */
+    // build the request body for both saving draft and submitting event
     const buildRequestBody = (): EventCreateRequest | null => {
         if (!servedTarget?.value || !servedSpecificField?.id || !servedPlace?.value ||
             !area?.label || !registrationDeadline || !checkInLocation) {
@@ -307,7 +308,6 @@ const CreateEvent = () => {
             if (!day.date || !day.startTime || !day.endTime) return true;
             if (!isPositiveNaturalNumber(day.volunteerCount)) return true;
             if (!/^\d+$/.test(day.servedCount)) return true;
-            if (getMinutesOfDay(day.endTime) <= getMinutesOfDay(day.startTime)) return true;
             if (getDurationValidationError(day.startTime, day.endTime)) return true;
             return false;
         });
@@ -324,7 +324,7 @@ const CreateEvent = () => {
             updateImages.push({
                 imageId: null,
                 updateAction: 'ADD',
-                fileExtension: fileExtension, // Already has dot from getFileExtension
+                fileExtension: fileExtension,
             });
         }
 
@@ -358,10 +358,11 @@ const CreateEvent = () => {
         return requestBody;
     };
 
+    // Validate required fields in the request body
     const validateRequestBodyRequiredFields = () => {
         const missingFields: string[] = [];
 
-        if(!eventName.trim()) {
+        if (!eventName.trim()) {
             setFormFieldError('eventName', 'Vui lòng nhập tên sự kiện');
             missingFields.push('Tên sự kiện');
         } else if (containsSpecialCharacters(eventName.trim())) {
@@ -371,7 +372,7 @@ const CreateEvent = () => {
             setFormFieldError('eventName');
         }
 
-        if(!description.trim()) {
+        if (!description.trim()) {
             setFormFieldError('description', 'Vui lòng nhập mô tả sự kiện');
             missingFields.push('Mô tả sự kiện');
         } else if (containsSpecialCharacters(description.trim())) {
@@ -447,15 +448,10 @@ const CreateEvent = () => {
             }
 
             if (day.startTime && day.endTime) {
-                if (getMinutesOfDay(day.endTime) <= getMinutesOfDay(day.startTime)) {
-                    setDayFieldError(day.id, 'endTime', 'Giờ kết thúc phải sau giờ bắt đầu');
-                    missingFields.push(`Thời gian không hợp lệ (Ngày ${index + 1})`);
-                } else {
-                    const durationError = getDurationValidationError(day.startTime, day.endTime);
-                    if (durationError) {
-                        setDayFieldError(day.id, 'endTime', durationError);
-                        missingFields.push(`Thời lượng sự kiện không hợp lệ (Ngày ${index + 1})`);
-                    }
+                const durationError = getDurationValidationError(day.startTime, day.endTime);
+                if (durationError) {
+                    setDayFieldError(day.id, 'endTime', durationError);
+                    missingFields.push(`Thời lượng sự kiện không hợp lệ (Ngày ${index + 1})`);
                 }
             }
 
@@ -473,6 +469,7 @@ const CreateEvent = () => {
         return missingFields;
     };
 
+    // add a new event day with empty fields to the form
     const addEventDay = () => {
         const newDay: EventDay = {
             id: Date.now().toString(),
@@ -482,9 +479,10 @@ const CreateEvent = () => {
         setEventDays([...eventDays, newDay]);
     };
 
+    // update a specific field of a specific event day
     const updateEventDay = (id: string, field: keyof EventDay, value: any) => {
         if (field === 'date' && value instanceof Date) {
-            setDayFieldError(id, 'date');
+            setDayFieldError(id, field);
         }
 
         if ((field === 'startTime' || field === 'endTime') && value instanceof Date) {
@@ -512,16 +510,13 @@ const CreateEvent = () => {
             const endTime = field === 'endTime' ? value : currentDay?.endTime;
 
             if (startTime instanceof Date && endTime instanceof Date) {
-                if (getMinutesOfDay(endTime) <= getMinutesOfDay(startTime)) {
-                    setDayFieldError(id, 'endTime', 'Giờ kết thúc phải sau giờ bắt đầu');
-                } else {
-                    const durationError = getDurationValidationError(startTime, endTime);
-                    setDayFieldError(id, 'endTime', durationError);
-                }
+                const durationError = getDurationValidationError(startTime, endTime);
+                setDayFieldError(id, 'endTime', durationError);
             }
         }
     };
 
+    // remove an event day from the form, but ensure at least one day remains
     const removeEventDay = (id: string) => {
         if (eventDays.length > 1) {
             setEventDays(eventDays.filter(day => day.id !== id));
@@ -533,6 +528,7 @@ const CreateEvent = () => {
         }
     };
 
+    // handle save event as draft
     const handleSaveDraft = async () => {
         if (isSubmitting) return;
 
@@ -575,6 +571,7 @@ const CreateEvent = () => {
         }
     };
 
+    // handle picking event image from device library
     const handlePickEventImage = async () => {
         try {
             const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -625,10 +622,12 @@ const CreateEvent = () => {
         }
     };
 
+    // handle removing selected event image
     const handleRemoveEventImage = () => {
         setEventImageDoc({ uri: null, fileName: null, mimeType: null });
     };
 
+    // validate the entire form before submission and set error messages
     const validateForm = () => {
         const nextErrors: EventFormErrors = {};
         const nextDayErrors: Record<string, Partial<Record<DayErrorField, string>>> = {};
@@ -664,15 +663,7 @@ const CreateEvent = () => {
                 dayErr.endTime = 'Vui lòng chọn giờ kết thúc';
             }
 
-            if (day.startTime && day.endTime && getMinutesOfDay(day.endTime) <= getMinutesOfDay(day.startTime)) {
-                dayErr.endTime = 'Giờ kết thúc phải sau giờ bắt đầu';
-            }
-
-            if (
-                day.startTime &&
-                day.endTime &&
-                getMinutesOfDay(day.endTime) > getMinutesOfDay(day.startTime)
-            ) {
+            if (day.startTime && day.endTime) {
                 const durationError = getDurationValidationError(day.startTime, day.endTime);
                 if (durationError) {
                     dayErr.endTime = durationError;
@@ -702,6 +693,7 @@ const CreateEvent = () => {
         return Object.keys(nextErrors).length === 0 && Object.keys(nextDayErrors).length === 0;
     };
 
+    // handle submit event 
     const handleSubmit = async () => {
         if (!validateForm()) {
             return;
@@ -714,26 +706,6 @@ const CreateEvent = () => {
             Alert.alert('Thông báo', 'Không thể tạo yêu cầu. Vui lòng kiểm tra lại thông tin.');
             return;
         }
-
-        console.log('Submit for approval', {
-            eventName,
-            description,
-            approvalMode,
-            servedTarget,
-            servedTargetValue: servedTarget?.value,
-            servedField,
-            servedSpecificField,
-            servedPlace,
-            servingPlaceType: servedPlace?.value,
-            area,
-            registrationDeadline,
-            eventImage: eventImageDoc.uri,
-            eventImageFileExtension: eventImageDoc.uri ? getFileExtension(eventImageDoc.uri, eventImageDoc.mimeType) : undefined,
-            eventDays,
-            checkInLocation,
-            checkInRadius,
-            requestBody,
-        });
 
         setIsSubmitting(true);
         try {
@@ -784,8 +756,11 @@ const CreateEvent = () => {
                     style={styles.scrollView}
                     keyboardVerticalOffset={0}
                 >
-                    <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
-
+                    <ScrollView
+                        style={styles.scrollView}
+                        showsVerticalScrollIndicator={false}
+                        contentContainerStyle={styles.scrollContent}
+                        keyboardShouldPersistTaps="handled">
                         {/* Basic Information */}
                         <View style={styles.card}>
                             <Text style={styles.sectionTitle}>Thông tin cơ bản</Text>
@@ -1030,7 +1005,7 @@ const CreateEvent = () => {
 
                             {/* Add Day Button */}
                             <TouchableOpacity onPress={addEventDay} style={styles.addDayBtn}>
-                                <Ionicons name="add" size={20} color="#42A5F5" />
+                                <Ionicons name="add" size={20} color="#42A4F5" />
                                 <Text style={styles.addDayText}>Thêm ngày</Text>
                             </TouchableOpacity>
                         </View>
@@ -1088,9 +1063,7 @@ const CreateEvent = () => {
                                 <Text style={styles.fieldHint}>
                                     Giá trị mặc định: 300m (có thể yêu cầu lên đến 3000m cho sự kiện lớn)
                                 </Text>
-                                {/* {formErrors.checkInRadius && (
-                                    <Text style={styles.errorText}>{formErrors.checkInRadius}</Text>
-                                )} */}
+
                             </View>
                         </View>
 
@@ -1208,10 +1181,10 @@ const CreateEvent = () => {
             {/* Map Location Picker */}
             <MapLocationPicker
                 visible={showMapPicker}
-                onClose={() => {setShowMapPicker(false)}}
+                onClose={() => setShowMapPicker(false)}
                 onSelectLocation={(location) => {
                     setCheckInLocation(location);
-                    setFormFieldError('checkInLocation'); // Clear error when location is selected
+                    setFormFieldError('checkInLocation');
                     setShowMapPicker(false);
                 }}
                 initialLocation={checkInLocation}
@@ -1305,12 +1278,7 @@ const styles = StyleSheet.create({
         fontSize: 11,
         marginTop: 2,
     },
-    errorTextNeg: {
-        color: '#EF4444',
-        fontSize: 11,
-        marginTop: -10,
-        marginBottom: 8,
-    },
+
 
     // Text input row (with icon)
     inputRow: {
