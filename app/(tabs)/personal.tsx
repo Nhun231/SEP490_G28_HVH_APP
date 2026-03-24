@@ -221,6 +221,30 @@ const styles = StyleSheet.create({
     },
     scroll: {
         flex: 1,
+        backgroundColor: '#E3F2FD',
+    },
+    content: {
+        flex: 1,
+        padding: 16,
+        justifyContent: 'center',
+        gap: 16,
+    },
+    title: {
+        fontSize: 18,
+        fontWeight: '600',
+        textAlign: 'center',
+        color: '#1f2937',
+    },
+    logoutButton: {
+        backgroundColor: '#ef4444',
+        borderRadius: 10,
+        paddingVertical: 12,
+        alignItems: 'center',
+    },
+    logoutText: {
+        color: '#ffffff',
+        fontWeight: '600',
+        fontSize: 16,
     },
     scrollContent: {
         backgroundColor: '#F3F4F6',

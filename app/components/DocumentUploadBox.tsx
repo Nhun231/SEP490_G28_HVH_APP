@@ -16,6 +16,7 @@ interface DocumentUploadBoxProps {
     subtitle?: string;
     uploadProgress?: number;
     disabled?: boolean;
+    required?: boolean;
 }
 
 export default function DocumentUploadBox({
@@ -26,17 +27,23 @@ export default function DocumentUploadBox({
     subtitle,
     uploadProgress,
     disabled = false,
+    required = false,
 }: DocumentUploadBoxProps) {
+    const safeUploadProgress = uploadProgress ?? 0;
+
     return (
         <View style={styles.uploadContainer}>
-            <Text style={styles.uploadLabel}>{label}</Text>
+            <Text style={styles.uploadLabel}>
+                {label}
+                {required && <Text style={styles.required}> *</Text>}
+            </Text>
             {subtitle && <Text style={styles.uploadSubtitle}>{subtitle}</Text>}
 
             {/* Show preview if image is selected */}
             {document.uri ? (
                 <View style={styles.previewContainer}>
                     <Image
-                        source={{ uri: document.uri }}
+                        source={{ uri: document.uri as string }}
                         style={styles.previewImage}
                         resizeMode="contain"
                     />
@@ -80,12 +87,12 @@ export default function DocumentUploadBox({
             )}
 
             {/* Upload progress */}
-            {disabled && uploadProgress !== undefined && uploadProgress > 0 && (
+            {disabled && safeUploadProgress > 0 && (
                 <View style={styles.progressContainer}>
                     <View style={styles.progressBar}>
-                        <View style={[styles.progressFill, { width: `${uploadProgress}%` }]} />
+                        <View style={[styles.progressFill, { width: `${safeUploadProgress}%` }]} />
                     </View>
-                    <Text style={styles.progressText}>{uploadProgress}%</Text>
+                    <Text style={styles.progressText}>{safeUploadProgress}%</Text>
                 </View>
             )}
         </View>
@@ -93,6 +100,9 @@ export default function DocumentUploadBox({
 }
 
 const styles = StyleSheet.create({
+    required: {
+        color: '#EF4444',
+    },
     uploadContainer: {
         marginBottom: 20,
     },

@@ -2,51 +2,63 @@
   "dia_diem_phuc_vu": [
     {
       "id": 1,
-      "label": "Trường học"
+      "label": "Trường học",
+      "value": "SCHOOL"
     },
     {
       "id": 2,
-      "label": "Vùng sâu vùng xa"
+      "label": "Vùng sâu vùng xa",
+      "value": "REMOTE_AREA"
     },
     {
       "id": 3,
-      "label": "Công viên, quảng trường"
+      "label": "Công viên, quảng trường",
+      "value": "PARK_OR_SQUARE"
     },
     {
       "id": 4,
-      "label": "Bệnh viện"
+      "label": "Bệnh viện",
+      "value": "HOSPITAL"
     },
     {
       "id": 5,
-      "label": "Trạm giao thông"
+      "label": "Trạm giao thông",
+      "value": "TRANSPORT_STATION"
     },
     {
       "id": 6,
-      "label": "Bảo tàng"
+      "label": "Bảo tàng",
+      "value": "MUSEUM"
     },
     {
       "id": 7,
-      "label": "Viện dưỡng lão"
+      "label": "Viện dưỡng lão",
+      "value": "NURSING_HOME"
     },
     {
       "id": 8,
-      "label": "Khu du lịch"
+      "label": "Khu du lịch",
+      "value": "TOURIST_AREA"
     },
     {
       "id": 9,
-      "label": "Mặt nước, sông ngòi"
+      "label": "Mặt nước, sông ngòi",
+      "value": "WATER_BODY"
     },
     {
       "id": 10,
-      "label": "Khu thể dục thể thao"
+      "label": "Khu thể dục thể thao",
+      "value": "SPORTS_AREA"
     },
     {
       "id": 11,
-      "label": "Nghĩa trang"
+      "label": "Nghĩa trang",
+      "value": "CEMETERY"
     },
     {
       "id": 12,
-      "label": "Khác"
+      "label": "Khác",
+      "value": "OTHER"
     }
   ]
 }

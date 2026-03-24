@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, Platform, Modal, Pressable } from 'react-native';
+import { View, Text, TouchableOpacity, Platform, Modal, Pressable, StyleSheet } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -7,34 +7,72 @@ interface DatePickerInputProps {
     label: string;
     value?: Date;
     onChange: (date: Date) => void;
-    required?: boolean;
+    onDismiss?: () => void;
     placeholder?: string;
+    minimumDate?: Date;
+    required?: boolean;
 }
 
 export default function DatePickerInput({
     label,
     value,
     onChange,
-    required = false,
+    onDismiss,
     placeholder = 'Chọn ngày',
+    minimumDate,
+    required = false,
 }: DatePickerInputProps) {
     const [show, setShow] = useState(false);
+    const [pendingDate, setPendingDate] = useState<Date | undefined>(undefined);
 
-    const handleChange = (event: any, selectedDate?: Date) => {
-        // On Android, the picker is automatically dismissed after selection or cancellation
-        // On iOS, we need to handle it manually
-        if (Platform.OS === 'android') {
-            setShow(false);
+    // get date value when modal open
+    const getInitialPickerDate = () => value || minimumDate || new Date();
+
+    const openPicker = () => {
+        setPendingDate(getInitialPickerDate());
+        setShow(true);
+    };
+
+    // close date picker modal without changes
+    const dismissPicker = () => {
+        setShow(false);
+        setPendingDate(undefined);
+        onDismiss?.();
+    };
+
+    // commit selected date and close modal
+    const commitDate = (date: Date) => {
+        const normalizedSelectedDate = new Date(
+            date.getFullYear(),
+            date.getMonth(),
+            date.getDate()
+        );
+
+        if (minimumDate && normalizedSelectedDate < minimumDate) {
+            return;
         }
 
-        // Only update the value if user didn't cancel
-        if (event.type === 'set' && selectedDate) {
-            onChange(selectedDate);
-            if (Platform.OS === 'ios') {
-                setShow(false);
-            }
-        } else if (event.type === 'dismissed') {
+        onChange(normalizedSelectedDate);
+        setShow(false);
+        setPendingDate(undefined);
+    };
+
+    // handle date change from picker
+    const handleChange = (event: any, selectedDate?: Date) => {
+        if (Platform.OS === 'android') {
             setShow(false);
+            if (event.type === 'set' && selectedDate) {
+                commitDate(selectedDate);
+            } else if (event.type === 'dismissed') {
+                dismissPicker();
+            }
+            return;
+        }
+
+        if (event.type === 'set' && selectedDate) {
+            setPendingDate(selectedDate);
+        } else if (event.type === 'dismissed') {
+            dismissPicker();
         }
     };
 
@@ -49,18 +87,19 @@ export default function DatePickerInput({
         <View className="mb-4">
             {label && (
                 <Text className="text-gray-700 text-sm font-medium mb-2">
-                    {required && <Text className="text-red-500">* </Text>}
                     {label}
+                    {required && <Text style={styles.required}> *</Text>}
                 </Text>
             )}
             <TouchableOpacity
-                onPress={() => setShow(true)}
-                className="bg-[#E3F2FD] border-b border-gray-200 rounded-lg px-4 py-3 flex-row justify-between items-center"
+                onPress={openPicker}
+                style={styles.inputBox}
             >
-                <Text className={value ? 'text-gray-800' : 'text-gray-400'}>
+                <Ionicons name="calendar-outline" size={18} color="#9CA3AF" style={styles.icon} />
+                <Text style={[styles.valueText, { color: value ? '#1F2937' : '#9CA3AF' }]}>
                     {value ? formatDate(value) : placeholder}
                 </Text>
-                <Ionicons name="calendar-outline" size={20} color="#9CA3AF" />
+                <Ionicons name="chevron-down-outline" size={16} color="#9CA3AF" />
             </TouchableOpacity>
 
             {show && Platform.OS === 'ios' && (
@@ -68,35 +107,34 @@ export default function DatePickerInput({
                     transparent={true}
                     animationType="slide"
                     visible={show}
-                    onRequestClose={() => setShow(false)}
+                    onRequestClose={dismissPicker}
                 >
                     <Pressable
                         className="flex-1 bg-black/50 justify-end"
-                        onPress={() => setShow(false)}
+                        onPress={dismissPicker}
                     >
                         <Pressable className="bg-white rounded-t-3xl" onPress={(e) => e.stopPropagation()}>
                             <View className="flex-row justify-between items-center px-4 py-3 border-b border-gray-200">
-                                <TouchableOpacity onPress={() => setShow(false)}>
-                                    <Text className="text-[#42A5F5] text-base font-semibold">Hủy</Text>
+                                <TouchableOpacity onPress={dismissPicker}>
+                                    <Text className="text-[#42A4F5] text-base font-semibold">Hủy</Text>
                                 </TouchableOpacity>
                                 <Text className="text-gray-800 font-semibold">Chọn ngày</Text>
                                 <TouchableOpacity
                                     onPress={() => {
-                                        handleChange({ type: 'set' }, value || new Date());
+                                        commitDate(pendingDate || getInitialPickerDate());
                                     }}
                                 >
-                                    <Text className="text-[#42A5F5] text-base font-semibold">Xong</Text>
+                                    <Text className="text-[#42A4F5] text-base font-semibold">Xong</Text>
                                 </TouchableOpacity>
                             </View>
                             <DateTimePicker
-                                value={value || new Date()}
+                                value={pendingDate || getInitialPickerDate()}
                                 mode="date"
                                 display="spinner"
-                                onChange={(event, date) => {
-                                    if (date) onChange(date);
-                                }}
-                                textColor="#000000"
-                                style={{ backgroundColor: '#FFFFFF', height: 200 }}
+                                minimumDate={minimumDate}
+                                onChange={handleChange}
+                                themeVariant="light"
+                                style={styles.spinner}
                             />
                         </Pressable>
                     </Pressable>
@@ -108,9 +146,37 @@ export default function DatePickerInput({
                     value={value || new Date()}
                     mode="date"
                     display="default"
+                    minimumDate={minimumDate}
                     onChange={handleChange}
                 />
             )}
         </View>
     );
 }
+
+const styles = StyleSheet.create({
+    required: {
+        color: '#EF4444',
+    },
+    inputBox: {
+        backgroundColor: '#FFFFFF',
+        borderWidth: 1,
+        borderColor: '#D1D5DB',
+        borderRadius: 10,
+        paddingHorizontal: 12,
+        paddingVertical: 13,
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    icon: {
+        marginRight: 8,
+    },
+    valueText: {
+        flex: 1,
+        fontSize: 14,
+    },
+    spinner: {
+        backgroundColor: '#FFFFFF',
+        height: 200,
+    },
+});

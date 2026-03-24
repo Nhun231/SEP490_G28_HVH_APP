@@ -2,16 +2,40 @@
  * Event Service - Handles API calls for event-related endpoints
  */
 
+import baseAxios from '@/lib/baseAxios'
+
 const API_BASE = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.1.38:8080'
 
-//  Feed interfaces 
+export interface ActivitySubDomain {
+    id: number;
+    name: string;
+    active: boolean;
+}
+
+export interface ActivityDomain {
+    name: string;
+    specialSessionMaxTime: number;
+    active: boolean;
+    activitySubDomainList: ActivitySubDomain[];
+}
+
+export interface ActivityDomainResponse {
+    content: ActivityDomain[];
+    page: {
+        size: number;
+        number: number;
+        totalElements: number;
+        totalPages: number;
+    };
+}
+//  Feed interfaces
 export interface EventSimpleResponse {
     id: string;               // matches BE UUID field
     orgName: string;
     name: string;
     imageUrl: string;
     address: string;
-    startDate: string;      
+    startDate: string;
     recruitmentEndDate: string;
 }
 
@@ -32,10 +56,10 @@ export interface EventFeedParams {
     activitySubDomainIds?: number[];
 }
 
-//Event Detail interfaces 
+//Event Detail interfaces
 export interface EventSessionDetailsResponse {
     id: string;
-    startDateTime: string;  
+    startDateTime: string;
     endDateTime: string;
     expectedVolAmount: number;
     expectedSerAmount: number;
@@ -48,8 +72,8 @@ export interface EventDetailsResponse {
     description: string;
     address: string;
     activitySubDomain: string;
-    servedTarget: string;        
-    servingPlaceType: string;    
+    servedTarget: string;
+    servingPlaceType: string;
     startDate: string;
     recruitmentEndDate: string;
     latCheckInLocation: number;
@@ -60,7 +84,7 @@ export interface EventDetailsResponse {
     eventSessions: EventSessionDetailsResponse[];
 }
 
-//  Vietnamese label maps for enums 
+//  Vietnamese label maps for enums
 export const SERVED_TARGET_LABELS: Record<string, string> = {
     WOMEN: 'Phụ nữ',
     CHILDREN: 'Trẻ em',
@@ -87,7 +111,7 @@ export const SERVING_PLACE_LABELS: Record<string, string> = {
     OTHER: 'Khác',
 };
 
-// Fetch event feeds 
+// Fetch event feeds
 export const getEventFeeds = async (params: EventFeedParams = {}): Promise<EventFeedResponse> => {
     const query = new URLSearchParams()
     query.append('pageNumber', String(params.pageNumber ?? 0))
@@ -124,4 +148,35 @@ export const getEventDetails = async (eventId: string): Promise<EventDetailsResp
     }
     const data: EventDetailsResponse = await response.json()
     return data
+}
+
+/**
+ * Fetch all activity domains across all pages.
+ */
+export const getAllActivityDomains = async (): Promise<ActivityDomain[]> => {
+    const endpoint = `${API_BASE}/api/v1/activity-domain/activity-domains`
+    console.log('[EventService] Fetching activity domains:', endpoint)
+    console.log('[EventService] Axios baseURL:', baseAxios.defaults.baseURL)
+
+    const firstResponse = await baseAxios.get<ActivityDomainResponse>(
+        endpoint,
+        {
+            params: { page: 0, size: 100 },
+        }
+    )
+
+    const firstData = firstResponse.data
+    let allDomains = [...firstData.content]
+
+    for (let page = 1; page < firstData.page.totalPages; page += 1) {
+        const pageResponse = await baseAxios.get<ActivityDomainResponse>(
+            endpoint,
+            {
+                params: { page, size: 100 },
+            }
+        )
+        allDomains = [...allDomains, ...pageResponse.data.content]
+    }
+
+    return allDomains
 }
