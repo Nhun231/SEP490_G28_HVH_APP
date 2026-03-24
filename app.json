@@ -34,7 +34,8 @@
         "googleMaps": {
           "apiKey": "AIzaSyAyAwvegpdwoKWZiuNo__1wTUc9RK89yg4"
         }
-      }
+      },
+      "googleServicesFile": "./google-services.json"
     },
     "web": {
       "bundler": "metro",
@@ -42,6 +43,7 @@
       "favicon": "./assets/images/logo.png"
     },
     "plugins": [
+      "expo-notifications",
       "expo-router",
       [
         "expo-splash-screen",

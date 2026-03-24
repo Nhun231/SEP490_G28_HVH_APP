@@ -5,11 +5,12 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="75668f23-b4c0-497d-81ac-fa2ee3afdab7" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.env" beforeDir="false" afterPath="$PROJECT_DIR$/.env" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/(tabs)/home.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/(tabs)/home.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/components/EventCard.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/components/EventCard.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/screen/event-feed.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/screen/event-feed.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/google-services.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app.json" beforeDir="false" afterPath="$PROJECT_DIR$/app.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/_layout.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/_layout.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/package-lock.json" beforeDir="false" afterPath="$PROJECT_DIR$/package-lock.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/package.json" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -61,6 +62,9 @@
   }
 }</component>
   <component name="RecentsManager">
+    <key name="CopyFile.RECENT_KEYS">
+      <recent name="D:\Documents\9th_semester\GRADUATEEEEE\SEP490_G28_HVH_APP" />
+    </key>
     <key name="MoveFile.RECENT_KEYS">
       <recent name="D:\Documents\9th_semester\GRADUATEEEEE\SEP490_G28_HVH_APP" />
       <recent name="D:\Documents\9th_semester\GRADUATEEEEE\SEP490_G28_HVH_APP\app" />
@@ -109,6 +113,7 @@
       <workItem from="1773325569960" duration="11234000" />
       <workItem from="1773506161496" duration="1285000" />
       <workItem from="1773658617417" duration="790000" />
+      <workItem from="1773911188372" duration="3466000" />
     </task>
     <servers />
   </component>

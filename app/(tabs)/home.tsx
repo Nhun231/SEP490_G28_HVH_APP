@@ -30,7 +30,7 @@ const Home = () => {
     }, [fetchEvents]);
 
     const handleSearch = (text: string) => {
-        console.log('Search:', text);
+        // console.log('Search:', text); // Removed
     };
 
     const handleSeeMore = () => {
@@ -38,8 +38,9 @@ const Home = () => {
     };
 
     const handleEventPress = (event: EventSimpleResponse) => {
-        console.log('Event pressed:', event.name);
-        // TODO: navigate to event detail screen
+        if (event.id) {
+            router.push({ pathname: '/screen/event-detail', params: { eventId: event.id } } as any);
+        }
     };
 
     return (

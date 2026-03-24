@@ -23,7 +23,7 @@ const SERVICES = [
 ] as const
 
 export default function Personal() {
-    const { logout, session } = useAuth()
+    const { logout, session, isLoggedIn } = useAuth()
     const router = useRouter()
 
     const handleLogout = () => {
@@ -37,17 +37,79 @@ export default function Personal() {
                     style: 'destructive',
                     onPress: async () => {
                         await logout()
-                        router.replace('/screen/login')
+                        router.replace('/(tabs)/home' as any)
                     },
                 },
             ]
         )
     }
 
-    // Extract a short member ID from session email or use placeholder
     const email = session?.user?.email ?? ''
     const memberId = session?.user?.id ?? ''
 
+    // ── Guest view ─────────────────────────────────────────────────────────────
+    if (!isLoggedIn) {
+        return (
+            <SafeAreaView style={styles.safeArea} edges={['top']}>
+                <ScrollView
+                    style={styles.scroll}
+                    showsVerticalScrollIndicator={false}
+                    contentContainerStyle={[styles.scrollContent, styles.guestContent]}
+                >
+                    {/* Header */}
+                    <View style={styles.header}>
+                        <View style={styles.headerTopRow} />
+                        <View style={styles.profileRow}>
+                            <View style={styles.avatarRing}>
+                                <View style={styles.avatar}>
+                                    <Ionicons name="person" size={32} color="#42A4F5" />
+                                </View>
+                            </View>
+                            <View style={styles.profileInfo}>
+                                <Text style={styles.profileName}>Khách</Text>
+                                <Text style={styles.profileMotto}>Đăng nhập để trải nghiệm đầy đủ tính năng</Text>
+                            </View>
+                        </View>
+                    </View>
+
+                    {/* Guest CTA card */}
+                    <View style={styles.section}>
+                        <View style={styles.card}>
+                            <View style={styles.guestIllustration}>
+                                <Ionicons name="person-circle-outline" size={72} color="#42A4F5" />
+                            </View>
+                            <Text style={styles.guestTitle}>Chào mừng bạn!</Text>
+                            <Text style={styles.guestSubtitle}>
+                                Đăng nhập để xem hồ sơ, theo dõi hoạt động tình nguyện và nhận chứng chỉ.
+                            </Text>
+
+                            {/* Login button */}
+                            <TouchableOpacity
+                                style={styles.loginBtn}
+                                activeOpacity={0.85}
+                                onPress={() => router.push('/screen/login' as any)}
+                            >
+                                <Ionicons name="log-in-outline" size={20} color="#fff" />
+                                <Text style={styles.loginBtnText}>Đăng nhập</Text>
+                            </TouchableOpacity>
+
+                            {/* Register link */}
+                            <View style={styles.registerRow}>
+                                <Text style={styles.registerPrompt}>Chưa có tài khoản? </Text>
+                                <TouchableOpacity onPress={() => router.push('/screen/register' as any)}>
+                                    <Text style={styles.registerLink}>Đăng ký ngay</Text>
+                                </TouchableOpacity>
+                            </View>
+                        </View>
+                    </View>
+
+                    <View style={{ height: 24 }} />
+                </ScrollView>
+            </SafeAreaView>
+        )
+    }
+
+    // ── Logged-in view ─────────────────────────────────────────────────────────
     return (
         <SafeAreaView style={styles.safeArea} edges={['top']}>
             <ScrollView
@@ -344,5 +406,58 @@ const styles = StyleSheet.create({
         fontSize: 15,
         fontWeight: '600',
         color: '#EF4444',
+    },
+
+    // ── Guest view ──────────────────────────────────────────────────────────
+    guestContent: {
+        flexGrow: 1,
+    },
+    guestIllustration: {
+        alignItems: 'center',
+        marginBottom: 12,
+        marginTop: 8,
+    },
+    guestTitle: {
+        fontSize: 20,
+        fontWeight: '700',
+        color: '#1F2937',
+        textAlign: 'center',
+        marginBottom: 8,
+    },
+    guestSubtitle: {
+        fontSize: 14,
+        color: '#6B7280',
+        textAlign: 'center',
+        lineHeight: 21,
+        marginBottom: 24,
+    },
+    loginBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: '#42A4F5',
+        borderRadius: 12,
+        paddingVertical: 14,
+        gap: 8,
+        marginBottom: 16,
+    },
+    loginBtnText: {
+        fontSize: 16,
+        fontWeight: '700',
+        color: '#FFFFFF',
+    },
+    registerRow: {
+        flexDirection: 'row',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    registerPrompt: {
+        fontSize: 14,
+        color: '#6B7280',
+    },
+    registerLink: {
+        fontSize: 14,
+        fontWeight: '700',
+        color: '#42A4F5',
     },
 })

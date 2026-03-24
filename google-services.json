@@ -7,9 +7,9 @@
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:809975906417:android:55a02d3b038e7b75d79bd0",
+        "mobilesdk_app_id": "1:809975906417:android:078f73f6ba1c088dd79bd0",
         "android_client_info": {
-          "package_name": "com.hvh"
+          "package_name": "com.sep490.hvhapp"
         }
       },
       "oauth_client": [],
