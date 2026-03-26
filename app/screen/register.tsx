@@ -64,7 +64,7 @@ export default function Register() {
             const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync()
 
             if (permissionResult.granted === false) {
-                Alert.alert('Cần quyền truy cập', 'Vui lòng cho phép truy cập thư viện ảnh')
+                Alert.alert('Lỗi', 'Vui lòng cấp quyền truy cập thư viện ảnh.')
                 return
             }
 
@@ -106,22 +106,22 @@ export default function Register() {
                 const docData = { uri, fileName, mimeType }
                 setDocument(docData)
 
-                Alert.alert('Thành công', 'Đã tải ảnh lên')
+                Alert.alert('Thành công', 'Đã tải ảnh lên.')
             }
         } catch (error) {
-            Alert.alert('Lỗi', error instanceof Error ? error.message : 'Không thể chọn ảnh')
+            Alert.alert('Lỗi', error instanceof Error ? error.message : 'Không thể chọn ảnh.')
         }
     }
 
     const handleSendOtp = async () => {
         if (!email) {
-            Alert.alert('Lỗi', 'Vui lòng nhập email')
+            Alert.alert('Lỗi', 'Vui lòng nhập email.')
             return
         }
 
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
         if (!emailRegex.test(email)) {
-            Alert.alert('Lỗi', 'Email không hợp lệ')
+            Alert.alert('Lỗi', 'Email không hợp lệ.')
             return
         }
 
@@ -130,7 +130,7 @@ export default function Register() {
             await sendOtp({ email })
             setOtpSent(true)
             setOtpTimer(OTP_EXPIRATION_SECONDS)
-            Alert.alert('Thành công', 'Mã OTP đã được gửi đến email của bạn')
+            Alert.alert('Thành công', 'Mã OTP đã được gửi đến email.')
         } catch (error) {
             Alert.alert('Lỗi', (error as Error).message)
         } finally {
@@ -141,38 +141,38 @@ export default function Register() {
     const handleRegister = async () => {
         // Validation
         if (!citizenId || !fullName || !phone || !email || !otp) {
-            Alert.alert('Lỗi', 'Vui lòng điền đầy đủ thông tin')
+            Alert.alert('Lỗi', 'Vui lòng điền đầy đủ thông tin.')
             return
         }
 
         if (!/^\d{12}$/.test(citizenId)) {
-            Alert.alert('Lỗi', 'Số căn cước công dân phải có 12 chữ số')
+            Alert.alert('Lỗi', 'Số CCCD phải có đủ 12 số.')
             return
         }
 
         // Validate fullName: each word starts with uppercase, no digits/special chars
         if (!/^[A-ZÀ-Ỹ][a-zà-ỹ]*(?:\s[A-ZÀ-Ỹ][a-zà-ỹ]*)*$/.test(fullName)) {
-            Alert.alert('Lỗi', 'Họ tên không hợp lệ. Mỗi từ phải viết hoa chữ cái đầu')
+            Alert.alert('Lỗi', 'Họ tên không hợp lệ. Vui lòng viết hoa chữ cái đầu mỗi từ.')
             return
         }
 
         if (!/^(0|\+84)(3|5|7|8|9)\d{8}$/.test(phone)) {
-            Alert.alert('Lỗi', 'Số điện thoại không hợp lệ')
+            Alert.alert('Lỗi', 'Số điện thoại không hợp lệ.')
             return
         }
 
         if (!/^\d{6}$/.test(otp)) {
-            Alert.alert('Lỗi', 'Mã OTP phải có 6 chữ số')
+            Alert.alert('Lỗi', 'Mã OTP phải có đủ 6 số.')
             return
         }
 
         if (!frontIdCard.uri || !backIdCard.uri || !selfieWithId.uri) {
-            Alert.alert('Lỗi', 'Vui lòng tải lên đầy đủ các tài liệu')
+            Alert.alert('Lỗi', 'Vui lòng tải lên đầy đủ hình ảnh.')
             return
         }
 
         if (!imageVerification) {
-            Alert.alert('Lỗi', 'Vui lòng xác nhận điều khoản sử dụng')
+            Alert.alert('Lỗi', 'Vui lòng đồng ý với Điều khoản sử dụng.')
             return
         }
 
@@ -219,7 +219,7 @@ export default function Register() {
                     }))
                 }
             )
-            Alert.alert('Thành công', 'Đăng ký tài khoản thành công! Vui lòng chờ xác minh.')
+            Alert.alert('Thành công', 'Đăng ký thành công! Vui lòng chờ xét duyệt.')
             // TODO: Navigate to success screen or login
         } catch (error) {
             Alert.alert('Lỗi', (error as Error).message || JSON.stringify(error))
@@ -242,8 +242,8 @@ export default function Register() {
                     <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
                 </TouchableOpacity>
                 <View>
-                    <Text style={styles.headerTitle}>Đăng ký tài khoản</Text>
-                    <Text style={styles.headerSubtitle}>Tình nguyện viên</Text>
+                    <Text style={styles.headerTitle}>Tạo tài khoản</Text>
+                    <Text style={styles.headerSubtitle}>Dành cho Tình nguyện viên</Text>
                 </View>
             </View>
 
@@ -263,7 +263,7 @@ export default function Register() {
                         {/* Citizen ID Input */}
                         <View style={styles.inputContainer}>
                             <Text style={styles.label}>
-                                Số căn cước công dân <Text style={styles.required}>*</Text>
+                                Số Căn cước công dân <Text style={styles.required}>*</Text>
                             </Text>
                             <View style={styles.inputWrapper}>
                                 <Ionicons name="card-outline" size={20} color="#9CA3AF" style={styles.inputIcon} />
@@ -296,7 +296,7 @@ export default function Register() {
                                     editable={!loading}
                                 />
                             </View>
-                            <Text style={styles.helperText}>Viết hoa chữ cái đầu mỗi từ</Text>
+                            <Text style={styles.helperText}>Viết hoa chữ cái đầu mỗi từ (VD: Nguyễn Văn A)</Text>
                         </View>
 
                         {/* Phone Number Input */}
@@ -316,7 +316,7 @@ export default function Register() {
                                     editable={!loading}
                                 />
                             </View>
-                            <Text style={styles.helperText}>Nhập số di động của CCCD</Text>
+                            <Text style={styles.helperText}>Số điện thoại bạn đang dùng để liên lạc</Text>
                         </View>
 
                         {/* Email Input with OTP Button */}
@@ -351,11 +351,11 @@ export default function Register() {
                                     ) : otpTimer > 0 ? (
                                         <Text style={styles.otpButtonText}>{formatTime(otpTimer)}</Text>
                                     ) : (
-                                        <Text style={styles.otpButtonText}>Gửi OTP</Text>
+                                        <Text style={styles.otpButtonText}>Nhận mã OTP</Text>
                                     )}
                                 </TouchableOpacity>
                             </View>
-                            <Text style={styles.helperText}>Vui lòng sử dụng Email thân qua để nhận mã OTP</Text>
+                            <Text style={styles.helperText}>Chúng mình sẽ gửi mã xác nhận (OTP) vào email này</Text>
                         </View>
 
                         {/* OTP Input - Only show after OTP is sent */}
@@ -377,7 +377,7 @@ export default function Register() {
                                         editable={!loading}
                                     />
                                 </View>
-                                <Text style={styles.helperText}>Nhập mã OTP đã được gửi đến email của bạn</Text>
+                                <Text style={styles.helperText}>Nhập mã 6 số để xác thực</Text>
                             </View>
                         )}
 
@@ -385,21 +385,20 @@ export default function Register() {
                         <View style={styles.verificationSection}>
                             <View style={styles.verificationHeader}>
                                 <Ionicons name="checkmark-circle-outline" size={20} color="#42A4F5" />
-                                <Text style={styles.verificationTitle}>Tải lên hình ảnh xác thực</Text>
+                                <Text style={styles.verificationTitle}>Upload ảnh xác minh danh tính</Text>
                             </View>
                             <View style={styles.verificationContent}>
                                 <Ionicons name="information-circle-outline" size={16} color="#6B7280" />
                                 <Text style={styles.verificationText}>
-                                    Ảnh giấy tờ rõ ràng, không bị che khuất các thông tin bởi mã
-                                    SVB. Khi chụp ảnh thắc dụng chứng minh rằng bạn mới là người đăng ký này
+                                    Hình ảnh cần rõ nét, không bị chói lóa. Thông tin của bạn sẽ được bảo mật tuyệt đối.
                                 </Text>
                             </View>
                         </View>
 
                         {/* Document Upload Sections */}
                         <DocumentUploadBox
-                            label="Mặt trước căn cước công dân *"
-                            subtitle="Chọn mặt trước tài liệu CCCD và tải lên hệ thống"
+                            label="Mặt trước Căn cước công dân *"
+                            subtitle="Chụp rõ nét mặt trước CCCD của bạn"
                             document={frontIdCard}
                             onPress={() => pickImage(setFrontIdCard)}
                             onRemove={() => setFrontIdCard({ uri: null, fileName: null, mimeType: null })}
@@ -408,8 +407,8 @@ export default function Register() {
                         />
 
                         <DocumentUploadBox
-                            label="Mặt sau căn cước công dân *"
-                            subtitle="Chọn mặt sau của tài liệu CCCD"
+                            label="Mặt sau Căn cước công dân *"
+                            subtitle="Chụp rõ nét mặt sau CCCD của bạn"
                             document={backIdCard}
                             onPress={() => pickImage(setBackIdCard)}
                             onRemove={() => setBackIdCard({ uri: null, fileName: null, mimeType: null })}
@@ -418,8 +417,8 @@ export default function Register() {
                         />
 
                         <DocumentUploadBox
-                            label="Ảnh chân dung cầm CCCD *"
-                            subtitle="Chọn ảnh chân dung cầm CCCD ở giữ màn, chụp rõ nét, để bảo mật camera"
+                            label="Ảnh chân dung chụp cùng CCCD *"
+                            subtitle="Chụp một tấm hình bạn đang cầm CCCD sát bên mình"
                             document={selfieWithId}
                             onPress={() => pickImage(setSelfieWithId)}
                             onRemove={() => setSelfieWithId({ uri: null, fileName: null, mimeType: null })}
@@ -439,7 +438,7 @@ export default function Register() {
                             </View>
                             <Text style={styles.checkboxText}>
                                 Tôi đồng ý với{' '}
-                                <Text style={styles.linkText}>Điều khoản sử dụng</Text>. Chuyển sách riêng tư
+                                <Text style={styles.linkText}>Điều khoản sử dụng</Text> và Chính sách bảo mật
                             </Text>
                         </TouchableOpacity>
 
@@ -452,21 +451,21 @@ export default function Register() {
                             {loading ? (
                                 <ActivityIndicator size="small" color="#FFFFFF" />
                             ) : (
-                                <Text style={styles.registerButtonText}>Đăng ký tài khoản</Text>
+                                <Text style={styles.registerButtonText}>Đăng ký</Text>
                             )}
                         </TouchableOpacity>
 
                         {/* Timer Display */}
                         {otpTimer > 0 && (
                             <Text style={styles.timerText}>
-                                Mã OTP hết hạn sau: {formatTime(otpTimer)}
+                                Mã sẽ hết hạn sau: {formatTime(otpTimer)}
                             </Text>
                         )}
 
                         {/* Footer */}
                         <Text style={styles.footerText}>
                             Đã có tài khoản?{' '}
-                            <Text style={styles.linkText}>Đăng nhập ngay</Text>
+                            <Text style={styles.linkText}>Đăng nhập!</Text>
                         </Text>
                     </View>
                 </ScrollView>

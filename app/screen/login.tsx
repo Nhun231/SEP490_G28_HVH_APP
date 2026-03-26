@@ -28,9 +28,6 @@ export default function Auth() {
                 : null
             const role = payload?.app_metadata?.role
 
-            console.log('[LOGIN] jwt payload app_metadata:', payload?.app_metadata)
-            console.log('[LOGIN] role:', role)
-
             if (role === 'VOL') {
                 router.replace('/(tabs)/home')
             } else if (role === 'HOST') {
