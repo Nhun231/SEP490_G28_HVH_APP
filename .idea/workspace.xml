@@ -44,7 +44,7 @@
   "keyToString": {
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "RunOnceActivity.git.unshallow": "true",
-    "git-widget-placeholder": "uc006-view-event-feed",
+    "git-widget-placeholder": "feature/uc007-search-volunteer-event",
     "ignore.virus.scanning.warn.message": "true",
     "last_opened_file_path": "D:/Documents/9th_semester/GRADUATEEEEE/SEP490_G28_HVH_APP",
     "node.js.detected.package.eslint": "true",
@@ -57,6 +57,9 @@
   }
 }]]></component>
   <component name="RecentsManager">
+    <key name="CopyFile.RECENT_KEYS">
+      <recent name="D:\Documents\9th_semester\GRADUATEEEEE\SEP490_G28_HVH_APP" />
+    </key>
     <key name="MoveFile.RECENT_KEYS">
       <recent name="D:\Documents\9th_semester\GRADUATEEEEE\SEP490_G28_HVH_APP" />
       <recent name="D:\Documents\9th_semester\GRADUATEEEEE\SEP490_G28_HVH_APP\app" />
@@ -104,6 +107,8 @@
       <workItem from="1773151258667" duration="7068000" />
       <workItem from="1773325569960" duration="11234000" />
       <workItem from="1773506161496" duration="1285000" />
+      <workItem from="1773658617417" duration="790000" />
+      <workItem from="1773911188372" duration="3466000" />
     </task>
     <servers />
   </component>
@@ -121,7 +126,7 @@
                   <entry key="branch">
                     <value>
                       <list>
-                        <option value="SEP490_G28_HVH_APP/feature/uc021-create-new-volunteer-event" />
+                        <option value="dev" />
                       </list>
                     </value>
                   </entry>

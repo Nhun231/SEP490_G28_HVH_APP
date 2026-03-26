@@ -14,7 +14,7 @@ function AppContent() {
         )
     }
 
-    if (!isLoggedIn) return <Redirect href="/screen/login" />
+    if (!isLoggedIn) return <Redirect href="/(tabs)/home" />
 
     //check for role to navigate after login
     if (role === 'VOL') return <Redirect href="/(tabs)/home" />
