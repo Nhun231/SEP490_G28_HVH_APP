@@ -11,6 +11,7 @@ interface DatePickerInputProps {
     placeholder?: string;
     minimumDate?: Date;
     required?: boolean;
+    error?: string;
 }
 
 export default function DatePickerInput({
@@ -21,6 +22,7 @@ export default function DatePickerInput({
     placeholder = 'Chọn ngày',
     minimumDate,
     required = false,
+    error,
 }: DatePickerInputProps) {
     const [show, setShow] = useState(false);
     const [pendingDate, setPendingDate] = useState<Date | undefined>(undefined);
@@ -93,7 +95,7 @@ export default function DatePickerInput({
             )}
             <TouchableOpacity
                 onPress={openPicker}
-                style={styles.inputBox}
+                style={[styles.inputBox, { borderColor: error ? '#EF4444' : '#D1D5DB' }]}
             >
                 <Ionicons name="calendar-outline" size={18} color="#9CA3AF" style={styles.icon} />
                 <Text style={[styles.valueText, { color: value ? '#1F2937' : '#9CA3AF' }]}>

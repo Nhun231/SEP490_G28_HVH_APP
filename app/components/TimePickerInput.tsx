@@ -10,6 +10,7 @@ interface TimePickerInputProps {
     onDismiss?: () => void;
     placeholder?: string;
     required?: boolean;
+    error?: string;
 }
 
 export default function TimePickerInput({
@@ -19,6 +20,7 @@ export default function TimePickerInput({
     onDismiss,
     placeholder = 'Chọn thời gian',
     required = false,
+    error,
 }: TimePickerInputProps) {
     const [show, setShow] = useState(false);
     const [pendingTime, setPendingTime] = useState<Date | undefined>(undefined);
@@ -77,7 +79,7 @@ export default function TimePickerInput({
             </Text>
             <TouchableOpacity
                 onPress={openPicker}
-                style={styles.inputBox}
+                style={[styles.inputBox, { borderColor: error ? '#EF4444' : '#D1D5DB' }]}
             >
                 <Ionicons name="time-outline" size={18} color="#9CA3AF" style={styles.icon} />
                 <Text style={[styles.valueText, { color: value ? '#1F2937' : '#9CA3AF' }]}>
