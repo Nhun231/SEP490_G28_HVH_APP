@@ -429,7 +429,7 @@ export const getMyEvents = async (params: MyEventsParams = {}): Promise<MyEvents
  * Fetch event detail for the host.
  * GET /api/v1/host/event/event-details/{id}
  */
-export const getEventDetail = async (id: string): Promise<EventDetailResponse> => {
+export const getEventDetailByHost = async (id: string): Promise<EventDetailResponse> => {
     const endpoint = `${API_BASE}/api/v1/host/event/event-details/${id}`
     const response = await baseAxios.get<EventDetailResponse>(endpoint)
     console.log('[getEventDetail] response:', JSON.stringify(response.data, null, 2))

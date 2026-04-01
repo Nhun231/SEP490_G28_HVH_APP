@@ -22,7 +22,7 @@ import {
     getApiErrorMessage,
     getApiErrorRawText,
     resolveSupabaseUrl,
-    getEventDetail,
+    getEventDetailByHost,
 } from '@/services/event-service';
 import { getFileExtension, getMimeType, uploadImageToSupabase } from '@/services/upload-service';
 import servedTargetsData from '../../assets/served_targets/doi_tuong_phuc_vu.json';
@@ -65,7 +65,7 @@ const CreateEvent = () => {
         if (typeof eventDataParam !== 'string') return null;
         try {
             // return object as EventDetailResponse + resolvedCheckinAddress
-            return JSON.parse(eventDataParam) as (typeof getEventDetail extends (...args: any) => Promise<infer R> ? R : never) & { resolvedCheckinAddress?: string | null };
+            return JSON.parse(eventDataParam) as (typeof getEventDetailByHost extends (...args: any) => Promise<infer R> ? R : never) & { resolvedCheckinAddress?: string | null };
         }
         catch {
             return null;
@@ -362,7 +362,7 @@ const CreateEvent = () => {
         const loadEditData = async () => {
             setIsLoadingEditData(true);
             try {
-                const event = await getEventDetail(editEventId);
+                const event = await getEventDetailByHost(editEventId);
                 if (cancelled) return;
 
                 setEventName(event.name);
