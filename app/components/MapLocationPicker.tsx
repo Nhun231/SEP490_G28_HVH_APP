@@ -6,8 +6,35 @@ import * as Location from 'expo-location';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-// Nominatim (OpenStreetMap) for search autocomplete 
-const NOMINATIM_URL = 'https://nominatim.openstreetmap.org/search';
+// Nominatim (OpenStreetMap) endpoints
+const NOMINATIM_SEARCH_URL = 'https://nominatim.openstreetmap.org/search';
+const NOMINATIM_REVERSE_URL = 'https://nominatim.openstreetmap.org/reverse';
+const NOMINATIM_HEADERS = { 'User-Agent': 'SEP490-HVH-App/1.0', 'Accept-Language': 'vi' };
+
+// reverse geocode with Nominatim (using new address after merger)
+async function nominatimReverseGeocode(latitude: number, longitude: number): Promise<string> {
+    try {
+        const res = await fetch(
+            `${NOMINATIM_REVERSE_URL}?format=json&lat=${latitude}&lon=${longitude}`,
+            { headers: NOMINATIM_HEADERS }
+        );
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const data = await res.json();
+        const addr = data.address as Record<string, string> | undefined;
+        if (addr) {
+            const parts = [
+                addr.road || addr.pedestrian || addr.footway || addr.path,
+                addr.suburb || addr.quarter || addr.neighbourhood,
+                addr.city_district || addr.district || addr.county,
+                addr.city || addr.town || addr.state,
+            ].filter(Boolean) as string[];
+            if (parts.length > 0) return parts.join(', ');
+        }
+        return (data.display_name as string) || `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`;
+    } catch {
+        return `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`;
+    }
+}
 
 const HANOI_BOUNDS = {
     minLatitude: 20.53,
@@ -63,6 +90,7 @@ export default function MapLocationPicker({
     } as Location.LocationObject);
     const [searchQuery, setSearchQuery] = useState('');
     const [isLoadingLocation, setIsLoadingLocation] = useState(false);
+    const [isGeocodingAddress, setIsGeocodingAddress] = useState(false);
 
     // Autocomplete states
     const [suggestions, setSuggestions] = useState<PlaceSuggestion[]>([]);
@@ -71,10 +99,7 @@ export default function MapLocationPicker({
     // Height of [header + search bar] to position the overlay correctly
     const [overlayTop, setOverlayTop] = useState(0);
 
-    /**
-     * Ray-casting point-in-polygon test against the real Hanoi boundary.
-     * Returns true if (lat, lng) lies inside HANOI_MAIN_RING.
-     */
+    // Ray-casting to check point in polygon (Hanoi boundary)
     const isWithinHanoiBounds = (latitude: number, longitude: number): boolean => {
         const ring = HANOI_MAIN_RING;
         const n = ring.length;
@@ -105,36 +130,21 @@ export default function MapLocationPicker({
         }
     }, [visible, initialLocation]);
 
+    // use expo location for GPS to focus map
     useEffect(() => {
         if (!visible) return;
-
         setIsLoadingLocation(true);
         (async () => {
             try {
-                let { status } = await Location.requestForegroundPermissionsAsync();
+                const { status } = await Location.requestForegroundPermissionsAsync();
                 if (status !== 'granted') {
-                    console.log('Location permission not granted');
                     setIsLoadingLocation(false);
                     return;
                 }
-
-                let location = await Location.getCurrentPositionAsync({});
+                const location = await Location.getCurrentPositionAsync({});
                 setCurrentLocation(location);
-                let reverseAddress: Location.LocationGeocodedAddress | undefined;
-                try {
-                    const reversed = await Location.reverseGeocodeAsync({
-                        latitude: location.coords.latitude,
-                        longitude: location.coords.longitude,
-                    });
-                    reverseAddress = reversed[0];
-                } catch (reverseError) {
-                    console.warn(`[MapLocationPicker] Reverse geocode current location failed`, reverseError);
-                }
-
-                // Focus the previously selected location if present, otherwise current GPS
                 const targetLatitude = initialLocation?.latitude ?? location.coords.latitude;
                 const targetLongitude = initialLocation?.longitude ?? location.coords.longitude;
-
                 mapRef.current?.animateToRegion({
                     latitude: clampToHanoiBounds(targetLatitude, targetLongitude).latitude,
                     longitude: clampToHanoiBounds(targetLatitude, targetLongitude).longitude,
@@ -149,7 +159,7 @@ export default function MapLocationPicker({
         })();
     }, [visible, initialLocation]);
 
-    // Debounced Nominatim autocomplete 
+    // use nominatim for suggestions list 
     useEffect(() => {
         const trimmed = searchQuery.trim();
         if (trimmed.length < 2) {
@@ -161,21 +171,13 @@ export default function MapLocationPicker({
         const timer = setTimeout(async () => {
             setIsLoadingSuggestions(true);
             try {
-                // Manual URL string construction to include viewbox and bounded parameters for better Hanoi-focused results
                 const url =
-                    `${NOMINATIM_URL}` +
+                    `${NOMINATIM_SEARCH_URL}` +
                     `?q=${encodeURIComponent(`${trimmed}, Hà Nội`)}` +
-                    `&format=json` +
-                    `&limit=5` +
-                    `&countrycodes=vn` +
-                    `&accept-language=vi` +
-                    `&addressdetails=1` +
-                    `&bounded=1` +
+                    `&format=json&limit=5&countrycodes=vn&accept-language=vi&addressdetails=1&bounded=1` +
                     `&viewbox=${HANOI_BOUNDS.minLongitude},${HANOI_BOUNDS.maxLatitude},${HANOI_BOUNDS.maxLongitude},${HANOI_BOUNDS.minLatitude}`;
 
-                const res = await fetch(url, {
-                    headers: { 'User-Agent': 'SEP490-HVH-App/1.0' },
-                });
+                const res = await fetch(url, { headers: NOMINATIM_HEADERS });
 
                 const text = await res.text();
                 const json: any[] = JSON.parse(text);
@@ -236,7 +238,7 @@ export default function MapLocationPicker({
         }, 800);
     };
 
-    const handleMapPress = async (event: any) => {
+    const handleMapPress = (event: any) => {
         const { latitude, longitude } = event.nativeEvent.coordinate;
 
         if (!isWithinHanoiBounds(latitude, longitude)) {
@@ -248,30 +250,13 @@ export default function MapLocationPicker({
         setSuggestions([]);
         setShowSuggestions(false);
 
-        try {
-            const result = await Location.reverseGeocodeAsync({ latitude, longitude });
-            console.log(`[MapLocationPicker] Reverse geocoding raw response`, result);
-            if (result.length > 0) {
-                const addr = result[0];
-                const addressParts = [
-                    addr.name !== addr.district ? addr.name : null,
-                    addr.district,
-                    addr.subregion !== addr.district ? addr.subregion : null,
-                    addr.region,
-                ];
-                const selected = {
-                    latitude,
-                    longitude,
-                    address: addressParts.filter(Boolean).join(', ') || 'Địa chỉ không xác định',
-                };
-                setSelectedLocation(selected);
-                return;
-            }
-        } catch (error) {
-            console.error('Reverse Geocoding error:', error);
-        }
-
-        setSelectedLocation({ latitude, longitude, address: `${latitude.toFixed(6)}, ${longitude.toFixed(6)}` });
+        // display spinner in address field while geocoding
+        setIsGeocodingAddress(true);
+        setSelectedLocation({ latitude, longitude, address: '' });
+        nominatimReverseGeocode(latitude, longitude).then(address => {
+            setSelectedLocation({ latitude, longitude, address });
+            setIsGeocodingAddress(false);
+        });
     };
 
     const handleConfirm = () => {
@@ -288,41 +273,30 @@ export default function MapLocationPicker({
         setShowSuggestions(false);
 
         try {
-            const results = await Location.geocodeAsync(`${searchQuery}, Hà Nội`);
+            // using nominatim for search
+            const url =
+                `${NOMINATIM_SEARCH_URL}` +
+                `?q=${encodeURIComponent(`${searchQuery.trim()}, Hà Nội`)}` +
+                `&format=json&limit=1&countrycodes=vn&accept-language=vi&bounded=1` +
+                `&viewbox=${HANOI_BOUNDS.minLongitude},${HANOI_BOUNDS.maxLatitude},${HANOI_BOUNDS.maxLongitude},${HANOI_BOUNDS.minLatitude}`;
 
-            if (results.length > 0) {
-                const matched = results.find((item) => isWithinHanoiBounds(item.latitude, item.longitude));
-                if (!matched) {
-                    Alert.alert('Thông báo', 'Không tìm thấy địa điểm trong khu vực Hà Nội');
-                    return;
-                }
+            const res = await fetch(url, { headers: NOMINATIM_HEADERS });
+            const json: any[] = await res.json();
+            const matched = (json || []).find((p: any) =>
+                isWithinHanoiBounds(parseFloat(p.lat), parseFloat(p.lon))
+            );
 
-                const { latitude, longitude } = matched;
-
-                let resolvedAddress = searchQuery;
-                try {
-                    const reversed = await Location.reverseGeocodeAsync({ latitude, longitude });
-
-                    if (reversed.length > 0) {
-                        const addr = reversed[0];
-                        const addressParts = [
-                            addr.name !== addr.district ? addr.name : null,
-                            addr.district,
-                            addr.subregion !== addr.district ? addr.subregion : null,
-                            addr.region,
-                        ];
-                        resolvedAddress = addressParts.filter(Boolean).join(', ') || searchQuery;
-                    }
-                } catch (reverseError) {
-                    console.warn(`[MapLocationPicker] Search reverse geocoding failed`, reverseError);
-                }
-
-                setSelectedLocation({ latitude, longitude, address: resolvedAddress });
-                mapRef.current?.animateToRegion({ latitude, longitude, latitudeDelta: 0.01, longitudeDelta: 0.01 }, 1000);
-            } else {
-                Alert.alert('Không tìm thấy', 'Không tìm thấy địa điểm này');
+            if (!matched) {
+                Alert.alert('Thông báo', 'Không tìm thấy địa điểm trong khu vực Hà Nội');
+                return;
             }
-        } catch (error) {
+
+            const latitude = parseFloat(matched.lat);
+            const longitude = parseFloat(matched.lon);
+            const address = await nominatimReverseGeocode(latitude, longitude);
+            setSelectedLocation({ latitude, longitude, address });
+            mapRef.current?.animateToRegion({ latitude, longitude, latitudeDelta: 0.01, longitudeDelta: 0.01 }, 1000);
+        } catch {
             Alert.alert('Lỗi', 'Không thể tìm kiếm địa điểm');
         }
     };
@@ -345,8 +319,8 @@ export default function MapLocationPicker({
                     <Text className="text-lg font-bold flex-1">Chọn địa điểm</Text>
                     <TouchableOpacity
                         onPress={handleConfirm}
-                        disabled={!selectedLocation}
-                        className={selectedLocation ? '' : 'opacity-50'}
+                        disabled={!selectedLocation || isGeocodingAddress}
+                        className={selectedLocation && !isGeocodingAddress ? '' : 'opacity-50'}
                     >
                         <Text className="text-[#42A4F5] font-semibold text-base">Xong</Text>
                     </TouchableOpacity>
@@ -489,12 +463,21 @@ export default function MapLocationPicker({
                 {selectedLocation && (
                     <View className="bg-white px-4 py-3 border-t border-gray-200">
                         <Text className="text-gray-600 text-xs">Địa điểm đã chọn:</Text>
-                        <Text className="text-gray-800 font-medium mt-1">
-                            {selectedLocation.address}
-                        </Text>
-                        <Text className="text-gray-400 text-xs mt-1">
-                            {selectedLocation.latitude.toFixed(6)}, {selectedLocation.longitude.toFixed(6)}
-                        </Text>
+                        {isGeocodingAddress ? (
+                            <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6 }}>
+                                <ActivityIndicator size="small" color="#42A4F5" />
+                                <Text style={{ marginLeft: 8, fontSize: 13, color: '#94A3B8' }}>Đang xác định địa chỉ...</Text>
+                            </View>
+                        ) : (
+                            <>
+                                <Text className="text-gray-800 font-medium mt-1">
+                                    {selectedLocation.address}
+                                </Text>
+                                <Text className="text-gray-400 text-xs mt-1">
+                                    {selectedLocation.latitude.toFixed(6)}, {selectedLocation.longitude.toFixed(6)}
+                                </Text>
+                            </>
+                        )}
                     </View>
                 )}
 

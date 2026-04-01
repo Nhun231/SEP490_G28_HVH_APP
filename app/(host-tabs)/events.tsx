@@ -1,208 +1,67 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
-import {
-    View,
-    Text,
-    TouchableOpacity,
-    StyleSheet,
-    FlatList,
-    Image,
-    ScrollView,
-    RefreshControl,
-    TextInput,
-    Animated,
-    Keyboard,
-} from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, FlatList, ScrollView, RefreshControl, TextInput, Animated, Keyboard } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
-import { getMyEvents, MyEventItem, MyEventStatus, getApiErrorMessage } from '@/services/event-service';
+import { useRouter, useFocusEffect } from 'expo-router';
+import { getMyEvents, MyEventStatus, getApiErrorMessage } from '@/services/event-service';
+import HostEventCard, { HostEvent, EventStatus } from '../components/HostEventCard';
+import StatusChip, { ChipFilter } from '../components/StatusChip';
+import SkeletonCard from '../components/SkeletonCard';
 
-// ── Types ──
-
-export type EventStatus = MyEventStatus;
-
-export interface HostEvent {
-    id: string;
-    name: string;
-    imageUrl: string | null;
-    status: EventStatus;
-    startDate: string;
-    address: string;
-    recruitmentEndDate: string;
-}
-
-// ── Status Config ──
-
-const STATUS_CONFIG: Record<EventStatus, { label: string; color: string; bgColor: string; icon: string }> = {
-    EDITING:         { label: 'Đang soạn thảo',             color: '#6B7280', bgColor: '#F3F4F6', icon: 'create-outline' },
-    SUBMITTED:       { label: 'Chờ phê duyệt',              color: '#3B82F6', bgColor: '#DBEAFE', icon: 'time-outline' },
-    APPROVED_BY_MNG: { label: 'Quản lý duyệt',              color: '#10B981', bgColor: '#D1FAE5', icon: 'checkmark-circle-outline' },
-    REJECTED_BY_MNG: { label: 'Quản lý từ chối',            color: '#EF4444', bgColor: '#FEE2E2', icon: 'close-circle-outline' },
-    REJECTED_BY_AD:  { label: 'Admin từ chối',               color: '#DC2626', bgColor: '#FEE2E2', icon: 'close-circle-outline' },
-    RECRUITING:      { label: 'Đang tuyển tình nguyện viên', color: '#7C3AED', bgColor: '#EDE9FE', icon: 'people-outline' },
-    UPCOMING:        { label: 'Sắp diễn ra',                 color: '#D97706', bgColor: '#FEF3C7', icon: 'alarm-outline' },
-    ONGOING:         { label: 'Đang diễn ra',                color: '#059669', bgColor: '#D1FAE5', icon: 'play-circle-outline' },
-    ENDED:           { label: 'Đã kết thúc',                 color: '#6B7280', bgColor: '#F3F4F6', icon: 'flag-outline' },
-    COMPLETED:       { label: 'Hoàn thành',                  color: '#0EA5E9', bgColor: '#E0F2FE', icon: 'ribbon-outline' },
-    CANCELLED:       { label: 'Đã hủy',                      color: '#9CA3AF', bgColor: '#F9FAFB', icon: 'ban-outline' },
-};
-
-// ── Filter config ──
+// keep events data in cache for each chip key 
+type CacheEntry = { events: HostEvent[]; hasMore: boolean; page: number; ts: number };
+const CACHE_TTL_MS = 30_000; // 30 sec
+const eventCache = new Map<string, CacheEntry>();
 
 type MasterTab = 'active' | 'history';
 
-interface ChipFilter {
-    key: EventStatus;
-    label: string;
-}
-
 const ACTIVE_CHIPS: ChipFilter[] = [
-    { key: 'EDITING',         label: 'Soạn thảo' },
-    { key: 'SUBMITTED',       label: 'Chờ duyệt' },
-    { key: 'APPROVED_BY_MNG', label: 'QL duyệt' },
-    { key: 'REJECTED_BY_MNG', label: 'QL từ chối' },
-    { key: 'REJECTED_BY_AD',  label: 'Admin từ chối' },
-    { key: 'RECRUITING',      label: 'Tuyển TNV' },
-    { key: 'UPCOMING',        label: 'Sắp diễn ra' },
-    { key: 'ONGOING',         label: 'Đang diễn ra' },
+    { key: 'EDITING', label: 'Soạn thảo' },
+    { key: 'SUBMITTED', label: 'Chờ duyệt' },
+    { key: 'APPROVED_BY_MNG', label: 'Tổ chức duyệt' },
+    { key: 'REJECTED_BY_MNG', label: 'Tổ chức từ chối' },
+    { key: 'REJECTED_BY_AD', label: 'Admin từ chối' },
+    { key: 'RECRUITING', label: 'Tuyển TNV' },
+    { key: 'UPCOMING', label: 'Sắp diễn ra' },
+    { key: 'ONGOING', label: 'Đang diễn ra' },
 ];
 
 const HISTORY_CHIPS: ChipFilter[] = [
-    { key: 'ENDED',     label: 'Đã kết thúc' },
+    { key: 'ENDED', label: 'Đã kết thúc' },
     { key: 'COMPLETED', label: 'Hoàn thành' },
     { key: 'CANCELLED', label: 'Đã hủy' },
 ];
-
-const ACTIVE_STATUSES: EventStatus[]  = ['EDITING', 'SUBMITTED', 'APPROVED_BY_MNG', 'REJECTED_BY_MNG', 'REJECTED_BY_AD', 'RECRUITING', 'UPCOMING', 'ONGOING'];
-const HISTORY_STATUSES: EventStatus[] = ['ENDED', 'COMPLETED', 'CANCELLED'];
-
-// ── Mock Data ──
-
-const DEFAULT_IMAGE = 'https://images.unsplash.com/photo-1532629345422-7515f3d16bb6?w=400';
-
-const MOCK_EVENTS: HostEvent[] = [
-    { id: '1',  name: 'Làm sạch môi trường Hồ Hoàn Kiếm',          imageUrl: 'https://images.unsplash.com/photo-1532629345422-7515f3d16bb6?w=400', status: 'RECRUITING',      startDate: '2026-04-15', address: 'Công viên Hồ Hoàn Kiếm, Quận Hoàn Kiếm, Hà Nội',               recruitmentEndDate: '2026-04-10' },
-    { id: '2',  name: 'Hiến máu nhân đạo 2026',                     imageUrl: 'https://images.unsplash.com/photo-1615461066841-6116e61058f4?w=400', status: 'UPCOMING',        startDate: '2026-04-20', address: 'Bệnh viện Bạch Mai, Đống Đa, Hà Nội',                          recruitmentEndDate: '2026-04-15' },
-    { id: '3',  name: 'Trồng cây xanh tại trường học',              imageUrl: 'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?w=400', status: 'ONGOING',         startDate: '2026-03-21', address: 'Trường THPT Chu Văn An, Ba Đình, Hà Nội',                      recruitmentEndDate: '2026-03-15' },
-    { id: '4',  name: 'Hỗ trợ học tập cho trẻ em vùng cao',        imageUrl: 'https://images.unsplash.com/photo-1497633762265-9d179a990aa6?w=400', status: 'SUBMITTED',       startDate: '2026-05-01', address: 'Trường Tiểu học Tà Phìn, Sa Pa, Lào Cai',                     recruitmentEndDate: '2026-04-25' },
-    { id: '5',  name: 'Chăm sóc người già tại viện dưỡng lão',     imageUrl: 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=400', status: 'APPROVED_BY_MNG', startDate: '2026-04-25', address: 'Viện dưỡng lão Hà Đông, Hà Nội',                               recruitmentEndDate: '2026-04-20' },
-    { id: '6',  name: 'Hội chợ từ thiện ủng hộ trẻ em khuyết tật', imageUrl: 'https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?w=400', status: 'EDITING',         startDate: '2026-05-10', address: 'Quảng trường Đông Kinh Nghĩa Thục, Hoàn Kiếm, Hà Nội',       recruitmentEndDate: '2026-05-05' },
-    { id: '7',  name: 'Dọn rác bãi biển Sầm Sơn',                  imageUrl: 'https://images.unsplash.com/photo-1618477461853-cf6ed80faba5?w=400', status: 'COMPLETED',       startDate: '2026-03-10', address: 'Bãi biển Sầm Sơn, Thanh Hóa',                                 recruitmentEndDate: '2026-03-05' },
-    { id: '8',  name: 'Hỗ trợ xây dựng nhà tình thương',           imageUrl: 'https://images.unsplash.com/photo-1503387762-592deb58ef4e?w=400', status: 'ENDED',           startDate: '2026-02-20', address: 'Xã Hòa Bình, Huyện Phú Xuyên, Hà Nội',                        recruitmentEndDate: '2026-02-15' },
-    { id: '9',  name: 'Tặng quà trung thu cho trẻ em nghèo',       imageUrl: 'https://images.unsplash.com/photo-1509062522246-3755977927d7?w=400', status: 'REJECTED_BY_MNG', startDate: '2026-09-15', address: 'Làng trẻ SOS Hà Nội, Từ Liêm, Hà Nội',                       recruitmentEndDate: '2026-09-10' },
-    { id: '10', name: 'Chiến dịch bảo vệ rừng nguyên sinh',        imageUrl: 'https://images.unsplash.com/photo-1448375240586-882707db888b?w=400', status: 'CANCELLED',       startDate: '2026-01-12', address: 'Vườn Quốc gia Cúc Phương, Ninh Bình',                         recruitmentEndDate: '2026-01-05' },
-    { id: '11', name: 'Khám chữa bệnh miễn phí vùng sâu',          imageUrl: 'https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=400', status: 'REJECTED_BY_AD',  startDate: '2026-06-20', address: 'Xã Chiềng Bằng, Quỳnh Nhai, Sơn La',                         recruitmentEndDate: '2026-06-10' },
-];
-
-// ── Helpers ──
-
-const formatDate = (dateStr: string): string => {
-    if (!dateStr) return '';
-    const [y, m, d] = dateStr.split('-');
-    return `${d}/${m}/${y}`;
-};
-
-// ── StatusChip ──
-
-interface StatusChipProps {
-    chip: ChipFilter;
-    isActive: boolean;
-    count: number;
-    onPress: () => void;
-}
-
-const StatusChip = ({ chip, isActive, count, onPress }: StatusChipProps) => (
-    <TouchableOpacity
-        style={[styles.chip, isActive && styles.chipActive]}
-        onPress={onPress}
-        activeOpacity={0.7}
-    >
-        <Text style={[styles.chipText, isActive && styles.chipTextActive]}>{chip.label}</Text>
-        {count > 0 && (
-            <View style={[styles.chipBadge, isActive && styles.chipBadgeActive]}>
-                <Text style={[styles.chipBadgeText, isActive && styles.chipBadgeTextActive]}>{count}</Text>
-            </View>
-        )}
-    </TouchableOpacity>
-);
-
-// ── HostEventCard ──
-
-interface EventCardProps {
-    item: HostEvent;
-    onPress: (id: string) => void;
-}
-
-const HostEventCard = ({ item, onPress }: EventCardProps) => {
-    const cfg = STATUS_CONFIG[item.status] ?? {
-        label: item.status,
-        color: '#6B7280',
-        bgColor: '#F3F4F6',
-        icon: 'help-circle-outline',
-    };
-    return (
-        <TouchableOpacity style={styles.card} onPress={() => onPress(item.id)} activeOpacity={0.75}>
-            <Image
-                source={{ uri: item.imageUrl || DEFAULT_IMAGE }}
-                style={styles.cardImage}
-                resizeMode="cover"
-            />
-            <View style={styles.cardBody}>
-                <View style={[styles.statusBadge, { backgroundColor: cfg.bgColor }]}>
-                    <Ionicons name={cfg.icon as any} size={11} color={cfg.color} style={{ marginRight: 4 }} />
-                    <Text style={[styles.statusText, { color: cfg.color }]}>{cfg.label}</Text>
-                </View>
-                <Text style={styles.cardTitle} numberOfLines={2}>{item.name}</Text>
-                <View style={styles.metaRow}>
-                    <Ionicons name="calendar-outline" size={13} color="#9CA3AF" />
-                    <Text style={styles.metaText}>{formatDate(item.startDate)}</Text>
-                </View>
-                <View style={styles.metaRow}>
-                    <Ionicons name="location-outline" size={13} color="#9CA3AF" />
-                    <Text style={styles.metaText} numberOfLines={1}>{item.address}</Text>
-                </View>
-                <View style={styles.metaRow}>
-                    <Ionicons name="time-outline" size={13} color="#9CA3AF" />
-                    <Text style={styles.metaText}>Hạn ĐK: {formatDate(item.recruitmentEndDate)}</Text>
-                </View>
-            </View>
-        </TouchableOpacity>
-    );
-};
-
-// ── Main Screen ──
-
-const SEARCH_BAR_HEIGHT = 52;
 
 const EventManagement = () => {
     const router = useRouter();
     const inputRef = useRef<TextInput>(null);
 
     // Master tab & chip filter
-    const [masterTab, setMasterTab]     = useState<MasterTab>('active');
-    const [activeChip, setActiveChip]   = useState<EventStatus>('EDITING');
+    const [masterTab, setMasterTab] = useState<MasterTab>('active');
+    const [activeChip, setActiveChip] = useState<EventStatus>('EDITING');
     const [historyChip, setHistoryChip] = useState<EventStatus>('ENDED');
 
     // Search
     const [searchVisible, setSearchVisible] = useState(false);
-    const [searchText, setSearchText]       = useState('');
-    const [searchQuery, setSearchQuery]     = useState(''); // debounced value actually sent to filter / API
+    const [searchText, setSearchText] = useState('');
+    const [searchQuery, setSearchQuery] = useState('');
     const searchAnim = useRef(new Animated.Value(0)).current;
     const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     // API state
-    const [events, setEvents]           = useState<HostEvent[]>([]);
-    const [loading, setLoading]         = useState(false);
+    const [events, setEvents] = useState<HostEvent[]>([]);
+    const [loading, setLoading] = useState(false);       // only true when no data (show skeleton)
+    const [reloading, setReloading] = useState(false);   // true when fetch again but keep old list
     const [loadingMore, setLoadingMore] = useState(false);
-    const [refreshing, setRefreshing]   = useState(false);
-    const [error, setError]             = useState<string | null>(null);
+    const [refreshing, setRefreshing] = useState(false);
+    const [error, setError] = useState<string | null>(null);
     const [currentPage, setCurrentPage] = useState(0);
-    const [hasMore, setHasMore]         = useState(true);
-    const isFetching                    = useRef(false); // guard against concurrent / loop calls
+    const [hasMore, setHasMore] = useState(true);
+    const requestIdRef = useRef(0); // request id to prevent race condition 
+    const isLoadingMoreRef = useRef(false); // prevent duplicate load more request
     const PAGE_SIZE = 10;
 
-    // ── Search bar animation ──
-
+    // Search bar animation
     const openSearch = () => {
         setSearchVisible(true);
         Animated.spring(searchAnim, {
@@ -228,13 +87,10 @@ const EventManagement = () => {
 
     const handleSearchChange = (text: string) => {
         setSearchText(text);
-        // Debounce: update query after 400 ms of inactivity
+        // only update query when user stop typing for 400ms
         if (debounceRef.current) clearTimeout(debounceRef.current);
         debounceRef.current = setTimeout(() => {
             setSearchQuery(text.trim());
-            // TODO: Uncomment when API is ready – call fetchEvents(0) here so the
-            // API receives the updated `name` param:
-            // setEvents([]); setCurrentPage(0); setHasMore(true); fetchEvents(0);
         }, 400);
     };
 
@@ -245,83 +101,121 @@ const EventManagement = () => {
     // Animated height for the search bar container
     const searchBarHeight = searchAnim.interpolate({
         inputRange: [0, 1],
-        outputRange: [0, SEARCH_BAR_HEIGHT],
+        outputRange: [0, 52],
     });
 
-    // ── API fetch ──
-
+    // API fetch
     const fetchEvents = useCallback(async (page: number, isRefresh = false) => {
-        // Prevent concurrent calls (which can cause infinite loops on error)
-        if (isFetching.current) return;
-        isFetching.current = true;
+        if (page > 0 && isLoadingMoreRef.current) return;
+        if (page > 0) isLoadingMoreRef.current = true;
 
-        if (isRefresh) setRefreshing(true);
-        else if (page === 0) setLoading(true);
-        else setLoadingMore(true);
+        const myId = ++requestIdRef.current
+        const chipFilter = masterTab === 'active' ? activeChip : historyChip;
+        const cacheKey = `${chipFilter}::${searchQuery}`;
+
+        if (isRefresh) {
+            setRefreshing(true);
+        } else if (page === 0) {
+            // If cache is still fresh — show immediately, fetch in background (stale-while-revalidate)
+            const cached = eventCache.get(cacheKey);
+            if (cached && Date.now() - cached.ts < CACHE_TTL_MS) {
+                setEvents(cached.events);
+                setHasMore(cached.hasMore);
+                setCurrentPage(cached.page);
+                setLoading(false);
+                setReloading(true); // fetch again in background, don't hide list
+            } else if (events.length === 0) {
+                setLoading(true);   // nothing yet — show skeleton
+            } else {
+                setReloading(true); // have old data — keep it, just blur
+            }
+        } else {
+            setLoadingMore(true);
+        }
 
         setError(null);
 
         try {
-            const chipFilter = masterTab === 'active' ? activeChip : historyChip;
-            // Always send a status — API requires it
             const response = await getMyEvents({
                 pageNumber: page,
-                pageSize:   PAGE_SIZE,
-                status:     chipFilter as MyEventStatus,
-                name:       searchQuery || undefined,
+                pageSize: PAGE_SIZE,
+                status: chipFilter as MyEventStatus,
+                name: searchQuery || undefined,
             });
 
-            const mapped: HostEvent[] = response.content.map(item => ({
-                ...item,
-                status: item.status as EventStatus,
-                imageUrl: item.imageUrl ?? null,
-            }));
+            if (myId !== requestIdRef.current) return;
+
+            const mapped: HostEvent[] = response.content
+                .map(item => ({
+                    ...item,
+                    status: item.status as EventStatus,
+                    imageUrl: item.imageUrl ?? null,
+                }))
+                .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+            const nextHasMore = response.page.number + 1 < response.page.totalPages;
 
             if (isRefresh || page === 0) {
-                setEvents(mapped);
+                setEvents([...mapped]);
                 setCurrentPage(0);
+                // save to cache
+                eventCache.set(cacheKey, { events: mapped, hasMore: nextHasMore, page: 0, ts: Date.now() });
             } else {
-                setEvents(prev => [...prev, ...mapped]);
+                setEvents(prev => {
+                    const merged = [...prev, ...mapped];
+                    eventCache.set(cacheKey, { events: merged, hasMore: nextHasMore, page, ts: Date.now() });
+                    return merged;
+                });
             }
-
-            setHasMore(response.page.number + 1 < response.page.totalPages);
+            setHasMore(nextHasMore);
             setCurrentPage(page);
         } catch (e) {
-            // On error we set error state and do NOT retry — prevents infinite loop
+            if (myId !== requestIdRef.current) return;
             const msg = getApiErrorMessage(e);
             setError(msg || 'Không thể tải danh sách sự kiện');
         } finally {
-            isFetching.current = false;
-            setLoading(false);
-            setRefreshing(false);
-            setLoadingMore(false);
+            if (myId === requestIdRef.current) {
+                setLoading(false);
+                setReloading(false);
+                setRefreshing(false);
+                setLoadingMore(false);
+            }
+            if (page > 0) isLoadingMoreRef.current = false;
         }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [masterTab, activeChip, historyChip, searchQuery]);
 
-    // Re-fetch from page 0 whenever filters or search change.
-    // fetchEvents is intentionally NOT in deps to avoid stale-closure loops;
-    // the callback already captures all relevant state via its own deps.
+    // Re-fetch when filter change — keep old list, let stale-while-revalidate handle it
     useEffect(() => {
-        setEvents([]);
         setCurrentPage(0);
         setHasMore(true);
         setError(null);
         fetchEvents(0);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [masterTab, activeChip, historyChip, searchQuery]);
 
-    const handleRefresh  = useCallback(() => fetchEvents(0, true), [fetchEvents]);
+    // When back to tab — only fetch if cache has expired
+    useFocusEffect(useCallback(() => {
+        const chipFilter = masterTab === 'active' ? activeChip : historyChip;
+        const cacheKey = `${chipFilter}::${searchQuery}`;
+        const cached = eventCache.get(cacheKey);
+        if (!cached || Date.now() - cached.ts >= CACHE_TTL_MS) {
+            fetchEvents(0);
+        }
+    }, [masterTab, activeChip, historyChip, searchQuery, fetchEvents]));
+
+    const handleRefresh = useCallback(() => fetchEvents(0, true), [fetchEvents]);
+
     const handleLoadMore = useCallback(() => {
         if (!loadingMore && !loading && hasMore && !error) fetchEvents(currentPage + 1);
     }, [loadingMore, loading, hasMore, error, currentPage, fetchEvents]);
 
     // Derived state
-    const currentChip    = masterTab === 'active' ? activeChip : historyChip;
+    const currentChip = masterTab === 'active' ? activeChip : historyChip;
+
     const setCurrentChip = masterTab === 'active'
         ? (v: EventStatus) => setActiveChip(v)
         : (v: EventStatus) => setHistoryChip(v);
-    const chips          = masterTab === 'active' ? ACTIVE_CHIPS : HISTORY_CHIPS;
+
+    const chips = masterTab === 'active' ? ACTIVE_CHIPS : HISTORY_CHIPS;
 
     // Chip counts reflect currently loaded events
     const chipCounts = chips.reduce<Record<string, number>>((acc, chip) => {
@@ -343,10 +237,16 @@ const EventManagement = () => {
         });
     };
 
-    // ── Render helpers ──
+    // render 3 skeleton cards when no data
+    const renderSkeleton = () => (
+        <View>
+            {[1, 2, 3].map(i => <SkeletonCard key={i} />)}
+        </View>
+    );
 
+    // render empty when no data
     const renderEmpty = () => {
-        if (loading) return null; // skeleton shown separately
+        if (loading) return renderSkeleton();
         if (error) return (
             <View style={styles.emptyContainer}>
                 <View style={styles.emptyIconWrapper}>
@@ -386,6 +286,7 @@ const EventManagement = () => {
         );
     };
 
+    // render footer when loading more
     const renderFooter = () => {
         if (!loadingMore) return null;
         return (
@@ -396,11 +297,10 @@ const EventManagement = () => {
         );
     };
 
-    // ── JSX ──
-
+    // JSX
     return (
         <SafeAreaView style={styles.container} edges={['top']}>
-            {/* ── Header ── */}
+            {/* Header */}
             <View style={styles.header}>
                 <View style={{ flex: 1 }}>
                     <Text style={styles.headerTitle}>Sự kiện của tôi</Text>
@@ -419,7 +319,7 @@ const EventManagement = () => {
                 </TouchableOpacity>
             </View>
 
-            {/* ── Animated Search Bar ── */}
+            {/* Animated Search Bar */}
             <Animated.View style={[styles.searchWrapper, { height: searchBarHeight }]}>
                 {searchVisible && (
                     <View style={styles.searchBar}>
@@ -447,7 +347,7 @@ const EventManagement = () => {
                 )}
             </Animated.View>
 
-            {/* ── Master Tabs ── */}
+            {/* Master Tabs */}
             <View style={styles.masterTabRow}>
                 <TouchableOpacity
                     style={[styles.masterTab, masterTab === 'active' && styles.masterTabActive]}
@@ -457,7 +357,7 @@ const EventManagement = () => {
                     <Ionicons
                         name="flash-outline"
                         size={15}
-                        color={masterTab === 'active' ? BLUE : 'rgba(255,255,255,0.8)'}
+                        color={masterTab === 'active' ? '#42A4F5' : 'rgba(255,255,255,0.8)'}
                         style={{ marginRight: 5 }}
                     />
                     <Text style={[styles.masterTabText, masterTab === 'active' && styles.masterTabTextActive]}>
@@ -472,7 +372,7 @@ const EventManagement = () => {
                     <Ionicons
                         name="archive-outline"
                         size={15}
-                        color={masterTab === 'history' ? BLUE : 'rgba(255,255,255,0.8)'}
+                        color={masterTab === 'history' ? '#42A4F5' : 'rgba(255,255,255,0.8)'}
                         style={{ marginRight: 5 }}
                     />
                     <Text style={[styles.masterTabText, masterTab === 'history' && styles.masterTabTextActive]}>
@@ -481,7 +381,7 @@ const EventManagement = () => {
                 </TouchableOpacity>
             </View>
 
-            {/* ── Chip bar + List (always light background) ── */}
+            {/* Chip bar + List */}
             <View style={styles.listWrapper}>
                 {/* Chip filter */}
                 <View style={styles.chipBar}>
@@ -508,7 +408,7 @@ const EventManagement = () => {
                     data={events}
                     keyExtractor={item => item.id}
                     renderItem={({ item }) => <HostEventCard item={item} onPress={handleEventPress} />}
-                    style={styles.list}
+                    style={[styles.list, reloading && { opacity: 0.55 }]}
                     contentContainerStyle={styles.listContent}
                     showsVerticalScrollIndicator={false}
                     keyboardShouldPersistTaps="handled"
@@ -518,8 +418,8 @@ const EventManagement = () => {
                         <RefreshControl
                             refreshing={refreshing}
                             onRefresh={handleRefresh}
-                            colors={[BLUE]}
-                            tintColor={BLUE}
+                            colors={['#42A4F5']}
+                            tintColor={'#42A4F5'}
                         />
                     }
                     onEndReached={handleLoadMore}
@@ -527,7 +427,7 @@ const EventManagement = () => {
                 />
             </View>
 
-            {/* ── FAB ── */}
+            {/* FAB */}
             <TouchableOpacity
                 style={styles.fab}
                 onPress={() => router.push('/screen/create-event')}
@@ -540,19 +440,15 @@ const EventManagement = () => {
     );
 };
 
-// ── Styles ──
-
-const BLUE = '#42A4F5';
-
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: BLUE,
+        backgroundColor: '#42A4F5',
     },
 
     // Header
     header: {
-        backgroundColor: BLUE,
+        backgroundColor: '#42A4F5',
         paddingHorizontal: 20,
         paddingTop: 4,
         paddingBottom: 12,
@@ -588,7 +484,7 @@ const styles = StyleSheet.create({
     searchWrapper: {
         overflow: 'hidden',
         paddingHorizontal: 16,
-        backgroundColor: BLUE,
+        backgroundColor: '#42A4F5',
     },
     searchBar: {
         flex: 1,
@@ -643,7 +539,7 @@ const styles = StyleSheet.create({
         color: 'rgba(255,255,255,0.85)',
     },
     masterTabTextActive: {
-        color: BLUE,
+        color: '#42A4F5',
     },
 
     // Chip bar
@@ -668,8 +564,8 @@ const styles = StyleSheet.create({
         gap: 5,
     },
     chipActive: {
-        backgroundColor: BLUE,
-        borderColor: BLUE,
+        backgroundColor: '#42A4F5',
+        borderColor: '#42A4F5',
     },
     chipText: {
         fontSize: 13,
@@ -714,62 +610,6 @@ const styles = StyleSheet.create({
         paddingBottom: 110,
     },
 
-    // Event card
-    card: {
-        backgroundColor: '#FFFFFF',
-        borderRadius: 16,
-        marginBottom: 14,
-        flexDirection: 'row',
-        overflow: 'hidden',
-        shadowColor: '#94A3B8',
-        shadowOffset: { width: 0, height: 3 },
-        shadowOpacity: 0.13,
-        shadowRadius: 8,
-        elevation: 3,
-    },
-    cardImage: {
-        width: 110,
-        height: 'auto',
-        minHeight: 130,
-        backgroundColor: '#E2E8F0',
-    },
-    cardBody: {
-        flex: 1,
-        padding: 13,
-        justifyContent: 'center',
-    },
-    statusBadge: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        alignSelf: 'flex-start',
-        paddingHorizontal: 9,
-        paddingVertical: 4,
-        borderRadius: 20,
-        marginBottom: 7,
-    },
-    statusText: {
-        fontSize: 11,
-        fontWeight: '700',
-    },
-    cardTitle: {
-        fontSize: 15,
-        fontWeight: '700',
-        color: '#1E293B',
-        marginBottom: 9,
-        lineHeight: 21,
-    },
-    metaRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 5,
-        marginBottom: 4,
-    },
-    metaText: {
-        fontSize: 12,
-        color: '#94A3B8',
-        flex: 1,
-    },
-
     // Empty state
     emptyContainer: {
         alignItems: 'center',
@@ -801,7 +641,7 @@ const styles = StyleSheet.create({
         marginTop: 16,
         paddingHorizontal: 24,
         paddingVertical: 10,
-        backgroundColor: BLUE,
+        backgroundColor: '#42A4F5',
         borderRadius: 10,
     },
     retryBtnText: {
@@ -829,13 +669,13 @@ const styles = StyleSheet.create({
         bottom: 24,
         left: 20,
         right: 20,
-        backgroundColor: BLUE,
+        backgroundColor: '#42A4F5',
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
         paddingVertical: 15,
         borderRadius: 16,
-        shadowColor: BLUE,
+        shadowColor: '#42A4F5',
         shadowOffset: { width: 0, height: 6 },
         shadowOpacity: 0.35,
         shadowRadius: 12,

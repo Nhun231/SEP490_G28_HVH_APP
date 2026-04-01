@@ -1,18 +1,13 @@
-/**
- * Event Service - Handles API calls for event-related endpoints
- */
-
 import baseAxios from '@/lib/baseAxios'
 import { AxiosError } from 'axios'
 
 const API_BASE = process.env.EXPO_PUBLIC_API_URL || 'https://api.hvh.okne.site'
-
-// ── API Error Response Types ──
+const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL || ''
 
 export interface ApiErrorMoreInfo {
     business?: string;
     auth?: string;
-    [key: string]: string | undefined; // For validation field errors like "otp", "email", etc.
+    [key: string]: string | undefined;
 }
 
 export interface ApiErrorResponse {
@@ -20,108 +15,6 @@ export interface ApiErrorResponse {
     message: string;
     moreInfo?: ApiErrorMoreInfo;
 }
-
-const isRecord = (value: unknown): value is Record<string, unknown> => {
-    return typeof value === 'object' && value !== null;
-};
-
-const normalizeApiErrorResponse = (data: unknown): ApiErrorResponse | null => {
-    if (!isRecord(data)) return null;
-
-    const moreInfoRaw = data.moreInfo;
-    const moreInfo = isRecord(moreInfoRaw)
-        ? Object.entries(moreInfoRaw).reduce<ApiErrorMoreInfo>((acc, [key, value]) => {
-            if (typeof value === 'string') {
-                acc[key] = value;
-            }
-            return acc;
-        }, {})
-        : undefined;
-
-    return {
-        code: typeof data.code === 'number' ? data.code : -1,
-        message: typeof data.message === 'string' ? data.message : '',
-        moreInfo,
-    };
-};
-
-/**
- * Extract user-friendly error messages from API error response.
- * Returns an array of error messages from moreInfo (excluding keys).
- */
-export const extractApiErrorMessages = (error: unknown): string[] => {
-    if (error instanceof AxiosError && error.response?.data) {
-        const apiError = normalizeApiErrorResponse(error.response.data);
-        if (!apiError) return [];
-        const messages: string[] = [];
-
-        if (apiError.moreInfo) {
-            const fieldLevelMessages: string[] = [];
-            Object.entries(apiError.moreInfo).forEach(([key, value]) => {
-                if (value && typeof value === 'string' && key !== 'business' && key !== 'auth') {
-                    fieldLevelMessages.push(value);
-                }
-            });
-
-            // If there are field-level validation messages, show only those.
-            if (fieldLevelMessages.length > 0) {
-                messages.push(...fieldLevelMessages);
-            } else {
-                if (apiError.moreInfo.business) {
-                    messages.push(apiError.moreInfo.business);
-                }
-                if (apiError.moreInfo.auth) {
-                    messages.push(apiError.moreInfo.auth);
-                }
-            }
-        }
-
-        // If no messages found in moreInfo, use the main message
-        if (messages.length === 0 && apiError.message) {
-            messages.push(apiError.message);
-        }
-
-        return messages;
-    }
-
-    // Fallback for non-Axios errors
-    if (error instanceof Error) {
-        return [error.message];
-    }
-
-    return ['Đã xảy ra lỗi không xác định'];
-};
-
-/**
- * Return API error payload as pretty raw text for debugging/demo logs.
- */
-export const getApiErrorRawText = (error: unknown): string | undefined => {
-    if (!(error instanceof AxiosError)) return undefined;
-    const data = error.response?.data;
-    if (data === undefined) return undefined;
-
-    if (typeof data === 'string') {
-        return data;
-    }
-
-    if (isRecord(data)) {
-        return JSON.stringify(data, null, 4);
-    }
-
-    try {
-        return JSON.stringify(data, null, 4);
-    } catch {
-        return String(data);
-    }
-};
-
-/**
- * Extract a single combined error message from API error response.
- * Joins all messages with newlines.
- */
-export const getApiErrorMessage = (error: unknown): string => {
-    return extractApiErrorMessages(error).join('\n');
-};
 
 export interface ActivitySubDomain {
     id: number;
@@ -151,7 +44,7 @@ export interface EventSimpleResponse {
     name: string;
     imageUrl: string;
     address: string;
-    startDate: string;       // ISO date e.g. "2025-03-15"
+    startDate: string;          // ISO date e.g. "2025-03-15"
     recruitmentEndDate: string;
 }
 
@@ -161,7 +54,16 @@ export interface EventFeedResponse {
     hasMore: boolean;
 }
 
-// ── My Events Types ──
+export interface EventFeedParams {
+    pageNumber?: number;
+    pageSize?: number;
+    refresh?: boolean;
+    name?: string;
+    address?: string;
+    startDate?: string;
+    endDate?: string;
+    activitySubDomainIds?: number[];
+}
 
 export type MyEventStatus =
     | 'EDITING'
@@ -172,7 +74,7 @@ export type MyEventStatus =
     | 'RECRUITING'
     | 'UPCOMING'
     | 'ONGOING'
-    | 'ENDED'       // Event sessions finished, pending completion review
+    | 'ENDED'
     | 'COMPLETED'
     | 'CANCELLED';
 
@@ -181,7 +83,7 @@ export interface MyEventItem {
     name: string;
     imageUrl: string | null;
     address: string;
-    status: MyEventStatus;       // event lifecycle status returned by the API
+    status: MyEventStatus;
     startDate: string;          // ISO date e.g. "2026-04-10"
     recruitmentEndDate: string; // ISO date e.g. "2026-03-25"
     createdAt: string;          // ISO datetime with timezone
@@ -204,19 +106,6 @@ export interface MyEventsParams {
     name?: string;
     status?: MyEventStatus;
 }
-
-export interface EventFeedParams {
-    pageNumber?: number;
-    pageSize?: number;
-    refresh?: boolean;
-    name?: string;
-    address?: string;
-    startDate?: string;
-    endDate?: string;
-    activitySubDomainIds?: number[];
-}
-
-// ── Event Create/Update Types ──
 
 export type ImageUpdateAction = 'ADD' | 'REMOVE';
 export type SessionUpdateAction = 'ADD' | 'EDIT' | 'REMOVE';
@@ -242,7 +131,9 @@ export interface EventCreateRequest {
     updateImages: UpdateImage[];
     description: string;
     address: string;
+    detailAddress: string;
     autoApprove: boolean;
+    servingActivity: boolean;
     activitySubDomainId: number;
     servedTarget: string;
     servingPlaceType: string;
@@ -255,14 +146,130 @@ export interface EventCreateRequest {
 
 export interface EventCreateResponse {
     eventId: string;
-    imageUploadUrls?: Array<{
-        imageId: string;
-        uploadUrl: string;
-    }>;
+    uploadUrls?: Array<string>;
+}
+
+export interface EventDetailSession {
+    id: string;              // Session UUID from API
+    startDateTime: string;
+    endDateTime: string;
+    expectedVolAmount: number;
+    expectedSerAmount: number;
+}
+
+export interface EventDetailResponse {
+    id: string;
+    name: string;
+    status: MyEventStatus;
+    imageUrls: string[];
+    address: string;
+    detailAddress: string;
+    checkInCode: string | null;
+    totalVolunteers: number;
+    totalServed: number;
+    servedTarget: string;
+    servingPlaceType: string;
+    description: string;
+    recruitmentEndDate: string;   // ISO date e.g. "2026-03-25"
+    eventSessions: EventDetailSession[];
+    latCheckInLocation: number;
+    lngCheckInLocation: number;
+    checkInAccuracyMeters: number;
+    autoApprove: boolean;
+    activitySubDomain: string;
+    note?: string | null;         // Warning message from backend (e.g. image errors)
+}
+
+const isRecord = (value: unknown): value is Record<string, unknown> => {
+    return typeof value === 'object' && value !== null;
+};
+
+// helper function to normalize API error response
+const normalizeApiErrorResponse = (data: unknown): ApiErrorResponse | null => {
+    if (!isRecord(data)) return null;
+
+    const moreInfoRaw = data.moreInfo;
+    const moreInfo = isRecord(moreInfoRaw)
+        ? Object.entries(moreInfoRaw).reduce<ApiErrorMoreInfo>((acc, [key, value]) => {
+            if (typeof value === 'string') {
+                acc[key] = value;
+            }
+            return acc;
+        }, {})
+        : undefined;
+
+    return {
+        code: typeof data.code === 'number' ? data.code : -1,
+        message: typeof data.message === 'string' ? data.message : '',
+        moreInfo,
+    };
+};
+
+// helper function to extract user-friendly error messages from API error response
+export const extractApiErrorMessages = (error: unknown): string[] => {
+    if (error instanceof AxiosError && error.response?.data) {
+        const apiError = normalizeApiErrorResponse(error.response.data);
+        if (!apiError) return [];
+        const messages: string[] = [];
+
+        if (apiError.moreInfo) {
+            const fieldLevelMessages: string[] = [];
+            Object.entries(apiError.moreInfo).forEach(([key, value]) => {
+                if (value && typeof value === 'string' && key !== 'business' && key !== 'auth') {
+                    fieldLevelMessages.push(value);
+                }
+            });
+
+            if (fieldLevelMessages.length > 0) {
+                messages.push(...fieldLevelMessages);
+            } else {
+                if (apiError.moreInfo.business) messages.push(apiError.moreInfo.business);
+                if (apiError.moreInfo.auth) messages.push(apiError.moreInfo.auth);
+            }
+        }
+
+        if (messages.length === 0 && apiError.message) {
+            messages.push(apiError.message);
+        }
+
+        return messages;
+    }
+
+    if (error instanceof Error) return [error.message];
+    return ['Đã xảy ra lỗi không xác định'];
+};
+
+// helper function to get a single combined error message from API error response
+export const getApiErrorMessage = (error: unknown): string => {
+    return extractApiErrorMessages(error).join('\n');
+};
+
+// helper function to get API error payload as raw text for debugging
+export const getApiErrorRawText = (error: unknown): string | undefined => {
+    if (!(error instanceof AxiosError)) return undefined;
+    const data = error.response?.data;
+    if (data === undefined) return undefined;
+    if (typeof data === 'string') return data;
+    try {
+        return JSON.stringify(data, null, 4);
+    } catch {
+        return String(data);
+    }
+};
+
+/**
+ * Supabase returns relative image paths like "/object/sign/..."
+ * This helper resolves them to full public URLs.
+ */
+export const resolveSupabaseUrl = (url: string | null | undefined): string | null => {
+    if (!url) return null;
+    if (url.startsWith('http://') || url.startsWith('https://')) return url;
+    return SUPABASE_URL + '/storage/v1' + url;
 }
 
 /**
  * Fetch event new-feeds (public endpoint — uses plain fetch, no auth token)
+ * GET /api/v1/event/new-feeds
  */
 export const getEventFeeds = async (params: EventFeedParams = {}): Promise<EventFeedResponse> => {
     const query = new URLSearchParams()
@@ -278,45 +285,34 @@ export const getEventFeeds = async (params: EventFeedParams = {}): Promise<Event
     }
 
     const url = `${API_BASE}/api/v1/event/new-feeds?${query.toString()}`
-    console.log('[EventService] Fetching:', url)
-
     const response = await fetch(url)
 
     if (!response.ok) {
         const errorText = await response.text()
-        console.error('[EventService] Error:', response.status, errorText)
         throw new Error(`API error ${response.status}: ${errorText}`)
     }
 
-    const data: EventFeedResponse = await response.json()
-    console.log('[EventService] Success - events count:', data?.events?.length)
-    return data
+    return response.json() as Promise<EventFeedResponse>
 }
 
 /**
  * Fetch all activity domains across all pages.
+ * GET /api/v1/activity-domain/activity-domains
  */
 export const getAllActivityDomains = async (): Promise<ActivityDomain[]> => {
     const endpoint = `${API_BASE}/api/v1/activity-domain/activity-domains`
-    console.log('[EventService] Fetching activity domains:', endpoint)
 
-    const firstResponse = await baseAxios.get<ActivityDomainResponse>(
-        endpoint,
-        {
-            params: { page: 0, size: 100 },
-        }
-    )
+    const firstResponse = await baseAxios.get<ActivityDomainResponse>(endpoint, {
+        params: { page: 0, size: 100 },
+    })
 
     const firstData = firstResponse.data
     let allDomains = [...firstData.content]
 
     for (let page = 1; page < firstData.page.totalPages; page += 1) {
-        const pageResponse = await baseAxios.get<ActivityDomainResponse>(
-            endpoint,
-            {
-                params: { page, size: 100 },
-            }
-        )
+        const pageResponse = await baseAxios.get<ActivityDomainResponse>(endpoint, {
+            params: { page, size: 100 },
+        })
         allDomains = [...allDomains, ...pageResponse.data.content]
     }
 
@@ -324,7 +320,7 @@ export const getAllActivityDomains = async (): Promise<ActivityDomain[]> => {
 }
 
 /**
- * Save event as draft
+ * Save event as draft.
  * POST /api/v1/event/draft
  */
 export const saveDraftEvent = async (data: EventCreateRequest): Promise<EventCreateResponse> => {
@@ -334,7 +330,7 @@ export const saveDraftEvent = async (data: EventCreateRequest): Promise<EventCre
 }
 
 /**
- * Submit event for approval
+ * Submit event for approval.
  * POST /api/v1/event/submit
  */
 export const submitEvent = async (data: EventCreateRequest): Promise<EventCreateResponse> => {
@@ -344,7 +340,7 @@ export const submitEvent = async (data: EventCreateRequest): Promise<EventCreate
 }
 
 /**
- * Fetch host's events with pagination and filters.
+ * Fetch host's events with pagination and optional status filter.
  * GET /api/v1/host/event/my-events
  */
 export const getMyEvents = async (params: MyEventsParams = {}): Promise<MyEventsResponse> => {
@@ -361,46 +357,12 @@ export const getMyEvents = async (params: MyEventsParams = {}): Promise<MyEvents
     return response.data
 }
 
-// ── Event Detail Types ──
-
-export interface EventDetailSession {
-    eventSessionId: string;
-    startDateTime: string;   // ISO datetime e.g. "2026-04-10T07:00:00"
-    endDateTime: string;     // ISO datetime e.g. "2026-04-10T17:00:00"
-    expectedVolAmount: number;
-    expectedSerAmount: number;
-}
-
-export interface EventDetailResponse {
-    id: string;
-    name: string;
-    orgName: string;
-    status: MyEventStatus;
-    imageUrls: string[];
-    activityDomain: string;
-    address: string;
-    checkInCode: string | null;
-    totalVolunteers: number;
-    totalServed: number;
-    servedTarget: string;
-    servingPlaceType: string;
-    description: string;
-    recruitmentEndDate: string;   // ISO date e.g. "2026-03-25"
-    eventSessions: EventDetailSession[];
-    checkInPlaceLat: number;
-    checkInPlaceLng: number;
-    checkInPlaceAccuracyMeters: number;
-    autoApprove: boolean;
-    activitySubDomainId: number;
-}
-
 /**
  * Fetch event detail for the host.
  * GET /api/v1/host/event/event-details/{id}
  */
 export const getEventDetail = async (id: string): Promise<EventDetailResponse> => {
     const endpoint = `${API_BASE}/api/v1/host/event/event-details/${id}`
-    console.log('[getEventDetail] GET', endpoint)
     const response = await baseAxios.get<EventDetailResponse>(endpoint)
     console.log('[getEventDetail] response:', JSON.stringify(response.data, null, 2))
     return response.data

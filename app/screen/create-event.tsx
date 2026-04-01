@@ -1,9 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { ScrollView, View, Text, TouchableOpacity, TextInput, StyleSheet, KeyboardAvoidingView, Platform, Alert } from 'react-native';
+import { ScrollView, View, Text, TouchableOpacity, TextInput, StyleSheet, KeyboardAvoidingView, Platform, Alert, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
-import { useRouter, Stack } from 'expo-router';
+import { useRouter, Stack, useLocalSearchParams } from 'expo-router';
 import DatePickerInput from '../components/DatePickerInput';
 import DocumentUploadBox, { DocumentUpload } from '../components/DocumentUploadBox';
 import BottomSheetPicker, { OptionItem } from '../components/BottomSheetPicker';
@@ -17,18 +17,14 @@ import {
     submitEvent,
     EventCreateRequest,
     EventSession,
+    SessionUpdateAction,
     UpdateImage,
     getApiErrorMessage,
     getApiErrorRawText,
+    resolveSupabaseUrl,
+    getEventDetail,
 } from '@/services/event-service';
 import { getFileExtension, getMimeType, uploadImageToSupabase } from '@/services/upload-service';
-
-// Hide default navigation header
-export const unstable_settings = {
-    headerShown: false,
-};
-
-// Import JSON data
 import servedTargetsData from '../../assets/served_targets/doi_tuong_phuc_vu.json';
 import servedPlacesData from '../../assets/served_places/dia_diem_phuc_vu.json';
 import wardsData from '../../assets/wards/phuong_xa_moi_ha_noi.json';
@@ -41,39 +37,99 @@ interface EventFormErrors {
     servedSpecificField?: string;
     servedPlace?: string;
     area?: string;
+    detailAddress?: string;
     registrationDeadline?: string;
     eventImage?: string;
     checkInLocation?: string;
 }
 
+// keep activityDomains in cache to avoid refetch every time
+let cachedActivityDomains: ActivityDomain[] = [];
+
+// build DocumentUpload from prefillEvent for initializer if event is editing
+function buildPrefillImageDoc(prefill: { imageUrls?: string[] } | null): DocumentUpload {
+    if (prefill?.imageUrls && prefill.imageUrls.length > 0) {
+        const resolved = resolveSupabaseUrl(prefill.imageUrls[0]) || prefill.imageUrls[0];
+        return { uri: resolved, fileName: 'existing-image', mimeType: 'image/jpeg' };
+    }
+    return { uri: null, fileName: null, mimeType: null };
+}
+
 const CreateEvent = () => {
     const router = useRouter();
-    const [approvalMode, setApprovalMode] = useState(0);
-    const [isSubmitting, setIsSubmitting] = useState(false);
+    const { eventId: editEventIdParam, eventData: eventDataParam } = useLocalSearchParams<{ eventId?: string; eventData?: string }>();
+    const editEventId: string | null = typeof editEventIdParam === 'string' ? editEventIdParam : null;
+    const isEditMode = !!editEventId;
+    // Parse prefilled event data from event-detail (avoid refetch API)
+    const prefillEvent = (() => {
+        if (typeof eventDataParam !== 'string') return null;
+        try {
+            // return object as EventDetailResponse + resolvedCheckinAddress
+            return JSON.parse(eventDataParam) as (typeof getEventDetail extends (...args: any) => Promise<infer R> ? R : never) & { resolvedCheckinAddress?: string | null };
+        }
+        catch {
+            return null;
+        }
+    })();
 
-    // Basic info states
-    const [eventName, setEventName] = useState('');
-    const [description, setDescription] = useState('');
-    const [servedTarget, setServedTarget] = useState<OptionItem>();
+    // Pre-compute values from prefillEvent
+    const initServedTarget = prefillEvent ? (() => {
+        const t = servedTargetsData.doi_tuong_phuc_vu.find((x) => x.value === prefillEvent.servedTarget);
+        return t ? { id: t.id, label: t.label, value: t.value } as OptionItem : undefined;
+    })() : undefined;
+
+    const initServedPlace = prefillEvent ? (() => {
+        const p = servedPlacesData.dia_diem_phuc_vu.find((x) => x.value === prefillEvent.servingPlaceType);
+        return p ? { id: p.id, label: p.label, value: p.value } as OptionItem : undefined;
+    })() : undefined;
+
+    const initArea = prefillEvent ? (() => {
+        const w = wardsData.danh_sach_phuong_xa_moi.find((x) => x.ten_moi === prefillEvent.address);
+        return w ? { id: w.stt, label: w.ten_moi } as OptionItem : undefined;
+    })() : undefined;
+
+    const initEventDays: EventDay[] = prefillEvent?.eventSessions?.length ? prefillEvent.eventSessions.map((s: any, idx: number) => ({
+        id: s.id || String(idx + 1),
+        date: new Date(s.startDateTime),
+        startTime: new Date(s.startDateTime),
+        endTime: new Date(s.endDateTime),
+        volunteerCount: String(s.expectedVolAmount),
+        servedCount: String(s.expectedSerAmount),
+    })) : [{ id: '1', volunteerCount: '', servedCount: '' }];
+
+
+    const initExistingUrl = prefillEvent?.imageUrls?.length ? (resolveSupabaseUrl(prefillEvent.imageUrls[0]) || prefillEvent.imageUrls[0]) : null; // current image URL from API (null if user selects new image)
+
+    const [approvalMode, setApprovalMode] = useState(prefillEvent ? (prefillEvent.autoApprove ? 0 : 1) : 0);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [isLoadingEditData, setIsLoadingEditData] = useState(false); // use when navigate with only eventId
+    const [existingImageUrl, setExistingImageUrl] = useState<string | null>(initExistingUrl);
+
+    // Basic info states, get from prefillEvent if exists
+    const [eventName, setEventName] = useState(prefillEvent?.name ?? '');
+    const [description, setDescription] = useState(prefillEvent?.description ?? '');
+    const [servedTarget, setServedTarget] = useState<OptionItem>(initServedTarget as OptionItem);
     const [servedField, setServedField] = useState<OptionItem>();
     const [servedSpecificField, setServedSpecificField] = useState<OptionItem>();
-    const [servedPlace, setServedPlace] = useState<OptionItem>();
-    const [area, setArea] = useState<OptionItem>();
-    const [registrationDeadline, setRegistrationDeadline] = useState<Date>();
-    const [eventImageDoc, setEventImageDoc] = useState<DocumentUpload>({
-        uri: null,
-        fileName: null,
-        mimeType: null,
-    });
+    const [servedPlace, setServedPlace] = useState<OptionItem>(initServedPlace as OptionItem);
+    const [area, setArea] = useState<OptionItem>(initArea as OptionItem);
+    const [registrationDeadline, setRegistrationDeadline] = useState<Date>(
+        (prefillEvent?.recruitmentEndDate ? new Date(prefillEvent.recruitmentEndDate) : undefined) as Date
+    );
+    const [eventImageDoc, setEventImageDoc] = useState<DocumentUpload>(buildPrefillImageDoc(prefillEvent));
 
     // Multi-day event states
-    const [eventDays, setEventDays] = useState<EventDay[]>([
-        { id: '1', volunteerCount: '', servedCount: '' }
-    ]);
+    const [eventDays, setEventDays] = useState<EventDay[]>(initEventDays);
 
     // Location state
-    const [checkInLocation, setCheckInLocation] = useState<LocationData>();
-    const [checkInRadius, setCheckInRadius] = useState('300');
+    const [checkInLocation, setCheckInLocation] = useState<LocationData>(
+        (prefillEvent ? { latitude: prefillEvent.latCheckInLocation, longitude: prefillEvent.lngCheckInLocation, address: prefillEvent.resolvedCheckinAddress || '' } : undefined) as LocationData
+    );
+    const [checkInRadius, setCheckInRadius] = useState(prefillEvent ? String(prefillEvent.checkInAccuracyMeters) : '300');
+    const [detailAddress, setDetailAddress] = useState(prefillEvent?.detailAddress ?? '');
+
+    // Serving flag
+    const [isServingEvent, setIsServingEvent] = useState(false);
 
     // Modal visibility states
     const [showTargetPicker, setShowTargetPicker] = useState(false);
@@ -82,7 +138,11 @@ const CreateEvent = () => {
     const [showPlacePicker, setShowPlacePicker] = useState(false);
     const [showAreaPicker, setShowAreaPicker] = useState(false);
     const [showMapPicker, setShowMapPicker] = useState(false);
-    const [activityDomains, setActivityDomains] = useState<ActivityDomain[]>([]);
+
+    // keep activity domains in cache
+    const [activityDomains, setActivityDomains] = useState<ActivityDomain[]>(cachedActivityDomains);
+
+    // form errors
     const [formErrors, setFormErrors] = useState<EventFormErrors>({});
     const [eventDayErrors, setEventDayErrors] = useState<Record<string, Partial<Record<DayErrorField, string>>>>({});
 
@@ -158,8 +218,16 @@ const CreateEvent = () => {
         return Number.isInteger(parsed) && parsed > 0;
     };
 
-    // check if a string contains special characters (anything other than letters, numbers, and whitespace)
-    const containsSpecialCharacters = (value: string) => /[^\p{L}\p{N}\s]/u.test(value);
+    // check if a string contains special characters (anything other than letters, numbers, whitespace, dots, and commas)
+    const containsSpecialCharacters = (value: string) => /[^\p{L}\p{N}\s.,]/u.test(value);
+
+    // validate detailAddress: not empty, only letters/digits/comma/slash
+    const validateDetailAddress = (value: string): string | undefined => {
+        const trimmed = value.trim();
+        if (!trimmed) return 'Vui lòng nhập địa chỉ chi tiết';
+        if (/[^\p{L}\p{N}\s,/]/u.test(trimmed)) return 'Địa chỉ không được chứa ký tự đặc biệt (chỉ chữ, số, dấu phẩy và dấu gạch chéo)';
+        return undefined;
+    };
 
     // check duration of event session does not exceed limits
     const getDurationValidationError = (startTime: Date, endTime: Date) => {
@@ -251,20 +319,134 @@ const CreateEvent = () => {
         setDayFieldError(dayId, field);
     };
 
-    // fetch activity domains on component mount 
+    // fetch activity domains on component mount
     useEffect(() => {
+        if (cachedActivityDomains.length > 0) return;
         const fetchAllActivityDomains = async () => {
             try {
                 const allDomains = await getAllActivityDomains();
+                cachedActivityDomains = allDomains;
                 setActivityDomains(allDomains);
             } catch (error) {
                 console.error('Failed to fetch activity domains:', error);
                 setActivityDomains([]);
             }
         };
-
         fetchAllActivityDomains();
     }, []);
+
+    // fill form for edit mode
+    useEffect(() => {
+        if (!editEventId || activityDomains.length === 0) return;
+
+        // if has prefill event
+        if (prefillEvent) {
+            const filteredDomains = activityDomains.filter(
+                (d) => d.active && d.activitySubDomainList.some((s) => s.active)
+            );
+            for (let i = 0; i < filteredDomains.length; i++) {
+                const subdomain = filteredDomains[i].activitySubDomainList.find(
+                    (s) => s.active && s.name === prefillEvent.activitySubDomain
+                );
+                if (subdomain) {
+                    setServedField({ id: i + 1, label: filteredDomains[i].name });
+                    setServedSpecificField({ id: subdomain.id, label: subdomain.name });
+                    break;
+                }
+            }
+            return;
+        }
+
+        // if no prefill event (navigate directly with only eventId)
+        let cancelled = false;
+        const loadEditData = async () => {
+            setIsLoadingEditData(true);
+            try {
+                const event = await getEventDetail(editEventId);
+                if (cancelled) return;
+
+                setEventName(event.name);
+                setDescription(event.description);
+                setDetailAddress(event.detailAddress);
+                setCheckInRadius(String(event.checkInAccuracyMeters));
+                setApprovalMode(event.autoApprove ? 0 : 1);
+
+                if (event.imageUrls && event.imageUrls.length > 0) {
+                    const resolved = resolveSupabaseUrl(event.imageUrls[0]) || event.imageUrls[0];
+                    setExistingImageUrl(resolved);
+                    setEventImageDoc({ uri: resolved, fileName: 'existing-image', mimeType: 'image/jpeg' });
+                }
+
+                const targetItem = servedTargetsData.doi_tuong_phuc_vu.find((t) => t.value === event.servedTarget);
+                if (targetItem) setServedTarget({ id: targetItem.id, label: targetItem.label });
+
+                const placeItem = servedPlacesData.dia_diem_phuc_vu.find((p) => p.value === event.servingPlaceType);
+                if (placeItem) setServedPlace({ id: placeItem.id, label: placeItem.label });
+
+                const wardItem = wardsData.danh_sach_phuong_xa_moi.find((w) => w.ten_moi === event.address);
+                if (wardItem) setArea({ id: wardItem.stt, label: wardItem.ten_moi });
+
+                if (event.recruitmentEndDate) setRegistrationDeadline(new Date(event.recruitmentEndDate));
+
+                const lat = event.latCheckInLocation;
+                const lng = event.lngCheckInLocation;
+                setCheckInLocation({ latitude: lat, longitude: lng, address: '' });
+                try {
+                    const geocodeUrl = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&accept-language=vi`;
+                    const geocodeRes = await fetch(geocodeUrl, { headers: { 'User-Agent': 'HVH-App/1.0' } });
+                    if (geocodeRes.ok) {
+                        const geocodeData = await geocodeRes.json();
+                        const addr = geocodeData.address as Record<string, string> | undefined;
+                        let resolvedAddress = '';
+                        if (addr) {
+                            const parts = [
+                                addr.road || addr.pedestrian || addr.footway || addr.path,
+                                addr.suburb || addr.quarter || addr.neighbourhood,
+                                addr.city_district || addr.district || addr.county,
+                                addr.city || addr.town || addr.state,
+                            ].filter(Boolean) as string[];
+                            resolvedAddress = parts.length > 0 ? parts.join(', ') : (geocodeData.display_name as string || '');
+                        } else {
+                            resolvedAddress = geocodeData.display_name as string || '';
+                        }
+                        if (!cancelled) setCheckInLocation({ latitude: lat, longitude: lng, address: resolvedAddress });
+                    }
+                } catch { } // keep address empty
+
+                const filteredDomains = activityDomains.filter(
+                    (d) => d.active && d.activitySubDomainList.some((s) => s.active)
+                );
+                for (let i = 0; i < filteredDomains.length; i++) {
+                    const subdomain = filteredDomains[i].activitySubDomainList.find(
+                        (s) => s.active && s.name === event.activitySubDomain
+                    );
+                    if (subdomain) {
+                        setServedField({ id: i + 1, label: filteredDomains[i].name });
+                        setServedSpecificField({ id: subdomain.id, label: subdomain.name });
+                        break;
+                    }
+                }
+
+                if (event.eventSessions && event.eventSessions.length > 0) {
+                    const loadedDays: EventDay[] = event.eventSessions.map((s, idx) => ({
+                        id: s.id || String(idx + 1),
+                        date: new Date(s.startDateTime),
+                        startTime: new Date(s.startDateTime),
+                        endTime: new Date(s.endDateTime),
+                        volunteerCount: String(s.expectedVolAmount),
+                        servedCount: String(s.expectedSerAmount),
+                    }));
+                    setEventDays(loadedDays);
+                }
+            } catch (e) {
+                console.log('[Edit Mode] Failed to load event data:', e);
+            } finally {
+                if (!cancelled) setIsLoadingEditData(false);
+            }
+        };
+        loadEditData();
+        return () => { cancelled = true; };
+    }, [editEventId, activityDomains]);
 
     // format date to "YYYY-MM-DD" for API request
     const formatDateToYMD = (date: Date): string => {
@@ -316,11 +498,16 @@ const CreateEvent = () => {
             return null;
         }
 
+        if (validateDetailAddress(detailAddress)) {
+            return null;
+        }
+
         // Build updateImages array
+        // in edit mode if has existingImageUrl (not select new image) -> don't send updateImages (keep old image)
+        // if user select new image (existingImageUrl === null) -> ADD action
         const updateImages: UpdateImage[] = [];
-        if (eventImageDoc.uri) {
+        if (!existingImageUrl && eventImageDoc.uri) {
             const fileExtension = getFileExtension(eventImageDoc.uri, eventImageDoc.mimeType);
-            // Keep the dot in extension (e.g., '.png', '.jpg') as backend expects it
             updateImages.push({
                 imageId: null,
                 updateAction: 'ADD',
@@ -329,22 +516,31 @@ const CreateEvent = () => {
         }
 
         // Build eventSessions array from eventDays
+        // In edit mode: existing sessions (id = UUID from API) → EDIT; new sessions (id = local temp e.g. '1','2') → ADD
+        const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
         const eventSessions: EventSession[] = eventDays
-            .map(day => ({
-                eventSessionId: null,
-                updateAction: 'ADD' as const,
-                startDateTime: combineDateTimeToISO(day.date!, day.startTime!),
-                endDateTime: combineDateTimeToISO(day.date!, day.endTime!),
-                expectedVolAmount: parseInt(day.volunteerCount, 10),
-                expectedSerAmount: parseInt(day.servedCount, 10),
-            }));
+            .map(day => {
+                const isExistingSession = isEditMode && UUID_REGEX.test(day.id);
+                return {
+                    eventSessionId: isExistingSession ? day.id : null,
+                    updateAction: (isExistingSession ? 'EDIT' : 'ADD') as SessionUpdateAction,
+                    startDateTime: combineDateTimeToISO(day.date!, day.startTime!),
+                    endDateTime: combineDateTimeToISO(day.date!, day.endTime!),
+                    expectedVolAmount: parseInt(day.volunteerCount, 10),
+                    expectedSerAmount: parseInt(day.servedCount, 10),
+                };
+            });
+
 
         const requestBody: EventCreateRequest = {
+            ...(isEditMode && editEventId ? { eventId: editEventId } : {}),
             name: eventName.trim(),
             updateImages,
             description: description.trim(),
             address: area.label,
+            detailAddress: detailAddress.trim(),
             autoApprove: approvalMode === 0,
+            servingActivity: isServingEvent,
             activitySubDomainId: servedSpecificField.id,
             servedTarget: servedTarget.value,
             servingPlaceType: servedPlace.value,
@@ -415,6 +611,14 @@ const CreateEvent = () => {
             missingFields.push('Khu vực tổ chức');
         } else {
             setFormFieldError('area');
+        }
+
+        const detailAddressError = validateDetailAddress(detailAddress);
+        if (detailAddressError) {
+            setFormFieldError('detailAddress', detailAddressError);
+            missingFields.push('Địa chỉ chi tiết');
+        } else {
+            setFormFieldError('detailAddress');
         }
 
         if (!registrationDeadline) {
@@ -544,20 +748,22 @@ const CreateEvent = () => {
 
         setIsSubmitting(true);
         try {
+            console.log(`[Create Event][Draft] Request body\n${JSON.stringify(requestBody, null, 2)}`);
             const response = await saveDraftEvent(requestBody);
             console.log('Draft saved:', response);
 
-            // Upload images if there are upload URLs returned
-            if (response.imageUploadUrls && response.imageUploadUrls.length > 0 && eventImageDoc.uri) {
-                const uploadUrl = response.imageUploadUrls[0].uploadUrl;
-                await uploadImageToSupabase(uploadUrl, {
+            // upload image if has uploadUrls and user select new image
+            if (response.uploadUrls && response.uploadUrls.length > 0 && eventImageDoc.uri && !existingImageUrl) {
+                await uploadImageToSupabase(resolveSupabaseUrl(response.uploadUrls[0]) ?? response.uploadUrls[0], {
                     uri: eventImageDoc.uri,
                     mimeType: eventImageDoc.mimeType || 'image/jpeg',
                 });
                 console.log('Image uploaded successfully');
             }
 
-            Alert.alert('Thông báo', 'Đã lưu bản thảo sự kiện thành công');
+            Alert.alert('Thông báo', 'Đã lưu bản thảo sự kiện thành công', [
+                { text: 'OK', onPress: () => router.replace('/(host-tabs)/events') },
+            ]);
         } catch (error) {
             const rawErrorText = getApiErrorRawText(error);
             if (rawErrorText) {
@@ -610,6 +816,8 @@ const CreateEvent = () => {
                     console.warn('Could not detect file extension, using default .jpg', err);
                 }
 
+                // user select new image -> clear existingImageUrl to not be considered as old image
+                setExistingImageUrl(null);
                 setEventImageDoc({
                     uri,
                     fileName: fileName.toLowerCase().endsWith(extension) ? fileName : `${fileName}${extension}`,
@@ -624,6 +832,7 @@ const CreateEvent = () => {
 
     // handle removing selected event image
     const handleRemoveEventImage = () => {
+        setExistingImageUrl(null);
         setEventImageDoc({ uri: null, fileName: null, mimeType: null });
     };
 
@@ -645,6 +854,8 @@ const CreateEvent = () => {
         if (!servedSpecificField) nextErrors.servedSpecificField = 'Vui lòng chọn lĩnh vực cụ thể';
         if (!servedPlace) nextErrors.servedPlace = 'Vui lòng chọn loại địa điểm phục vụ';
         if (!area) nextErrors.area = 'Vui lòng chọn khu vực tổ chức';
+        const detailAddressValidationError = validateDetailAddress(detailAddress);
+        if (detailAddressValidationError) nextErrors.detailAddress = detailAddressValidationError;
         if (!registrationDeadline) nextErrors.registrationDeadline = 'Vui lòng chọn hạn đăng ký';
         if (!checkInLocation) nextErrors.checkInLocation = 'Vui lòng chọn địa điểm điểm danh';
 
@@ -709,20 +920,22 @@ const CreateEvent = () => {
 
         setIsSubmitting(true);
         try {
+            console.log(`[Create Event][Submit] Request body\n${JSON.stringify(requestBody, null, 2)}`);
             const response = await submitEvent(requestBody);
             console.log('Event submitted:', response);
 
-            // Upload images if there are upload URLs returned
-            if (response.imageUploadUrls && response.imageUploadUrls.length > 0 && eventImageDoc.uri) {
-                const uploadUrl = response.imageUploadUrls[0].uploadUrl;
-                await uploadImageToSupabase(uploadUrl, {
+            // upload image if has uploadUrls and user select new image
+            if (response.uploadUrls && response.uploadUrls.length > 0 && eventImageDoc.uri && !existingImageUrl) {
+                await uploadImageToSupabase(resolveSupabaseUrl(response.uploadUrls[0]) ?? response.uploadUrls[0], {
                     uri: eventImageDoc.uri,
                     mimeType: eventImageDoc.mimeType || 'image/jpeg',
                 });
                 console.log('Image uploaded successfully');
             }
 
-            Alert.alert('Thông báo', 'Đã gửi sự kiện để phê duyệt');
+            Alert.alert('Thông báo', 'Đã gửi sự kiện để phê duyệt', [
+                { text: 'OK', onPress: () => router.replace('/(host-tabs)/events') },
+            ]);
         } catch (error) {
             const rawErrorText = getApiErrorRawText(error);
             if (rawErrorText) {
@@ -746,10 +959,22 @@ const CreateEvent = () => {
                         <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
                     </TouchableOpacity>
                     <View>
-                        <Text style={styles.headerTitle}>Thêm sự kiện mới</Text>
-                        <Text style={styles.headerSubtitle}>Điền thông tin bên dưới</Text>
+                        <Text style={styles.headerTitle}>
+                            {isEditMode ? 'Chỉnh sửa sự kiện' : 'Thêm sự kiện mới'}
+                        </Text>
+                        <Text style={styles.headerSubtitle}>
+                            {isEditMode ? 'Cập nhật thông tin bên dưới' : 'Điền thông tin bên dưới'}
+                        </Text>
                     </View>
                 </View>
+
+                {/* Loading overlay when loading edit data */}
+                {isLoadingEditData && (
+                    <View style={styles.editLoadingOverlay}>
+                        <ActivityIndicator size="large" color="#42A4F5" />
+                        <Text style={styles.editLoadingText}>Đang tải dữ liệu...</Text>
+                    </View>
+                )}
 
                 <KeyboardAvoidingView
                     behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -824,6 +1049,8 @@ const CreateEvent = () => {
                                         placeholder="Nhập miêu tả chi tiết cho sự kiện"
                                         placeholderTextColor="#9CA3AF"
                                         multiline
+                                        scrollEnabled={false}
+                                        blurOnSubmit={false}
                                         numberOfLines={4}
                                         textAlignVertical="top"
                                         value={description}
@@ -881,6 +1108,32 @@ const CreateEvent = () => {
                                         </Text>
                                     </TouchableOpacity>
                                 </View>
+                            </View>
+
+                            {/* Is Serving Event Flag */}
+                            <View style={styles.fieldWrapper}>
+                                <Text style={styles.fieldLabel}>Sự kiện có tính chất phục vụ</Text>
+                                <View style={styles.flagRow}>
+                                    <TouchableOpacity
+                                        onPress={() => setIsServingEvent(false)}
+                                        style={[styles.toggleBtn, !isServingEvent ? styles.toggleBtnActive : styles.toggleBtnInactive]}
+                                    >
+                                        <Text style={[styles.toggleBtnText, { color: !isServingEvent ? '#FFFFFF' : '#374151' }]}>
+                                            Không phục vụ
+                                        </Text>
+                                    </TouchableOpacity>
+                                    <TouchableOpacity
+                                        onPress={() => setIsServingEvent(true)}
+                                        style={[styles.toggleBtn, isServingEvent ? styles.toggleBtnActive : styles.toggleBtnInactive]}
+                                    >
+                                        <Text style={[styles.toggleBtnText, { color: isServingEvent ? '#FFFFFF' : '#374151' }]}>
+                                            Có phục vụ
+                                        </Text>
+                                    </TouchableOpacity>
+                                </View>
+                                <Text style={styles.fieldHint}>
+                                    Chọn "Có phục vụ" nếu sự kiện cung cấp dịch vụ trực tiếp cho đối tượng thụ hưởng
+                                </Text>
                             </View>
 
                             {/* Serving Target */}
@@ -945,6 +1198,32 @@ const CreateEvent = () => {
                                 onPress={() => setShowAreaPicker(true)}
                                 error={formErrors.area}
                             />
+
+                            {/* Detail Address */}
+                            <View style={styles.fieldWrapper}>
+                                <Text style={styles.fieldLabel}>
+                                    Địa chỉ chi tiết <Text style={styles.required}>*</Text>
+                                </Text>
+                                <View style={[styles.inputRow, { borderColor: formErrors.detailAddress ? '#EF4444' : '#D1D5DB' }]}>
+                                    <Ionicons name="home-outline" size={17} color="#9CA3AF" style={styles.inputIcon} />
+                                    <TextInput
+                                        style={styles.textInput}
+                                        placeholder="Ví dụ: Số 12, Ngõ 150/82/15"
+                                        placeholderTextColor="#9CA3AF"
+                                        value={detailAddress}
+                                        onBlur={() => setFormFieldError('detailAddress', validateDetailAddress(detailAddress))}
+                                        onChangeText={(text) => {
+                                            setDetailAddress(text);
+                                            if (formErrors.detailAddress) {
+                                                setFormFieldError('detailAddress', validateDetailAddress(text));
+                                            }
+                                        }}
+                                    />
+                                </View>
+                                {formErrors.detailAddress && (
+                                    <Text style={styles.errorText}>{formErrors.detailAddress}</Text>
+                                )}
+                            </View>
 
                             {/* Registration Deadline */}
                             <View style={{ marginBottom: 0 }}>
@@ -1038,6 +1317,9 @@ const CreateEvent = () => {
                                     </View>
                                     <Ionicons name="map-outline" size={18} color="#9CA3AF" />
                                 </TouchableOpacity>
+                                <Text style={styles.fieldHint}>
+                                    Vui lòng chọn địa điểm thuộc khu vực thành phố Hà Nội
+                                </Text>
                                 {formErrors.checkInLocation && (
                                     <Text style={styles.errorText}>{formErrors.checkInLocation}</Text>
                                 )}
@@ -1341,8 +1623,12 @@ const styles = StyleSheet.create({
         marginRight: 8,
     },
 
-    // Toggle buttons (approval mode)
+    // Toggle buttons (approval mode & serving flag)
     toggleRow: {
+        flexDirection: 'row',
+        gap: 10,
+    },
+    flagRow: {
         flexDirection: 'row',
         gap: 10,
     },
@@ -1417,6 +1703,24 @@ const styles = StyleSheet.create({
     },
     disabledBtn: {
         opacity: 0.6,
+    },
+    // Loading overlay for edit mode
+    editLoadingOverlay: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: 'rgba(255,255,255,0.85)',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 12,
+        zIndex: 100,
+    },
+    editLoadingText: {
+        fontSize: 15,
+        color: '#42A4F5',
+        fontWeight: '600',
     },
 });
 

@@ -12,7 +12,7 @@
     },
     {
       "id": 3,
-      "label": "Công viên, quảng trường",
+      "label": "Công viên, Quảng trường",
       "value": "PARK_OR_SQUARE"
     },
     {
@@ -42,7 +42,7 @@
     },
     {
       "id": 9,
-      "label": "Mặt nước, sông ngòi",
+      "label": "Mặt nước, Sông ngòi",
       "value": "WATER_BODY"
     },
     {

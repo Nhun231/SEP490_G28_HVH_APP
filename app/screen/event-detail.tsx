@@ -1,33 +1,28 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import {
-    View,
-    Text,
-    TouchableOpacity,
-    StyleSheet,
-    ScrollView,
-    Image,
-    Alert,
-    Dimensions,
-    ActivityIndicator,
-} from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Image, Alert, Dimensions, ActivityIndicator, } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams, Stack } from 'expo-router';
-import {
-    MyEventStatus,
-    EventDetailResponse,
-    getEventDetail,
-    getApiErrorMessage,
-} from '@/services/event-service';
+import { MyEventStatus, EventDetailResponse, getEventDetail, getApiErrorMessage, resolveSupabaseUrl, } from '@/services/event-service';
+import servedTargetsData from '@/assets/served_targets/doi_tuong_phuc_vu.json';
+import servedPlacesData from '@/assets/served_places/dia_diem_phuc_vu.json';
+import InfoRow from '@/app/components/InfoRow';
+import ServiceGrid, { ServiceOption } from '@/app/components/ServiceGrid';
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
+const DEFAULT_IMAGE = 'https://images.unsplash.com/photo-1559027615-cd4628902d4a?w=800&h=400&fit=crop';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
-/**
- * Parse an ISO datetime string into { date, startTime, endTime } display values.
- * e.g. "2026-04-10T07:00:00" → { date: "10/04/2026", time: "07:00" }
- */
+// lookup map
+const SERVED_TARGET_LABEL: Record<string, string> = Object.fromEntries(
+    servedTargetsData.doi_tuong_phuc_vu.map(item => [item.value, item.label])
+);
+
+const SERVING_PLACE_LABEL: Record<string, string> = Object.fromEntries(
+    servedPlacesData.dia_diem_phuc_vu.map(item => [item.value, item.label])
+);
+
+// parse iso into date and time
 function parseIsoDateTime(iso: string): { date: string; time: string } {
     const [datePart, timePart] = iso.split('T');
     const [y, m, d] = datePart.split('-');
@@ -35,76 +30,44 @@ function parseIsoDateTime(iso: string): { date: string; time: string } {
     return { date: `${d}/${m}/${y}`, time };
 }
 
-// ─── Sub-components ───────────────────────────────────────────────────────────
-
-interface InfoRowProps {
-    icon: string;
-    label?: string;
-    value: string;
-    valueColor?: string;
-    bold?: boolean;
+// reverse geocode lat lng 
+async function reverseGeocode(lat: number, lng: number): Promise<string | null> {
+    try {
+        const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&accept-language=vi`;
+        const res = await fetch(url, { headers: { 'User-Agent': 'HVH-App/1.0' } });
+        if (!res.ok) return null;
+        const data = await res.json();
+        const addr = data.address as Record<string, string> | undefined;
+        if (addr) {
+            const parts = [
+                addr.road || addr.pedestrian || addr.footway || addr.path,
+                addr.suburb || addr.quarter || addr.neighbourhood,
+                addr.city_district || addr.district || addr.county,
+                addr.city || addr.town || addr.state,
+            ].filter(Boolean) as string[];
+            if (parts.length > 0) return parts.join(', ');
+        }
+        return (data.display_name as string) ?? null;
+    } catch {
+        return null;
+    }
 }
-
-const InfoRow = ({ icon, label, value, valueColor, bold }: InfoRowProps) => (
-    <View style={styles.infoRow}>
-        <Ionicons name={icon as any} size={17} color="#42A4F5" style={{ marginTop: 1 }} />
-        <View style={{ flex: 1, marginLeft: 10 }}>
-            {label ? <Text style={styles.infoLabel}>{label}</Text> : null}
-            <Text style={[styles.infoValue, valueColor ? { color: valueColor } : {}, bold ? { fontWeight: '700' } : {}]}>
-                {value}
-            </Text>
-        </View>
-    </View>
-);
 
 export type EventStatus = MyEventStatus;
 
 const STATUS_CONFIG: Record<EventStatus, { label: string; color: string; bgColor: string }> = {
-    EDITING:         { label: 'Đang soạn thảo',   color: '#6B7280', bgColor: '#F3F4F6' },
-    SUBMITTED:       { label: 'Chờ phê duyệt',    color: '#3B82F6', bgColor: '#DBEAFE' },
+    EDITING: { label: 'Đang soạn thảo', color: '#6B7280', bgColor: '#F3F4F6' },
+    SUBMITTED: { label: 'Chờ phê duyệt', color: '#3B82F6', bgColor: '#DBEAFE' },
     APPROVED_BY_MNG: { label: 'Quản lý đã duyệt', color: '#10B981', bgColor: '#D1FAE5' },
     REJECTED_BY_MNG: { label: 'Quản lý từ chối', color: '#EF4444', bgColor: '#FEE2E2' },
-    REJECTED_BY_AD:  { label: 'Admin từ chối',    color: '#DC2626', bgColor: '#FEE2E2' },
-    RECRUITING:      { label: 'Đang tuyển TNV',    color: '#7C3AED', bgColor: '#EDE9FE' },
-    UPCOMING:        { label: 'Sắp diễn ra',       color: '#D97706', bgColor: '#FEF3C7' },
-    ONGOING:         { label: 'Đang diễn ra',       color: '#059669', bgColor: '#D1FAE5' },
-    ENDED:           { label: 'Đã kết thúc',       color: '#6B7280', bgColor: '#F3F4F6' },
-    COMPLETED:       { label: 'Hoàn thành',         color: '#0EA5E9', bgColor: '#E0F2FE' },
-    CANCELLED:       { label: 'Đã hủy',            color: '#9CA3AF', bgColor: '#F9FAFB' },
+    REJECTED_BY_AD: { label: 'Admin từ chối', color: '#DC2626', bgColor: '#FEE2E2' },
+    RECRUITING: { label: 'Đang tuyển TNV', color: '#7C3AED', bgColor: '#EDE9FE' },
+    UPCOMING: { label: 'Sắp diễn ra', color: '#D97706', bgColor: '#FEF3C7' },
+    ONGOING: { label: 'Đang diễn ra', color: '#059669', bgColor: '#D1FAE5' },
+    ENDED: { label: 'Đã kết thúc', color: '#6B7280', bgColor: '#F3F4F6' },
+    COMPLETED: { label: 'Hoàn thành', color: '#0EA5E9', bgColor: '#E0F2FE' },
+    CANCELLED: { label: 'Đã hủy', color: '#9CA3AF', bgColor: '#F9FAFB' },
 };
-
-interface ServiceOption {
-    key: string;
-    label: string;
-    icon: string;
-    iconColor: string;
-    bgColor: string;
-    onPress: () => void;
-}
-
-interface ServiceGridProps {
-    options: ServiceOption[];
-}
-
-const ServiceGrid = ({ options }: ServiceGridProps) => (
-    <View style={styles.serviceGrid}>
-        {options.map(opt => (
-            <TouchableOpacity
-                key={opt.key}
-                style={styles.serviceItem}
-                onPress={opt.onPress}
-                activeOpacity={0.7}
-            >
-                <View style={[styles.serviceIconWrapper, { backgroundColor: opt.bgColor }]}>
-                    <Ionicons name={opt.icon as any} size={22} color={opt.iconColor} />
-                </View>
-                <Text style={styles.serviceLabel}>{opt.label}</Text>
-            </TouchableOpacity>
-        ))}
-    </View>
-);
-
-// ─── Main screen ──────────────────────────────────────────────────────────────
 
 const EventDetailScreen = () => {
     const router = useRouter();
@@ -116,6 +79,9 @@ const EventDetailScreen = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
+    // Reverse-geocoded check-in address
+    const [checkinAddress, setCheckinAddress] = useState<string | null>(null);
+
     const fetchDetail = useCallback(async () => {
         if (!id) return;
         setLoading(true);
@@ -123,7 +89,11 @@ const EventDetailScreen = () => {
         try {
             const data = await getEventDetail(id);
             setEvent(data);
+            // Reverse-geocode check-in location in background
+            reverseGeocode(data.latCheckInLocation, data.lngCheckInLocation)
+                .then(addr => setCheckinAddress(addr));
         } catch (e) {
+            console.log('[EventDetail] fetchDetail error:', e);
             setError(getApiErrorMessage(e) || 'Không thể tải thông tin sự kiện');
         } finally {
             setLoading(false);
@@ -131,8 +101,6 @@ const EventDetailScreen = () => {
     }, [id]);
 
     useEffect(() => { fetchDetail(); }, [fetchDetail]);
-
-    // ── Loading state ─────────────────────────────────────────────────────────
 
     if (loading) {
         return (
@@ -147,15 +115,13 @@ const EventDetailScreen = () => {
                         <View style={styles.bellBtn} />
                     </View>
                     <View style={styles.centerBox}>
-                        <ActivityIndicator size="large" color={BLUE} />
+                        <ActivityIndicator size="large" color={'#42A4F5'} />
                         <Text style={styles.loadingText}>Đang tải...</Text>
                     </View>
                 </SafeAreaView>
             </>
         );
     }
-
-    // ── Error state ───────────────────────────────────────────────────────────
 
     if (error || !event) {
         return (
@@ -182,8 +148,6 @@ const EventDetailScreen = () => {
         );
     }
 
-    // ── Derive display values ─────────────────────────────────────────────────
-
     const statusCfg = STATUS_CONFIG[event.status] ?? {
         label: event.status, color: '#6B7280', bgColor: '#F3F4F6',
     };
@@ -199,22 +163,42 @@ const EventDetailScreen = () => {
 
     const uniqueDates = [...new Set(sessions.map(s => s.date))];
     const days = uniqueDates.length;
-    const timeRange = sessions.length > 0
-        ? `${sessions[0].startTime} - ${sessions[sessions.length - 1].endTime}`
-        : '';
-    const dateRange = sessions.length > 0
-        ? (days === 1 ? sessions[0].date : `${sessions[0].date} - ${sessions[sessions.length - 1].date}`)
-        : '';
 
-    const handleCancel = () => Alert.alert('Xác nhận', 'Bạn có chắc muốn hủy sự kiện này?', [
-        { text: 'Không', style: 'cancel' },
-        { text: 'Hủy sự kiện', style: 'destructive', onPress: () => console.log('Cancel event', event.id) },
-    ]);
-    const handleUpdate = () => router.push({ pathname: '/screen/create-event', params: { eventId: event.id } });
-    const handleHide = () => Alert.alert('Ẩn sự kiện', 'Sự kiện sẽ bị ẩn khỏi danh sách tuyển quân.');
+    // delete event
+    const handleDelete = () => Alert.alert(
+        'Xác nhận xóa',
+        'Bạn có chắc muốn xóa sự kiện này? Hành động này không thể hoàn tác.',
+        [
+            { text: 'Hủy', style: 'cancel' },
+            { text: 'Xóa', style: 'destructive', onPress: () => console.log('[TODO] Delete event', event.id) },
+        ],
+    );
+
+    // cancel event
+    const handleCancelEvent = () => Alert.alert(
+        'Xác nhận hủy',
+        'Bạn có chắc muốn hủy sự kiện này?',
+        [
+            { text: 'Không', style: 'cancel' },
+            { text: 'Hủy sự kiện', style: 'destructive', onPress: () => console.log('[TODO] Cancel event', event.id) },
+        ],
+    );
+
+    // update event
+    const handleUpdate = () => console.log('[TODO] Update recruiting info', event.id);
+
+    // edit event
+    const handleEdit = () => router.push({
+        pathname: '/screen/create-event',
+        params: {
+            eventId: event.id,
+            // Pass event object + geocoded address to prefill form
+            eventData: JSON.stringify({ ...event, resolvedCheckinAddress: checkinAddress }),
+        },
+    });
+
     const handleParticipants = () => console.log('View participants', event.id);
     const handleCheckin = () => setShowCheckinCode(prev => !prev);
-    // TODO: call API to generate/fetch check-in code, then setShowCheckinCode(true)
     const handleReviews = () => router.push({ pathname: '/screen/event-rating', params: { eventId: event.id } });
     const handleMoments = () => router.push({ pathname: '/screen/event-moments', params: { eventId: event.id } });
     const handleComplaint = () => console.log('Complain about points', event.id);
@@ -222,35 +206,41 @@ const EventDetailScreen = () => {
     const serviceOptions: ServiceOption[] = (() => {
         const s = event.status;
 
-        // EDITING | SUBMITTED | APPROVED_BY_MNG | REJECTED_BY_MNG | REJECTED_BY_AD
-        if (['EDITING', 'SUBMITTED', 'APPROVED_BY_MNG', 'REJECTED_BY_MNG', 'REJECTED_BY_AD'].includes(s)) {
+        if (['EDITING', 'REJECTED_BY_MNG', 'REJECTED_BY_AD'].includes(s)) {
             return [
-                { key: 'cancel', label: 'Hủy sự kiện', icon: 'close-circle-outline', iconColor: '#EF4444', bgColor: '#FEE2E2', onPress: handleCancel },
-                { key: 'update', label: 'Cập nhật', icon: 'create-outline', iconColor: '#3B82F6', bgColor: '#DBEAFE', onPress: handleUpdate },
+                { key: 'delete', label: 'Xóa sự kiện', icon: 'trash-outline', iconColor: '#EF4444', bgColor: '#FEE2E2', onPress: handleDelete },
+                { key: 'edit', label: 'Chỉnh sửa', icon: 'create-outline', iconColor: '#3B82F6', bgColor: '#DBEAFE', onPress: handleEdit },
             ];
         }
 
-        // RECRUITING | UPCOMING
-        if (['RECRUITING', 'UPCOMING'].includes(s)) {
+        if (s === 'SUBMITTED') {
             return [
-                { key: 'cancel', label: 'Hủy sự kiện', icon: 'close-circle-outline', iconColor: '#EF4444', bgColor: '#FEE2E2', onPress: handleCancel },
-                { key: 'update', label: 'Cập nhật', icon: 'create-outline', iconColor: '#3B82F6', bgColor: '#DBEAFE', onPress: handleUpdate },
-                { key: 'hide', label: 'Ẩn', icon: 'eye-off-outline', iconColor: '#9CA3AF', bgColor: '#F3F4F6', onPress: handleHide },
-                { key: 'participants', label: 'Người tham gia', icon: 'people-outline', iconColor: '#7C3AED', bgColor: '#EDE9FE', onPress: handleParticipants },
+                { key: 'edit', label: 'Chỉnh sửa', icon: 'create-outline', iconColor: '#3B82F6', bgColor: '#DBEAFE', onPress: handleEdit },
             ];
         }
 
-        // ONGOING
+        if (s === 'APPROVED_BY_MNG') return [];
+
+        if (s === 'RECRUITING') {
+            return [
+                { key: 'cancel', label: 'Hủy sự kiện', icon: 'close-circle-outline', iconColor: '#EF4444', bgColor: '#FEE2E2', onPress: handleCancelEvent },
+                { key: 'update', label: 'Cập nhật', icon: 'refresh-outline', iconColor: '#059669', bgColor: '#D1FAE5', onPress: handleUpdate },
+            ];
+        }
+
+        if (s === 'UPCOMING') {
+            return [
+                { key: 'cancel', label: 'Hủy sự kiện', icon: 'close-circle-outline', iconColor: '#EF4444', bgColor: '#FEE2E2', onPress: handleCancelEvent },
+            ];
+        }
+
         if (s === 'ONGOING') {
             return [
+                { key: 'cancel', label: 'Hủy sự kiện', icon: 'close-circle-outline', iconColor: '#EF4444', bgColor: '#FEE2E2', onPress: handleCancelEvent },
                 { key: 'checkin', label: 'Tạo mã check-in', icon: 'qr-code-outline', iconColor: '#059669', bgColor: '#D1FAE5', onPress: handleCheckin },
-                { key: 'update', label: 'Cập nhật', icon: 'create-outline', iconColor: '#3B82F6', bgColor: '#DBEAFE', onPress: handleUpdate },
-                { key: 'hide', label: 'Ẩn', icon: 'eye-off-outline', iconColor: '#9CA3AF', bgColor: '#F3F4F6', onPress: handleHide },
-                { key: 'participants', label: 'Người tham gia', icon: 'people-outline', iconColor: '#7C3AED', bgColor: '#EDE9FE', onPress: handleParticipants },
             ];
         }
 
-        // ENDED | COMPLETED
         if (['ENDED', 'COMPLETED'].includes(s)) {
             return [
                 { key: 'reviews', label: 'Xem đánh giá', icon: 'star-outline', iconColor: '#F59E0B', bgColor: '#FEF3C7', onPress: handleReviews },
@@ -260,18 +250,12 @@ const EventDetailScreen = () => {
             ];
         }
 
-        // CANCELLED
-        if (s === 'CANCELLED') {
-            return [
-                { key: 'update', label: 'Cập nhật', icon: 'create-outline', iconColor: '#3B82F6', bgColor: '#DBEAFE', onPress: handleUpdate },
-            ];
-        }
+        if (s === 'CANCELLED') return [];
 
         return [];
     })();
 
-
-    // ── JSX ──────────────────────────────────────────────────────────────────
+    const hasNote = !!event.note && event.note.trim().length > 0;
 
     return (
         <>
@@ -288,14 +272,40 @@ const EventDetailScreen = () => {
                     </TouchableOpacity>
                 </View>
 
+                {/* ── Note warning banner (hiển thị ngay dưới header khi có lỗi) ── */}
+                {hasNote && (
+                    <View style={styles.noteBanner}>
+                        <Ionicons name="warning-outline" size={18} color="#92400E" style={{ marginTop: 1 }} />
+                        <Text style={styles.noteBannerText}>{event.note}</Text>
+                    </View>
+                )}
+
                 <ScrollView
                     style={styles.scroll}
                     contentContainerStyle={styles.scrollContent}
                     showsVerticalScrollIndicator={false}
                 >
-                    {/* ── Title card ── */}
-                    <View style={styles.card}>
-                        <View style={styles.titleRow}>
+                    {/* Title card (with event image on top) */}
+                    <View style={styles.titleCard}>
+                        {/* Event image */}
+                        <ScrollView
+                            horizontal
+                            pagingEnabled
+                            showsHorizontalScrollIndicator={false}
+                            style={styles.bannerScroll}
+                        >
+                            {(event.imageUrls.length > 0 ? event.imageUrls : [DEFAULT_IMAGE]).map((uri, idx) => (
+                                <Image
+                                    key={idx}
+                                    source={{ uri: resolveSupabaseUrl(uri) || DEFAULT_IMAGE }}
+                                    style={styles.bannerImage}
+                                    resizeMode="cover"
+                                />
+                            ))}
+                        </ScrollView>
+
+                        {/* Name & status */}
+                        <View style={styles.titleCardBody}>
                             <Text style={styles.eventTitle} numberOfLines={3}>{event.name}</Text>
                             <View style={[styles.statusBadge, { backgroundColor: statusCfg.bgColor }]}>
                                 <Text style={[styles.statusBadgeText, { color: statusCfg.color }]}>
@@ -303,145 +313,138 @@ const EventDetailScreen = () => {
                                 </Text>
                             </View>
                         </View>
-                        <View style={styles.orgRow}>
-                            <Ionicons name="business-outline" size={14} color="#9CA3AF" />
-                            <Text style={styles.orgName}>{event.orgName}</Text>
-                        </View>
                     </View>
 
-                    {/* ── Dịch vụ của tôi ── */}
+                    {/* My services */}
                     {serviceOptions.length > 0 && (
                         <View style={styles.card}>
-                            <Text style={styles.sectionTitle}>Dịch vụ của tôi</Text>
+                            <Text style={styles.sectionTitle}>Tính năng của tôi</Text>
                             <ServiceGrid options={serviceOptions} />
                         </View>
                     )}
 
-                    {/* ── Hình ảnh sự kiện ── */}
-                    {event.imageUrls.length > 0 && (
-                        <View style={styles.card}>
-                            <Text style={styles.sectionTitle}>Hình ảnh sự kiện</Text>
-                            <ScrollView
-                                horizontal
-                                showsHorizontalScrollIndicator={false}
-                                contentContainerStyle={styles.imageRow}
-                            >
-                                {event.imageUrls.map((uri, idx) => (
-                                    <Image
-                                        key={idx}
-                                        source={{ uri }}
-                                        style={styles.eventImage}
-                                        resizeMode="cover"
-                                    />
-                                ))}
-                            </ScrollView>
-
-                            {/* Activity domain */}
-                            <View style={styles.domainRow}>
-                                <View style={styles.domainIcon}>
-                                    <Ionicons name="leaf-outline" size={15} color="#10B981" />
-                                </View>
-                                <View>
-                                    <Text style={styles.domainLabel}>Hoạt động chính</Text>
-                                    <Text style={styles.domainValue}>{event.activityDomain}</Text>
-                                </View>
-                            </View>
-                        </View>
-                    )}
-
-                    {/* ── Thời gian ── */}
+                    {/* Time & Schedule */}
                     <View style={styles.card}>
                         <Text style={styles.sectionTitle}>Thời gian</Text>
+                        {event.recruitmentEndDate && (
+                            <>
+                                <InfoRow
+                                    icon="time-outline"
+                                    label="Ngày hết hạn đăng ký"
+                                    value={parseIsoDateTime(event.recruitmentEndDate).date}
+                                />
+                                <View style={styles.rowDivider} />
+                            </>
+                        )}
                         <InfoRow
                             icon="calendar-outline"
-                            label="Thời gian diễn ra"
-                            value={days > 1 ? `${dateRange} (${days} ngày)` : dateRange}
+                            label="Tổng số ngày diễn ra"
+                            value={`${days} ngày`}
+                        />
+                        <View style={styles.rowDivider} />
+
+                        {/* Per-session detail */}
+                        {sessions.map((session, idx) => (
+                            <View key={idx}>
+                                {idx > 0 && <View style={styles.rowDivider} />}
+                                <View style={styles.sessionCard}>
+                                    <View style={styles.sessionHeader}>
+                                        <View style={styles.sessionIndexBadge}>
+                                            <Text style={styles.sessionIndexText}>{idx + 1}</Text>
+                                        </View>
+                                        <Text style={styles.sessionDateText}>{session.date}</Text>
+                                        <Text style={styles.sessionTimeText}>
+                                            {session.startTime} – {session.endTime}
+                                        </Text>
+                                    </View>
+                                    <View style={styles.sessionStats}>
+                                        <View style={styles.sessionStatItem}>
+                                            <Ionicons name="person-outline" size={13} color="#7C3AED" />
+                                            <Text style={styles.sessionStatLabel}>TNV dự kiến</Text>
+                                            <Text style={[styles.sessionStatValue, { color: '#7C3AED' }]}>
+                                                {session.volunteerCount}
+                                            </Text>
+                                        </View>
+                                        <View style={styles.sessionStatDivider} />
+                                        <View style={styles.sessionStatItem}>
+                                            <Ionicons name="people-outline" size={13} color="#059669" />
+                                            <Text style={styles.sessionStatLabel}>Người phục vụ</Text>
+                                            <Text style={[styles.sessionStatValue, { color: '#059669' }]}>
+                                                {session.servedCount}
+                                            </Text>
+                                        </View>
+                                    </View>
+                                </View>
+                            </View>
+                        ))}
+                    </View>
+
+                    {/* Location */}
+                    <View style={styles.card}>
+                        <Text style={styles.sectionTitle}>Địa điểm</Text>
+                        <InfoRow
+                            icon="location-outline"
+                            label="Loại địa điểm"
+                            value={SERVING_PLACE_LABEL[event.servingPlaceType] ?? event.servingPlaceType}
                         />
                         <View style={styles.rowDivider} />
                         <InfoRow
-                            icon="time-outline"
-                            label="Giờ làm việc"
-                            value={timeRange}
+                            icon="map-outline"
+                            label="Khu vực diễn ra sự kiện"
+                            value={event.address}
                         />
-                        {sessions.length > 1 && (
-                            <View style={styles.sessionsList}>
-                                {sessions.map((session, idx) => (
-                                    <View key={idx} style={styles.sessionItem}>
-                                        <Text style={styles.sessionDay}>Ngày {idx + 1}: {session.date}</Text>
-                                        <Text style={styles.sessionTime}>{session.startTime} – {session.endTime}</Text>
-                                    </View>
-                                ))}
-                            </View>
-                        )}
+                        <View style={styles.rowDivider} />
+                        <InfoRow
+                            icon="flag-outline"
+                            label="Địa chỉ cụ thể"
+                            value={event.detailAddress}
+                        />
+                        <View style={styles.rowDivider} />
+                        <InfoRow
+                            icon="navigate-outline"
+                            label="Địa điểm điểm danh"
+                            value={checkinAddress ?? `${event.latCheckInLocation}, ${event.lngCheckInLocation}`}
+                        />
                     </View>
 
-                    {/* ── Địa điểm ── */}
-                    <View style={styles.card}>
-                        <Text style={styles.sectionTitle}>Địa điểm</Text>
-                        <InfoRow icon="location-outline" label="Nơi diễn ra sự kiện" value={event.servingPlaceType} />
-                        <View style={styles.rowDivider} />
-                        <InfoRow icon="navigate-outline" label="Địa điểm check-in" value={`${event.checkInPlaceLat}, ${event.checkInPlaceLng}`} />
-                        <View style={styles.rowDivider} />
-                        <InfoRow icon="map-outline" label="Địa chỉ cụ thể" value={event.address} />
-                    </View>
-
-                    {/* ── Mã check-in — hiển thị khi nhấn "Tạo mã check-in" ── */}
+                    {/* Check-in code - display when "Create check-in code" is pressed */}
                     {showCheckinCode && (
                         <View style={[styles.card, styles.checkinCard]}>
                             <View style={styles.checkinLeft}>
-                                <Ionicons name="qr-code-outline" size={20} color={BLUE} />
+                                <Ionicons name="qr-code-outline" size={20} color={'#42A4F5'} />
                                 <Text style={styles.checkinLabel}>Mã check-in</Text>
                             </View>
                             <Text style={styles.checkinCode}>{event.checkInCode}</Text>
                         </View>
                     )}
 
-                    {/* ── Thống kê dự kiến ── */}
+                    {/* Detail */}
                     <View style={styles.card}>
-                        <Text style={styles.sectionTitle}>Thống kê dự kiến</Text>
-                        <View style={styles.statsRow}>
-                            <View style={styles.statItem}>
-                                <Ionicons name="person-outline" size={16} color="#7C3AED" />
-                                <Text style={styles.statLabel}>Tình nguyện viên</Text>
-                                <Text style={[styles.statValue, { color: '#7C3AED' }]}>
-                                    {event.totalVolunteers}
-                                </Text>
-                            </View>
-                            <View style={styles.statDivider} />
-                            <View style={styles.statItem}>
-                                <Ionicons name="people-outline" size={16} color="#059669" />
-                                <Text style={styles.statLabel}>Số người phục vụ</Text>
-                                <Text style={[styles.statValue, { color: '#059669' }]}>
-                                    {event.totalServed}
-                                </Text>
-                            </View>
-                        </View>
+                        <Text style={styles.sectionTitle}>Thông tin chi tiết</Text>
+
+                        {/* Activity field */}
+                        <InfoRow
+                            icon="leaf-outline"
+                            label="Lĩnh vực hoạt động"
+                            value={event.activitySubDomain}
+                        />
 
                         <View style={styles.rowDivider} />
 
                         {/* Served target */}
-                        <View style={styles.targetRow}>
-                            <View style={styles.targetIcon}>
-                                <Ionicons name="heart-outline" size={15} color="#EC4899" />
-                            </View>
-                            <View style={{ flex: 1 }}>
-                                <Text style={styles.infoLabel}>Đối tượng phục vụ</Text>
-                                <Text style={styles.infoValue}>{event.servedTarget}</Text>
-                            </View>
-                        </View>
+                        <InfoRow
+                            icon="heart-outline"
+                            label="Đối tượng phục vụ"
+                            value={SERVED_TARGET_LABEL[event.servedTarget] ?? event.servedTarget}
+                        />
 
                         <View style={styles.rowDivider} />
-
                         {/* Description */}
-                        <View style={styles.descRow}>
-                            <View style={styles.targetIcon}>
-                                <Ionicons name="document-text-outline" size={15} color="#6B7280" />
-                            </View>
-                            <View style={{ flex: 1 }}>
-                                <Text style={styles.infoLabel}>Mô tả chi tiết</Text>
-                                <Text style={styles.descText}>{event.description}</Text>
-                            </View>
-                        </View>
+                        <InfoRow
+                            icon="document-text-outline"
+                            label="Mô tả chi tiết"
+                            value={event.description}
+                        />
                     </View>
 
                     {/* Bottom padding */}
@@ -452,20 +455,15 @@ const EventDetailScreen = () => {
     );
 };
 
-// ─── Styles ───────────────────────────────────────────────────────────────────
-
-const BLUE = '#42A4F5';
-
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        // Background is BLUE so SafeAreaView top inset matches the header (no white gap)
-        backgroundColor: BLUE,
+        backgroundColor: '#42A4F5',
     },
 
     // Header
     header: {
-        backgroundColor: BLUE,
+        backgroundColor: '#42A4F5',
         flexDirection: 'row',
         alignItems: 'center',
         paddingHorizontal: 16,
@@ -496,9 +494,34 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
     },
+    scroll: {
+        flex: 1,
+        backgroundColor: '#F8FAFC'
+    },
+    scrollContent: {
+        paddingTop: 12,
+        paddingHorizontal: 16,
+        paddingBottom: 24
+    },
 
-    scroll: { flex: 1, backgroundColor: '#F8FAFC' },
-    scrollContent: { paddingTop: 12, paddingHorizontal: 16, paddingBottom: 24 },
+    // Note warning banner
+    noteBanner: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        gap: 8,
+        backgroundColor: '#FEF3C7',
+        borderBottomWidth: 1,
+        borderBottomColor: '#FDE68A',
+        paddingHorizontal: 16,
+        paddingVertical: 10,
+    },
+    noteBannerText: {
+        flex: 1,
+        fontSize: 13,
+        color: '#92400E',
+        lineHeight: 18,
+        fontWeight: '500',
+    },
 
     // Loading / error center
     centerBox: {
@@ -529,7 +552,7 @@ const styles = StyleSheet.create({
         marginTop: 4,
         paddingHorizontal: 28,
         paddingVertical: 11,
-        backgroundColor: BLUE,
+        backgroundColor: '#42A4F5',
         borderRadius: 10,
     },
     retryBtnText: {
@@ -558,6 +581,24 @@ const styles = StyleSheet.create({
     },
 
     // Title card
+    titleCard: {
+        backgroundColor: '#FFFFFF',
+        borderRadius: 16,
+        marginBottom: 12,
+        overflow: 'hidden',
+        shadowColor: '#94A3B8',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.08,
+        shadowRadius: 6,
+        elevation: 2,
+    },
+    bannerScroll: {
+        height: 200,
+    },
+    titleCardBody: {
+        padding: 16,
+        gap: 8,
+    },
     titleRow: {
         flexDirection: 'row',
         alignItems: 'flex-start',
@@ -565,11 +606,11 @@ const styles = StyleSheet.create({
         marginBottom: 10,
     },
     eventTitle: {
-        flex: 1,
         fontSize: 18,
         fontWeight: '800',
         color: '#1E293B',
         lineHeight: 26,
+        marginBottom: 4,
     },
     statusBadge: {
         paddingHorizontal: 10,
@@ -582,125 +623,87 @@ const styles = StyleSheet.create({
         fontSize: 11,
         fontWeight: '700',
     },
-    orgRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 5,
-    },
-    orgName: {
-        fontSize: 13,
-        color: '#64748B',
-    },
 
-    // Service grid
-    serviceGrid: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        gap: 12,
+    // Banner Image
+    bannerContainer: {
+        width: SCREEN_WIDTH,
+        height: 220,
+        marginBottom: 8,
     },
-    serviceItem: {
-        width: '22%',
-        alignItems: 'center',
-        gap: 7,
-    },
-    serviceIconWrapper: {
-        width: 52,
-        height: 52,
-        borderRadius: 26,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    serviceLabel: {
-        fontSize: 11.5,
-        fontWeight: '600',
-        color: '#374151',
-        textAlign: 'center',
-        lineHeight: 15,
-    },
-
-    // Images
-    imageRow: {
-        gap: 8,
-        marginBottom: 14,
-    },
-    eventImage: {
-        width: 110,
-        height: 80,
-        borderRadius: 10,
-        backgroundColor: '#E2E8F0',
-    },
-    domainRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 10,
-        backgroundColor: '#EFF6FF',
-        borderRadius: 10,
-        padding: 10,
-    },
-    domainIcon: {
-        width: 32,
-        height: 32,
-        borderRadius: 16,
-        backgroundColor: '#DBEAFE',
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    domainLabel: {
-        fontSize: 11,
-        color: '#6B7280',
-        marginBottom: 2,
-    },
-    domainValue: {
-        fontSize: 13,
-        fontWeight: '600',
-        color: '#1E40AF',
+    bannerImage: {
+        width: SCREEN_WIDTH,
+        height: 220,
     },
 
     // Info rows
-    infoRow: {
-        flexDirection: 'row',
-        alignItems: 'flex-start',
-        marginBottom: 2,
-    },
-    infoLabel: {
-        fontSize: 11,
-        color: '#9CA3AF',
-        marginBottom: 2,
-    },
-    infoValue: {
-        fontSize: 14,
-        color: '#1E293B',
-        fontWeight: '500',
-        lineHeight: 20,
-    },
     rowDivider: {
         height: 1,
         backgroundColor: '#F1F5F9',
         marginVertical: 10,
     },
 
-    // Sessions
-    sessionsList: {
+    // Session cards
+    sessionCard: {
         backgroundColor: '#F8FAFC',
-        borderRadius: 10,
-        padding: 10,
-        gap: 6,
-        marginTop: 4,
+        borderRadius: 12,
+        padding: 12,
+        gap: 8,
     },
-    sessionItem: {
+    sessionHeader: {
         flexDirection: 'row',
-        justifyContent: 'space-between',
         alignItems: 'center',
+        gap: 8,
     },
-    sessionDay: {
-        fontSize: 13,
-        color: '#374151',
-        fontWeight: '500',
+    sessionIndexBadge: {
+        width: 22,
+        height: 22,
+        borderRadius: 11,
+        backgroundColor: '#42A4F5',
+        alignItems: 'center',
+        justifyContent: 'center',
     },
-    sessionTime: {
+    sessionIndexText: {
+        fontSize: 11,
+        fontWeight: '700',
+        color: '#FFFFFF',
+    },
+    sessionDateText: {
+        flex: 1,
         fontSize: 13,
-        color: BLUE,
         fontWeight: '600',
+        color: '#1E293B',
+    },
+    sessionTimeText: {
+        fontSize: 13,
+        color: '#42A4F5',
+        fontWeight: '600',
+    },
+    sessionStats: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#EFF6FF',
+        borderRadius: 8,
+        padding: 8,
+    },
+    sessionStatItem: {
+        flex: 1,
+        alignItems: 'center',
+        gap: 2,
+    },
+    sessionStatDivider: {
+        width: 1,
+        height: 36,
+        backgroundColor: '#BFDBFE',
+        marginHorizontal: 8,
+    },
+    sessionStatLabel: {
+        fontSize: 11,
+        color: '#6B7280',
+        textAlign: 'center',
+    },
+    sessionStatValue: {
+        fontSize: 16,
+        fontWeight: '800',
     },
 
     // Check-in card
@@ -725,62 +728,10 @@ const styles = StyleSheet.create({
     checkinCode: {
         fontSize: 16,
         fontWeight: '800',
-        color: BLUE,
+        color: '#42A4F5',
         letterSpacing: 1,
     },
 
-    // Stats
-    statsRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginBottom: 4,
-    },
-    statItem: {
-        flex: 1,
-        alignItems: 'center',
-        gap: 4,
-    },
-    statDivider: {
-        width: 1,
-        height: 52,
-        backgroundColor: '#E2E8F0',
-        marginHorizontal: 8,
-    },
-    statLabel: {
-        fontSize: 12,
-        color: '#6B7280',
-        textAlign: 'center',
-    },
-    statValue: {
-        fontSize: 28,
-        fontWeight: '800',
-    },
-
-    // Served target & description
-    targetRow: {
-        flexDirection: 'row',
-        alignItems: 'flex-start',
-        gap: 10,
-    },
-    targetIcon: {
-        width: 28,
-        height: 28,
-        borderRadius: 14,
-        backgroundColor: '#F3F4F6',
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginTop: 2,
-    },
-    descRow: {
-        flexDirection: 'row',
-        alignItems: 'flex-start',
-        gap: 10,
-    },
-    descText: {
-        fontSize: 14,
-        color: '#374151',
-        lineHeight: 22,
-    },
 });
 
 export default EventDetailScreen;
