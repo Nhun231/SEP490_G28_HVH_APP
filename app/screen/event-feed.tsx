@@ -9,6 +9,7 @@ import {
     ScrollView,
     StyleSheet,
     Text,
+    TextInput,
     TouchableOpacity,
     View,
 } from 'react-native';
@@ -48,25 +49,37 @@ const FILTER_CHIPS: FilterChip[] = [
 // ─── component ───────────────────────────────────────────────────────
 const EventFeed = () => {
     const [selectedDateIndex, setSelectedDateIndex] = useState<number | null>(null);
+    const [searchText, setSearchText] = useState('');
     const [events, setEvents] = useState<EventSimpleResponse[]>([]);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
+    const [pageNumber, setPageNumber] = useState(0);
+    const [hasMore, setHasMore] = useState(true);
+    const [loadingMore, setLoadingMore] = useState(false);
 
     const dates = useMemo(() => generateDates(7), []);
 
     // ─── fetch events ────────────────────────────────────────────────
-    const fetchEvents = useCallback(async (dateIso?: string) => {
+    const fetchEvents = useCallback(async (dateIso?: string, page: number = 0, name?: string) => {
         try {
             const response = await getEventFeeds({
-                pageNumber: 0,
+                pageNumber: page,
                 pageSize: 20,
-                refresh: true,
+                refresh: false,
                 ...(dateIso && { startDate: dateIso, endDate: dateIso }),
+                ...(name && { name }),
             });
-            setEvents(response.events || []);
+            
+            if (page === 0) {
+                setEvents(response.events || []);
+            } else {
+                setEvents(prev => [...prev, ...(response.events || [])]);
+            }
+            setHasMore(response.hasMore ?? false);
+            setPageNumber(page);
         } catch (error) {
             console.error('Error fetching events:', error);
-            setEvents([]);
+            if (page === 0) setEvents([]);
         }
     }, []);
 
@@ -84,20 +97,29 @@ const EventFeed = () => {
         setSelectedDateIndex(index);
         setLoading(true);
         if (index === null) {
-            await fetchEvents();
+            await fetchEvents(undefined, 0, searchText || undefined);
         } else {
-            await fetchEvents(dates[index].iso);
+            await fetchEvents(dates[index].iso, 0, searchText || undefined);
         }
         setLoading(false);
-    }, [dates, fetchEvents]);
+    }, [dates, fetchEvents, searchText]);
 
     // pull-to-refresh
     const handleRefresh = useCallback(async () => {
         setRefreshing(true);
         const dateIso = selectedDateIndex !== null ? dates[selectedDateIndex].iso : undefined;
-        await fetchEvents(dateIso);
+        await fetchEvents(dateIso, 0, searchText || undefined);
         setRefreshing(false);
-    }, [selectedDateIndex, dates, fetchEvents]);
+    }, [selectedDateIndex, dates, fetchEvents, searchText]);
+
+    // load more (pagination)
+    const loadMoreEvents = useCallback(async () => {
+        if (!hasMore || loadingMore || loading || refreshing) return;
+        setLoadingMore(true);
+        const dateIso = selectedDateIndex !== null ? dates[selectedDateIndex].iso : undefined;
+        await fetchEvents(dateIso, pageNumber + 1, searchText || undefined);
+        setLoadingMore(false);
+    }, [hasMore, loadingMore, loading, refreshing, selectedDateIndex, dates, pageNumber, fetchEvents, searchText]);
 
     const handleGoBack = () => {
         if (router.canGoBack()) {
@@ -107,13 +129,15 @@ const EventFeed = () => {
         }
     };
 
-    const handleSearch = () => {
-        console.log('Open search');
-    };
+    const handleSearch = useCallback(async () => {
+        setLoading(true);
+        const dateIso = selectedDateIndex !== null ? dates[selectedDateIndex].iso : undefined;
+        await fetchEvents(dateIso, 0, searchText || undefined);
+        setLoading(false);
+    }, [searchText, selectedDateIndex, dates, fetchEvents]);
 
     const handleEventPress = (event: EventSimpleResponse) => {
-        console.log('Event pressed:', event.name);
-        // TODO: navigate to event details
+        router.push({ pathname: '/screen/event-detail', params: { eventId: event.id } } as any);
     };
 
     // ─── render ──────────────────────────────────────────────────────
@@ -132,6 +156,21 @@ const EventFeed = () => {
 
             {/* ═══ CONTENT AREA (white bg) ═══ */}
             <View style={styles.contentArea}>
+            {/* ═══ SEARCH INPUT ═══ */}
+            <View style={styles.searchRow}>
+                <TextInput
+                    style={styles.searchInput}
+                    placeholder="Tìm kiếm sự kiện..."
+                    placeholderTextColor="#9CA3AF"
+                    value={searchText}
+                    onChangeText={setSearchText}
+                    onSubmitEditing={handleSearch}
+                    returnKeyType="search"
+                />
+                <TouchableOpacity onPress={handleSearch} style={styles.searchBtn}>
+                    <Ionicons name="search" size={20} color="#FFFFFF" />
+                </TouchableOpacity>
+            </View>
             {/* ═══ FILTER CHIPS ═══ */}
             <View style={styles.filterRow}>
                 {FILTER_CHIPS.map((chip) => (
@@ -208,7 +247,7 @@ const EventFeed = () => {
             ) : (
                 <FlatList
                     data={events}
-                    keyExtractor={(_, index) => index.toString()}
+                    keyExtractor={(item) => item.id}
                     renderItem={({ item }) => (
                         <EventCard
                             event={item}
@@ -217,6 +256,13 @@ const EventFeed = () => {
                     )}
                     contentContainerStyle={styles.listContent}
                     showsVerticalScrollIndicator={false}
+                    onEndReached={loadMoreEvents}
+                    onEndReachedThreshold={0.5}
+                    ListFooterComponent={
+                        loadingMore ? (
+                            <ActivityIndicator style={{ padding: 16 }} size="small" color="#42A4F5" />
+                        ) : null
+                    }
                     refreshControl={
                         <RefreshControl
                             refreshing={refreshing}
@@ -373,5 +419,34 @@ const styles = StyleSheet.create({
         fontSize: 13,
         color: '#9CA3AF',
         marginTop: 4,
+    },
+
+    /* ── Search bar ── */
+    searchRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#FFFFFF',
+        paddingHorizontal: 12,
+        paddingVertical: 8,
+        borderBottomWidth: 1,
+        borderBottomColor: '#E5E7EB',
+        gap: 8,
+    },
+    searchInput: {
+        flex: 1,
+        height: 40,
+        backgroundColor: '#F3F4F6',
+        borderRadius: 8,
+        paddingHorizontal: 12,
+        fontSize: 14,
+        color: '#1F2937',
+    },
+    searchBtn: {
+        width: 40,
+        height: 40,
+        backgroundColor: '#42A4F5',
+        borderRadius: 8,
+        alignItems: 'center',
+        justifyContent: 'center',
     },
 });

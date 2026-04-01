@@ -38,13 +38,14 @@ export interface ActivityDomainResponse {
         totalPages: number;
     };
 }
-
+//  Feed interfaces
 export interface EventSimpleResponse {
+    id: string;               // matches BE UUID field
     orgName: string;
     name: string;
     imageUrl: string;
     address: string;
-    startDate: string;          // ISO date e.g. "2025-03-15"
+    startDate: string;
     recruitmentEndDate: string;
 }
 
@@ -119,6 +120,13 @@ export interface UpdateImage {
 export interface EventSession {
     eventSessionId?: string | null;
     updateAction: SessionUpdateAction;
+    startDateTime: string; // ISO 8601 format with timezone (e.g., "2026-04-01T05:30:00+07:00")
+    endDateTime: string;   // ISO 8601 format with timezone
+}
+
+//Event Detail interfaces
+export interface EventSessionDetailsResponse {
+    id: string;
     startDateTime: string;
     endDateTime: string;
     expectedVolAmount: number;
@@ -269,8 +277,54 @@ export const resolveSupabaseUrl = (url: string | null | undefined): string | nul
 
 /**
  * Fetch event new-feeds (public endpoint — uses plain fetch, no auth token)
- * GET /api/v1/event/new-feeds
  */
+export interface EventDetailsResponse {
+    id: string;
+    name: string;
+    imageUrls: string[];
+    description: string;
+    address: string;
+    activitySubDomain: string;
+    servedTarget: string;
+    servingPlaceType: string;
+    startDate: string;
+    recruitmentEndDate: string;
+    latCheckInLocation: number;
+    lngCheckInLocation: number;
+    checkInAccuracyMeters: number;
+    hostPhone: string;
+    orgName: string;
+    eventSessions: EventSessionDetailsResponse[];
+}
+
+//  Vietnamese label maps for enums
+export const SERVED_TARGET_LABELS: Record<string, string> = {
+    WOMEN: 'Phụ nữ',
+    CHILDREN: 'Trẻ em',
+    ADOLESCENTS: 'Thanh thiếu niên',
+    ADULTS: 'Trung niên',
+    ELDERLY: 'Người cao tuổi',
+    PEOPLE_WITH_DISABILITIES: 'Người tàn tật',
+    VULNERABLE_GROUPS: 'Người yếu thế',
+    UNSPECIFIED: 'Tất cả lứa tuổi',
+};
+
+export const SERVING_PLACE_LABELS: Record<string, string> = {
+    SCHOOL: 'Trường học',
+    REMOTE_AREA: 'Vùng sâu vùng xa',
+    PARK_OR_SQUARE: 'Nơi công cộng',
+    HOSPITAL: 'Bệnh viện',
+    TRANSPORT_STATION: 'Trạm giao thông',
+    MUSEUM: 'Bảo tàng',
+    NURSING_HOME: 'Viện dưỡng lão',
+    TOURIST_AREA: 'Khu du lịch',
+    WATER_BODY: 'Sông ngòi',
+    SPORTS_AREA: 'Khu thể thao',
+    CEMETERY: 'Nghĩa trang',
+    OTHER: 'Khác',
+};
+
+// Fetch event feeds
 export const getEventFeeds = async (params: EventFeedParams = {}): Promise<EventFeedResponse> => {
     const query = new URLSearchParams()
     query.append('pageNumber', String(params.pageNumber ?? 0))
@@ -285,6 +339,7 @@ export const getEventFeeds = async (params: EventFeedParams = {}): Promise<Event
     }
 
     const url = `${API_BASE}/api/v1/event/new-feeds?${query.toString()}`
+
     const response = await fetch(url)
 
     if (!response.ok) {
@@ -292,7 +347,20 @@ export const getEventFeeds = async (params: EventFeedParams = {}): Promise<Event
         throw new Error(`API error ${response.status}: ${errorText}`)
     }
 
-    return response.json() as Promise<EventFeedResponse>
+    const data: EventFeedResponse = await response.json()
+    return data
+}
+
+// Fetch single event detail (public — no auth required)
+export const getEventDetails = async (eventId: string): Promise<EventDetailsResponse> => {
+    const url = `${API_BASE}/api/v1/event/event-details/${eventId}`
+    const response = await fetch(url)
+    if (!response.ok) {
+        const errorText = await response.text()
+        throw new Error(`API error ${response.status}: ${errorText}`)
+    }
+    const data: EventDetailsResponse = await response.json()
+    return data
 }
 
 /**

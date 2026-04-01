@@ -1,8 +1,10 @@
 import React from 'react';
-import { View, Text, Image, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 
 export interface EventCardData {
+    id: string;
     name: string;
     orgName: string;
     imageUrl: string;
@@ -29,8 +31,37 @@ function isRecruiting(endDate: string): boolean {
     return new Date(endDate) >= new Date();
 }
 
+/** Get the full image URL from Supabase relative path */
+function getFullImageUrl(path: string | null | undefined): string {
+    if (!path) {
+        return 'https://placehold.co/400x300/e2e8f0/64748b.png?text=No+Image';
+    }
+
+    // Already a full URL — use as-is
+    if (path.startsWith('http')) {
+        return path;
+    }
+
+    const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL || 'https://kbmxlrqkzgjbtkmlbaei.supabase.co';
+
+    // Supabase signed URL already contains /storage/v1
+    if (path.startsWith('/storage/v1')) {
+        return `${supabaseUrl}${path}`;
+    }
+
+    // Supabase signed URL relative path: /object/sign/...
+    if (path.startsWith('/object/')) {
+        return `${supabaseUrl}/storage/v1${path}`;
+    }
+
+    // Fallback: treat as a relative storage path inside the bucket
+    const supabaseBucket = 'hvh-bucket';
+    return `${supabaseUrl}/storage/v1/object/public/${supabaseBucket}/${path}`;
+}
+
 export default function EventCard({ event, onPress }: EventCardProps) {
     const recruiting = isRecruiting(event.recruitmentEndDate);
+    const imageUri = getFullImageUrl(event.imageUrl);
 
     return (
         <TouchableOpacity
@@ -41,9 +72,11 @@ export default function EventCard({ event, onPress }: EventCardProps) {
             {/* Left: Image with status badge */}
             <View style={styles.imageContainer}>
                 <Image
-                    source={{ uri: event.imageUrl }}
+                    source={imageUri}
                     style={styles.image}
-                    resizeMode="cover"
+                    contentFit="cover"
+                    transition={200}
+                    placeholder={{ uri: 'https://placehold.co/400x300/e2e8f0/64748b.png?text=Loading' }}
                 />
                 <View style={[styles.badge, !recruiting && styles.badgeClosed]}>
                     <Text style={styles.badgeText}>
