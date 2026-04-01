@@ -122,10 +122,11 @@ export interface EventSession {
     updateAction: SessionUpdateAction;
     startDateTime: string; // ISO 8601 format with timezone (e.g., "2026-04-01T05:30:00+07:00")
     endDateTime: string;   // ISO 8601 format with timezone
+    expectedVolAmount: number;
+    expectedSerAmount: number;
 }
 
-//Event Detail interfaces
-export interface EventSessionDetailsResponse {
+export interface EventSessionResponse {
     id: string;
     startDateTime: string;
     endDateTime: string;
@@ -157,13 +158,6 @@ export interface EventCreateResponse {
     uploadUrls?: Array<string>;
 }
 
-export interface EventDetailSession {
-    id: string;              // Session UUID from API
-    startDateTime: string;
-    endDateTime: string;
-    expectedVolAmount: number;
-    expectedSerAmount: number;
-}
 
 export interface EventDetailResponse {
     id: string;
@@ -179,7 +173,7 @@ export interface EventDetailResponse {
     servingPlaceType: string;
     description: string;
     recruitmentEndDate: string;   // ISO date e.g. "2026-03-25"
-    eventSessions: EventDetailSession[];
+    eventSessions: EventSessionResponse[];
     latCheckInLocation: number;
     lngCheckInLocation: number;
     checkInAccuracyMeters: number;
@@ -294,7 +288,7 @@ export interface EventDetailsResponse {
     checkInAccuracyMeters: number;
     hostPhone: string;
     orgName: string;
-    eventSessions: EventSessionDetailsResponse[];
+    eventSessions: EventSessionResponse[];
 }
 
 //  Vietnamese label maps for enums
