@@ -12,7 +12,7 @@ export default function Auth() {
     const [email, setEmail] = useState('')
     const [password, setPassword] = useState('')
     const [loading, setLoading] = useState(false)
-    const [accountType, setAccountType] = useState<AccountType>('host')
+    const [accountType, setAccountType] = useState<AccountType>('volunteer')
     const [showPassword, setShowPassword] = useState(false)
     const [rememberMe, setRememberMe] = useState(false)
 
@@ -123,14 +123,18 @@ export default function Auth() {
                                     textContentType="emailAddress"
                                 />
                             </View>
-                            <Text style={styles.helperText}>Nhập email của người tổ chức</Text>
+                            <Text style={styles.helperText}>
+                                {accountType === 'volunteer' 
+                                    ? 'Nhập email của tình nguyện viên' 
+                                    : 'Nhập email của người tổ chức'}
+                            </Text>
                         </View>
 
                         {/* Password Input */}
                         <View style={styles.inputContainer}>
                             <View style={styles.labelRow}>
                                 <Text style={styles.label}>Mật khẩu</Text>
-                                <TouchableOpacity>
+                                <TouchableOpacity onPress={() => router.push('/screen/forgot-password' as any)}>
                                     <Text style={styles.forgotPassword}>Quên mật khẩu?</Text>
                                 </TouchableOpacity>
                             </View>

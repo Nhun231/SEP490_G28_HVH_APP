@@ -190,12 +190,12 @@ export interface MyEventItem {
 
 export interface MyEventsResponse {
     content: MyEventItem[];
-    page: {
-        size: number;
-        number: number;
-        totalElements: number;
-        totalPages: number;
-    };
+    // Spring Page<T> serializes pagination at the top level (not nested under 'page')
+    totalPages: number;
+    totalElements: number;
+    number: number;     // current page index (0-based)
+    size: number;
+    last: boolean;
 }
 
 export interface MyEventsParams {
@@ -235,13 +235,16 @@ export interface EventSession {
     updateAction: SessionUpdateAction;
     startDateTime: string; // ISO 8601 format with timezone (e.g., "2026-04-01T05:30:00+07:00")
     endDateTime: string;   // ISO 8601 format with timezone
-//Event Detail interfaces
+}
+
+// ── Event Detail interfaces ──
 export interface EventSessionDetailsResponse {
     id: string;
     startDateTime: string;
     endDateTime: string;
     expectedVolAmount: number;
     expectedSerAmount: number;
+    // approvedApplicationCount: number; // TODO: enable when BE adds to response
 }
 
 export interface EventCreateRequest {
@@ -278,6 +281,7 @@ export interface EventDetailsResponse {
     imageUrls: string[];
     description: string;
     address: string;
+    detailAddress?: string | null;
     activitySubDomain: string;
     servedTarget: string;
     servingPlaceType: string;
@@ -332,7 +336,7 @@ export const getEventFeeds = async (params: EventFeedParams = {}): Promise<Event
         params.activitySubDomainIds.forEach(id => query.append('activitySubDomainIds', String(id)))
     }
 
-    const url = `${API_BASE}/api/v1/event/new-feeds?${query.toString()}`
+    const url = `${API_BASE}/api/v1/events/feeds?${query.toString()}`
 
     const response = await fetch(url)
 
@@ -347,7 +351,7 @@ export const getEventFeeds = async (params: EventFeedParams = {}): Promise<Event
 
 // Fetch single event detail (public — no auth required)
 export const getEventDetails = async (eventId: string): Promise<EventDetailsResponse> => {
-    const url = `${API_BASE}/api/v1/event/event-details/${eventId}`
+    const url = `${API_BASE}/api/v1/events/event-details/${eventId}`
     const response = await fetch(url)
     if (!response.ok) {
         const errorText = await response.text()
@@ -355,6 +359,14 @@ export const getEventDetails = async (eventId: string): Promise<EventDetailsResp
     }
     const data: EventDetailsResponse = await response.json()
     return data
+}
+/**
+ * 
+ * Save favourite events
+ */
+export const saveEventForVolunteer = async (eventId: string): Promise<void> => {
+    const endpoint = `${API_BASE}/api/v1//vol/events/save-event`
+    await baseAxios.post(endpoint, { eventId })
 }
 
 /**
@@ -412,6 +424,15 @@ export const submitEvent = async (data: EventCreateRequest): Promise<EventCreate
 }
 
 /**
+ * Apply for a volunteer event session
+ * POST /api/v1//vol/event-sessions/{sessionId}/apply
+ */
+export const applyEventSession = async (sessionId: string): Promise<void> => {
+    const endpoint = `${API_BASE}/api/v1/vol/event-sessions/${sessionId}/apply`
+    await baseAxios.post(endpoint)
+}
+
+/**
  * Fetch host's events with pagination and filters
  * GET /api/v1/host/event/my-events
  */
@@ -438,4 +459,80 @@ export const getMyEvents = async (params: MyEventsParams = {}): Promise<MyEvents
 
     console.log('[EventService] My events fetched:', response.data.content.length, 'events')
     return response.data
+}
+
+// ── Volunteer Application Status Types ──
+
+export type EventApplicationStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'CANCELLED';
+
+export interface VolApplicationSession {
+    id: string;                    // session UUID
+    startDateTime: string;         // ISO OffsetDateTime e.g. "2026-04-10T08:00:00+07:00"
+    endDateTime: string;           // ISO OffsetDateTime
+    expectedVolAmount: number;
+    expectedSerAmount: number;
+    approvedApplicationCount: number;
+}
+
+export interface VolApplicationItem {
+    id: string;                    // application UUID
+    eventId: string;               // event UUID — used for navigation to event-detail
+    name: string;                  // event name
+    imageUrl: string | null;
+    address: string | null;        // district/city level address
+    detailAddress: string | null;  // street-level detail address
+    startDate: string;             // ISO date e.g. "2026-04-10"
+    status: EventApplicationStatus;
+    session: VolApplicationSession | null; // the session the volunteer applied to
+}
+
+export interface VolApplicationsResponse {
+    content: VolApplicationItem[];
+    // Spring Page<T> serializes pagination at the top level (not nested under 'page')
+    totalPages: number;
+    totalElements: number;
+    number: number;     // current page index (0-based)
+    size: number;
+    last: boolean;
+}
+
+export interface VolApplicationsParams {
+    pageNumber?: number;
+    pageSize?: number;
+    /** Filter by application status. When null/undefined, backend returns PENDING by default. */
+    status?: EventApplicationStatus | null;
+}
+
+/**
+ * Fetch the current volunteer's event applications, filtered by status.
+ * GET /api/v1/vol/event-applications
+ * Requires VOL role (auth token sent via baseAxios).
+ */
+export const getVolApplications = async (
+    params: VolApplicationsParams = {}
+): Promise<VolApplicationsResponse> => {
+    const query = new URLSearchParams()
+    query.append('pageNumber', String(params.pageNumber ?? 0))
+    query.append('pageSize', String(params.pageSize ?? 10))
+    // Always send the 'status' param — the controller requires it (@RequestParam with no required=false).
+    // The service handles null/blank as "no filter" and returns all statuses.
+    query.append('status', params.status ?? '')
+
+    const url = `${API_BASE}/api/v1/vol/event-applications?${query.toString()}`
+    console.log('[EventService] Fetching vol applications:', url)
+
+    const response = await baseAxios.get<VolApplicationsResponse>(url)
+    console.log('[EventService] Vol applications fetched:', response.data.content.length)
+    return response.data
+}
+
+/**
+ * Cancel a volunteer's own event application.
+ * PUT /api/v1/vol/event-applications/{id}/cancel
+ * Requires VOL role. Only PENDING or APPROVED applications before the session date can be cancelled.
+ */
+export const cancelVolApplication = async (applicationId: string): Promise<void> => {
+    const url = `${API_BASE}/api/v1/vol/event-applications/${applicationId}/cancel`
+    console.log('[EventService] Cancelling application:', applicationId)
+    await baseAxios.put(url)
 }

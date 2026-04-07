@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { useFocusEffect } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
     View,
     Text,
@@ -10,6 +12,7 @@ import {
     StyleSheet,
     Linking,
     Platform,
+    Alert,
 } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
@@ -17,11 +20,20 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import {
     EventDetailsResponse,
+    EventSessionDetailsResponse,
     getEventDetails,
+    saveEventForVolunteer,
+    applyEventSession,
     SERVED_TARGET_LABELS,
     SERVING_PLACE_LABELS,
+    getApiErrorMessage,
 } from '@/services/event-service';
+import { useAuth } from '@/context/AuthContext';
 import ImageViewerModal from '../components/ImageViewerModal';
+import EventSessionCard from '../components/EventSessionCard';
+import ApplyConfirmModal from '../components/ApplyConfirmModal';
+import SessionPickerSheet from '../components/SessionPickerSheet';
+
 
 const { width: SCREEN_W } = Dimensions.get('window');
 const IMAGE_HEIGHT = 280;
@@ -54,20 +66,11 @@ function getFullImageUrl(path: string | null | undefined): string {
     return `${supabaseUrl}/storage/v1/object/public/hvh-bucket/${path}`;
 }
 
-function formatSessionTime(iso: string): string {
-    if (!iso) return '';
-    const d = new Date(iso);
-    const hh = String(d.getHours()).padStart(2, '0');
-    const mm = String(d.getMinutes()).padStart(2, '0');
-    const dd = String(d.getDate()).padStart(2, '0');
-    const mo = String(d.getMonth() + 1).padStart(2, '0');
-    const yy = d.getFullYear();
-    return `${hh}:${mm} ${dd}/${mo}/${yy}`;
-}
 
 // ─── component ───────────────────────────────────────────────────────
 export default function EventDetail() {
     const { eventId } = useLocalSearchParams<{ eventId: string }>();
+    const { isLoggedIn } = useAuth();
     const [event, setEvent] = useState<EventDetailsResponse | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -75,6 +78,23 @@ export default function EventDetail() {
     const [imageViewerVisible, setImageViewerVisible] = useState(false);
     const [imageViewerIndex, setImageViewerIndex] = useState(0);
     const [saved, setSaved] = useState(false);
+    const [saving, setSaving] = useState(false);
+
+    // ── Persist saved state per event ──
+    const savedKey = eventId ? `saved_event_${eventId}` : null;
+
+    useEffect(() => {
+        if (!savedKey) return;
+        AsyncStorage.getItem(savedKey).then(val => {
+            if (val === 'true') setSaved(true);
+        }).catch(() => {});
+    }, [savedKey]);
+
+    // ── Apply flow state ──
+    const [applyModalVisible, setApplyModalVisible] = useState(false);
+    const [sessionPickerVisible, setSessionPickerVisible] = useState(false);
+    const [selectedSession, setSelectedSession] = useState<EventSessionDetailsResponse | null>(null);
+    const [applying, setApplying] = useState(false);
 
     const carouselRef = useRef<FlatList>(null);
 
@@ -92,9 +112,11 @@ export default function EventDetail() {
         }
     }, [eventId]);
 
-    useEffect(() => {
-        fetchEvent();
-    }, [fetchEvent]);
+    useFocusEffect(
+        useCallback(() => {
+            fetchEvent();
+        }, [fetchEvent])
+    );
 
     // image urls resolved
     const imageUrls = useMemo(() => {
@@ -129,6 +151,74 @@ export default function EventDetail() {
         else router.replace('/(tabs)/home');
     };
 
+    const handleSaveEvent = async () => {
+        if (!event?.id || saving || !isLoggedIn) {
+            if (!isLoggedIn) {
+                Alert.alert(
+                    'Yêu cầu đăng nhập',
+                    'Bạn cần đăng nhập để lưu sự kiện.',
+                    [
+                        { text: 'Huỷ', style: 'cancel' },
+                        { text: 'Đăng nhập', onPress: () => router.push('/screen/login' as any) },
+                    ]
+                );
+            }
+            return;
+        }
+        // Optimistically toggle
+        const nextSaved = !saved;
+        setSaved(nextSaved);
+        setSaving(true);
+        try {
+            // BE toggle: calling save-event saves if not saved, unsaves if already saved
+            await saveEventForVolunteer(event.id);
+            // Persist new state locally
+            if (savedKey) {
+                if (nextSaved) {
+                    await AsyncStorage.setItem(savedKey, 'true');
+                } else {
+                    await AsyncStorage.removeItem(savedKey);
+                }
+            }
+        } catch (err: any) {
+            // Revert on failure
+            setSaved(!nextSaved);
+            Alert.alert('Lỗi', err?.response?.data?.message || 'Không thể lưu sự kiện. Vui lòng thử lại.');
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    const handleOpenMap = () => {
+        if (!event?.detailAddress || !event?.address) return;
+        const query = encodeURIComponent(event.detailAddress || event.address);
+
+        const openGoogle = () =>
+            Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${query}`).catch(() => {});
+        
+        const openApple = () =>
+            Linking.openURL(`maps://?q=${query}`).catch(openGoogle);
+
+        if (Platform.OS === 'ios') {
+            const { ActionSheetIOS } = require('react-native');
+            ActionSheetIOS.showActionSheetWithOptions(
+                {
+                    options: ['Huỷ', 'Google Maps', 'Apple Maps'],
+                    cancelButtonIndex: 0,
+                },
+                (idx: number) => {
+                    if (idx === 1) openGoogle();
+                    else if (idx === 2) openApple();
+                }
+            );
+        } else {
+            Alert.alert('Mở bản đồ', 'Chọn ứng dụng bản đồ', [
+                { text: 'Google Maps', onPress: openGoogle },
+                { text: 'Huỷ', style: 'cancel' },
+            ]);
+        }
+    };
+
     const handleCallHost = () => {
         if (event?.hostPhone) {
             Linking.openURL(`tel:${event.hostPhone}`);
@@ -138,6 +228,56 @@ export default function EventDetail() {
     const handleOpenImage = (index: number) => {
         setImageViewerIndex(index);
         setImageViewerVisible(true);
+    };
+
+    // ── Apply flow handlers ──
+    const handleApplyCta = () => {
+        if (!isLoggedIn) {
+            Alert.alert(
+                'Yêu cầu đăng nhập',
+                'Bạn cần đăng nhập để tham gia sự kiện.',
+                [
+                    { text: 'Huỷ', style: 'cancel' },
+                    {
+                        text: 'Đăng nhập',
+                        onPress: () => router.push('/screen/login' as any),
+                    },
+                ]
+            );
+            return;
+        }
+        if (!event?.eventSessions?.length) return;
+        if (event.eventSessions.length === 1) {
+            setSelectedSession(event.eventSessions[0]);
+            setApplyModalVisible(true);
+        } else {
+            setSessionPickerVisible(true);
+        }
+    };
+
+    const handleSessionSelected = (session: EventSessionDetailsResponse) => {
+        setSessionPickerVisible(false);
+        setSelectedSession(session);
+        setApplyModalVisible(true);
+    };
+
+    const handleConfirmApply = async () => {
+        if (!selectedSession) return;
+        setApplying(true);
+        try {
+            await applyEventSession(selectedSession.id);
+            setApplyModalVisible(false);
+            Alert.alert(
+                'Đăng ký thành công',
+                'Bạn đã đăng ký tham gia hoạt động thành công. Chúc bạn có một buổi tình nguyện ý nghĩa!',
+                [{ text: 'Tuyệt vời', style: 'default' }]
+            );
+        } catch (err: unknown) {
+            const msg = getApiErrorMessage(err) || 'Không thể đăng ký. Vui lòng thử lại sau.';
+            Alert.alert('Đăng ký thất bại', msg, [{ text: 'Đóng', style: 'cancel' }]);
+        } finally {
+            setApplying(false);
+        }
     };
 
     // ─── Loading / Error ─────────────────────────────────────────────
@@ -199,7 +339,8 @@ export default function EventDetail() {
                         </TouchableOpacity>
                         <View style={styles.headerRight}>
                             <TouchableOpacity
-                                onPress={() => setSaved(!saved)}
+                                onPress={handleSaveEvent}
+                                disabled={saving}
                                 style={styles.circleBtn}
                             >
                                 <Ionicons
@@ -207,9 +348,6 @@ export default function EventDetail() {
                                     size={22}
                                     color={saved ? '#EF4444' : '#1F2937'}
                                 />
-                            </TouchableOpacity>
-                            <TouchableOpacity style={styles.circleBtn}>
-                                <Ionicons name="share-social-outline" size={22} color="#1F2937" />
                             </TouchableOpacity>
                         </View>
                     </View>
@@ -254,10 +392,35 @@ export default function EventDetail() {
 
                     <View style={styles.infoRow}>
                         <Ionicons name="location-outline" size={18} color="#6B7280" />
-                        <Text style={styles.infoText} numberOfLines={2}>
+                        <Text style={styles.infoText} numberOfLines={3}>
                             {event.address}
                         </Text>
                     </View>
+
+                    {/* ═══ ADDRESS DETAILS CARD ═══ */}
+                    {(event.detailAddress || event.address) ? (
+                        <TouchableOpacity
+                            onPress={handleOpenMap}
+                            style={styles.addressCard}
+                            activeOpacity={0.75}
+                        >
+                            <View style={styles.addressCardLeft}>
+                                <View style={styles.addressIconBox}>
+                                    <Ionicons name="map" size={22} color="#42A4F5" />
+                                </View>
+                                <View style={{ flex: 1 }}>
+                                    <Text style={styles.addressCardLabel}>Địa chỉ chi tiết</Text>
+                                    <Text style={styles.addressCardText} numberOfLines={4}>
+                                        {event.detailAddress || event.address}
+                                    </Text>
+                                </View>
+                            </View>
+                            <View style={styles.mapLinkBtn}>
+                                <Ionicons name="navigate" size={16} color="#42A4F5" />
+                                <Text style={styles.mapLinkText}>Xem bản đồ</Text>
+                            </View>
+                        </TouchableOpacity>
+                    ) : null}
 
                     {/* ═══ TAG CHIPS ═══ */}
                     <View style={styles.chipRow}>
@@ -298,34 +461,17 @@ export default function EventDetail() {
                         ) : null}
                     </View>
 
-                    {/* Liên hệ hoạt động */}
-                    {event.hostPhone ? (
-                        <View style={styles.contactRow}>
-                            <Text style={styles.contactLabel}>Liên hệ hoạt động : </Text>
-                            <Text style={styles.contactPhone}>{event.hostPhone}</Text>
-                            <TouchableOpacity onPress={handleCallHost}>
-                                <Ionicons name="call" size={18} color="#42A4F5" style={{ marginLeft: 8 }} />
-                            </TouchableOpacity>
-                        </View>
-                    ) : null}
 
                     {/* ═══ EVENT SESSIONS ═══ */}
                     {event.eventSessions && event.eventSessions.length > 0 && (
                         <View style={styles.section}>
                             <Text style={styles.sectionTitle}>Lịch hoạt động</Text>
                             {event.eventSessions.map((session, idx) => (
-                                <View key={session.id || idx} style={styles.sessionCard}>
-                                    <View style={styles.sessionHeader}>
-                                        <Ionicons name="time-outline" size={16} color="#42A4F5" />
-                                        <Text style={styles.sessionLabel}>Buổi {idx + 1}</Text>
-                                    </View>
-                                    <Text style={styles.sessionTime}>
-                                        {formatSessionTime(session.startDateTime)} – {formatSessionTime(session.endDateTime)}
-                                    </Text>
-                                    <Text style={styles.sessionMeta}>
-                                        TNV cần: {session.expectedVolAmount}  •  Người phục vụ: {session.expectedSerAmount}
-                                    </Text>
-                                </View>
+                                <EventSessionCard
+                                    key={session.id || idx}
+                                    session={session}
+                                    index={idx}
+                                />
                             ))}
                         </View>
                     )}
@@ -354,6 +500,7 @@ export default function EventDetail() {
                     style={[styles.ctaButton, !isRecruiting && styles.ctaButtonDisabled]}
                     activeOpacity={0.8}
                     disabled={!isRecruiting}
+                    onPress={handleApplyCta}
                 >
                     <Text style={styles.ctaButtonText}>
                         {isRecruiting ? 'Tôi muốn đăng ký' : 'Đã hết hạn đăng ký'}
@@ -370,6 +517,25 @@ export default function EventDetail() {
                 images={imageUrls}
                 initialIndex={imageViewerIndex}
                 onClose={() => setImageViewerVisible(false)}
+            />
+
+            {/* ═══ SESSION PICKER (multi-session) ═══ */}
+            <SessionPickerSheet
+                visible={sessionPickerVisible}
+                sessions={event?.eventSessions ?? []}
+                onSelect={handleSessionSelected}
+                onClose={() => setSessionPickerVisible(false)}
+            />
+
+            {/* ═══ APPLY CONFIRMATION MODAL ═══ */}
+            <ApplyConfirmModal
+                visible={applyModalVisible}
+                session={selectedSession}
+                eventName={event?.name ?? ''}
+                eventAddress={event?.address ?? ''}
+                onClose={() => setApplyModalVisible(false)}
+                onConfirm={handleConfirmApply}
+                applying={applying}
             />
         </View>
     );
@@ -598,36 +764,65 @@ const styles = StyleSheet.create({
         lineHeight: 22,
     },
 
-    /* ── Sessions ── */
-    sessionCard: {
-        backgroundColor: '#F9FAFB',
-        borderRadius: 10,
-        padding: 12,
-        marginBottom: 8,
+    /* ── Address card ── */
+    addressCard: {
+        flexDirection: 'column',
+        backgroundColor: '#F0F8FF',
+        borderRadius: 12,
+        padding: 14,
+        marginBottom: 16,
         borderWidth: 1,
-        borderColor: '#E5E7EB',
+        borderColor: '#BBDEFB',
+        gap: 10,
     },
-    sessionHeader: {
+    addressCardLeft: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        gap: 10,
+        flex: 1,
+    },
+    addressIconBox: {
+        width: 40,
+        height: 40,
+        borderRadius: 10,
+        backgroundColor: '#E3F2FD',
+        alignItems: 'center',
+        justifyContent: 'center',
+        flexShrink: 0,
+    },
+    addressCardLabel: {
+        fontSize: 11,
+        color: '#42A4F5',
+        fontWeight: '600',
+        marginBottom: 4,
+    },
+    addressCardText: {
+        fontSize: 13,
+        color: '#1F2937',
+        lineHeight: 18,
+    },
+    mapLinkBtn: {
         flexDirection: 'row',
         alignItems: 'center',
         gap: 6,
-        marginBottom: 4,
+        alignSelf: 'flex-end',
+        backgroundColor: '#E3F2FD',
+        borderRadius: 20,
+        paddingHorizontal: 14,
+        paddingVertical: 7,
     },
-    sessionLabel: {
-        fontSize: 14,
-        fontWeight: '600',
-        color: '#42A4F5',
-    },
-    sessionTime: {
+    mapLinkText: {
         fontSize: 13,
-        color: '#1F2937',
-        marginBottom: 4,
+        color: '#42A4F5',
+        fontWeight: '600',
     },
-    sessionMeta: {
-        fontSize: 12,
-        color: '#6B7280',
+    mapLinkInline: {
+        color: '#42A4F5',
+        textDecorationLine: 'underline',
+        flex: 1,
     },
 
+    /* ── Sessions ── */
     /* ── Bottom CTA ── */
     ctaContainer: {
         position: 'absolute',

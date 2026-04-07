@@ -14,7 +14,7 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 
 // ─── Service menu items ────────────────────────────────────────────────────────
 const SERVICES = [
-    { icon: 'calendar-outline', label: 'Hoạt động\nđã báo danh', color: '#F97316', bg: '#FFF3EB' },
+    { icon: 'calendar-outline', label: 'Hoạt động\nđã đăng ký', color: '#F97316', bg: '#FFF3EB' },
     { icon: 'checkmark-circle-outline', label: 'Hoạt động\nđã điểm danh', color: '#14B8A6', bg: '#E6FAF8' },
     { icon: 'share-social-outline', label: 'Khoảnh\nkhắc của tôi', color: '#8B5CF6', bg: '#F3EEFF' },
     { icon: 'card-outline', label: 'Dụng thẻ\ncộng tác', color: '#3B82F6', bg: '#EBF2FF' },
@@ -185,7 +185,17 @@ export default function Personal() {
                         <Text style={styles.sectionTitle}>Dịch vụ của tôi</Text>
                         <View style={styles.serviceGrid}>
                             {SERVICES.map((svc, idx) => (
-                                <TouchableOpacity key={idx} style={styles.serviceItem} activeOpacity={0.7}>
+                                <TouchableOpacity
+                                    key={idx}
+                                    style={styles.serviceItem}
+                                    activeOpacity={0.7}
+                                    onPress={() => {
+                                        if (idx === 0) {
+                                            // "Hoạt động đã đăng ký" → My Applications screen
+                                            router.push('/screen/my-applications' as any);
+                                        }
+                                    }}
+                                >
                                     <View style={[styles.serviceIconWrap, { backgroundColor: svc.bg }]}>
                                         <Ionicons name={svc.icon as any} size={24} color={svc.color} />
                                     </View>
@@ -241,7 +251,7 @@ const styles = StyleSheet.create({
         paddingVertical: 12,
         alignItems: 'center',
     },
-    logoutText: {
+    logoutBtnText: {
         color: '#ffffff',
         fontWeight: '600',
         fontSize: 16,
