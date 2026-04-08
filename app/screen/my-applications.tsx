@@ -8,7 +8,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { router, useFocusEffect } from 'expo-router';
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useState, useRef } from 'react';
 import {
     ActivityIndicator,
     Alert,
@@ -331,15 +331,29 @@ const MyApplications = () => {
             } else {
                 setItems(response.content);
             }
-            setCurrentPage(response.number);
-            setTotalPages(response.totalPages);
+            
+            // Safely parse pagination info as some BE endpoints wrap pagination in `page: { ... }`
+            const anyResp = response as any;
+            let pNum = typeof response.number === 'number' ? response.number : (anyResp.page?.number ?? 0);
+            let pTotal = typeof response.totalPages === 'number' ? response.totalPages : (anyResp.page?.totalPages ?? 1);
+            
+            pNum = Number.isNaN(pNum) ? 0 : pNum;
+            pTotal = Number.isNaN(pTotal) ? 1 : pTotal;
+            
+            setCurrentPage(pNum);
+            setTotalPages(pTotal);
         },
         []
     );
 
+    const hasFetched = useRef(false);
+
     // Reload list every time the screen gains focus (e.g. returning from event-detail)
     useFocusEffect(
         useCallback(() => {
+            if (hasFetched.current) return;
+            hasFetched.current = true;
+
             let active = true;
             (async () => {
                 setLoading(true);
