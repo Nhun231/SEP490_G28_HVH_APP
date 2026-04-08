@@ -60,6 +60,7 @@ export interface OrganizationSimpleResponse {
     name: string;
     orgType: EOrgType | null;
     numberOfHostedEvents: number;
+    creditHour: number;
 }
 
 export interface OrgListResponse {
@@ -106,9 +107,7 @@ export const getOrganizations = async (params: GetOrgsParams = {}): Promise<OrgL
     query.append('pageNumber', String(params.pageNumber ?? 0));
     query.append('pageSize', String(params.pageSize ?? 10));
     if (params.name) query.append('name', params.name);
-    if (params.orgTypes?.length) {
-        params.orgTypes.forEach(t => query.append('orgTypes', t));
-    }
+    params.orgTypes?.forEach(t => query.append('orgTypes', t));
 
     const url = `/api/v1/organizations?${query.toString()}`;
     const res = await baseAxios.get<OrgListResponse>(url);

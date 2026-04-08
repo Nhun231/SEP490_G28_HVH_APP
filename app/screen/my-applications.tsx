@@ -185,9 +185,9 @@ function ApplicationEventCard({ item, onPress, onCancel }: ApplicationCardProps)
                             <TouchableOpacity
                                 style={cardStyles.cancelBtn}
                                 onPress={() => onCancel(item)}
-                                activeOpacity={0.7}
+                                activeOpacity={0.75}
                             >
-                                <Ionicons name="close-circle-outline" size={13} color="#DC2626" />
+                                <Ionicons name="trash-outline" size={14} color="#FFFFFF" />
                                 <Text style={cardStyles.cancelBtnText}>Hủy đơn</Text>
                             </TouchableOpacity>
                         )}
@@ -284,21 +284,24 @@ const cardStyles = StyleSheet.create({
     cancelBtn: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 4,
-        paddingHorizontal: 10,
-        paddingVertical: 4,
+        gap: 5,
+        paddingHorizontal: 12,
+        paddingVertical: 6,
         borderRadius: 20,
-        borderWidth: 1,
-        borderColor: '#FECACA',
-        backgroundColor: '#FFF5F5',
+        backgroundColor: '#DC2626',
+        elevation: 2,
+        shadowColor: '#DC2626',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.35,
+        shadowRadius: 4,
     },
     cancelBtnDisabled: {
         opacity: 0.5,
     },
     cancelBtnText: {
         fontSize: 12,
-        fontWeight: '600',
-        color: '#DC2626',
+        fontWeight: '700',
+        color: '#FFFFFF',
     },
 });
 
