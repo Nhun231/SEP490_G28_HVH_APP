@@ -158,7 +158,6 @@ export interface EventCreateResponse {
     uploadUrls?: Array<string>;
 }
 
-
 export interface EventDetailResponse {
     id: string;
     name: string;
@@ -178,8 +177,34 @@ export interface EventDetailResponse {
     lngCheckInLocation: number;
     checkInAccuracyMeters: number;
     autoApprove: boolean;
+    servingActivity: boolean;
     activitySubDomain: string;
     note?: string | null;         // Warning message from backend (e.g. image errors)
+}
+
+export interface RegisteredParticipant {
+    applicationId: string;
+    volunteerId: string;
+    email: string;
+    phone: string;
+    nickName: string | null;
+    name: string;
+    avatarUrl: string | null;
+    address: string | null;
+    creditScore: number;
+    honorScore: number;
+    createdAt: string; // ISO datetime
+}
+
+export interface RegisteredParticipantsResponse {
+    registeredParticipants: RegisteredParticipant[];
+    nextCursor: string | null;
+    hasMore: boolean;
+}
+
+export interface ApplicationActionResponse {
+    success: boolean;
+    message?: string;
 }
 
 const isRecord = (value: unknown): value is Record<string, unknown> => {
@@ -415,7 +440,6 @@ export const getMyEvents = async (params: MyEventsParams = {}): Promise<MyEvents
     if (params.status) query.append('status', params.status)
 
     const response = await baseAxios.get<MyEventsResponse>(`${endpoint}?${query.toString()}`)
-    console.log('[getMyEvents] response:', JSON.stringify(response.data, null, 2))
     return response.data
 }
 
@@ -426,6 +450,48 @@ export const getMyEvents = async (params: MyEventsParams = {}): Promise<MyEvents
 export const getEventDetailByHost = async (id: string): Promise<EventDetailResponse> => {
     const endpoint = `${API_BASE}/api/v1/host/event/event-details/${id}`
     const response = await baseAxios.get<EventDetailResponse>(endpoint)
-    console.log('[getEventDetail] response:', JSON.stringify(response.data, null, 2))
+    console.log('[getEventDetailByHost] response:', JSON.stringify(response.data, null, 2))
+    return response.data
+}
+
+/**
+ * Fetch pending participants for a session.
+ * GET /api/v1/host/event-session/{sessionId}/registered-participants
+ */
+export const getRegisteredParticipants = async (
+    sessionId: string,
+    pageNumber: number = 0,
+    pageSize: number = 10,
+): Promise<RegisteredParticipantsResponse> => {
+    const endpoint = `${API_BASE}/api/v1/host/event-session/${sessionId}/registered-participants`
+    const response = await baseAxios.get<RegisteredParticipantsResponse>(endpoint, {
+        params: { pageNumber, pageSize },
+    })
+    console.log('[getRegisteredParticipants] response:', JSON.stringify(response.data, null, 2))
+    return response.data
+}
+
+/**
+ * Approve a volunteer application.
+ * POST /api/v1/host/event-applications/{id}/approve
+ */
+export const approveVolunteerApplication = async (
+    applicationId: string,
+): Promise<ApplicationActionResponse> => {
+    const endpoint = `${API_BASE}/api/v1/host/event-applications/${applicationId}/approve`
+    const response = await baseAxios.put<ApplicationActionResponse>(endpoint)
+    return response.data
+}
+
+/**
+ * Reject a volunteer application.
+ * POST /api/v1/host/event-applications/{id}/reject
+ */
+export const rejectVolunteerApplication = async (
+    applicationId: string,
+    reason: string,
+): Promise<ApplicationActionResponse> => {
+    const endpoint = `${API_BASE}/api/v1/host/event-applications/${applicationId}/reject`
+    const response = await baseAxios.put<ApplicationActionResponse>(endpoint, { rejectionReason: reason })
     return response.data
 }

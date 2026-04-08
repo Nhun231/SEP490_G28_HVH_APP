@@ -129,7 +129,7 @@ const CreateEvent = () => {
     const [detailAddress, setDetailAddress] = useState(prefillEvent?.detailAddress ?? '');
 
     // Serving flag
-    const [isServingEvent, setIsServingEvent] = useState(false);
+    const [isServingEvent, setIsServingEvent] = useState(prefillEvent?.servingActivity ?? false);
 
     // Modal visibility states
     const [showTargetPicker, setShowTargetPicker] = useState(false);

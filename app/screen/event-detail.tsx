@@ -1,13 +1,14 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Image, Alert, Dimensions, ActivityIndicator, } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Image, Alert, Dimensions, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams, Stack } from 'expo-router';
-import { MyEventStatus, EventDetailResponse, getEventDetail, getApiErrorMessage, resolveSupabaseUrl, } from '@/services/event-service';
+import { MyEventStatus, EventDetailResponse, getEventDetailByHost, getApiErrorMessage, resolveSupabaseUrl, } from '@/services/event-service';
 import servedTargetsData from '@/assets/served_targets/doi_tuong_phuc_vu.json';
 import servedPlacesData from '@/assets/served_places/dia_diem_phuc_vu.json';
 import InfoRow from '@/app/components/InfoRow';
 import ServiceGrid, { ServiceOption } from '@/app/components/ServiceGrid';
+import EventSessionModal from '@/app/components/EventSessionModal';
 
 const DEFAULT_IMAGE = 'https://images.unsplash.com/photo-1559027615-cd4628902d4a?w=800&h=400&fit=crop';
 
@@ -73,6 +74,7 @@ const EventDetailScreen = () => {
     const router = useRouter();
     const { id } = useLocalSearchParams<{ id: string }>();
     const [showCheckinCode, setShowCheckinCode] = useState(false);
+    const [sessionModalVisible, setSessionModalVisible] = useState(false);
 
     // API state
     const [event, setEvent] = useState<EventDetailResponse | null>(null);
@@ -87,7 +89,7 @@ const EventDetailScreen = () => {
         setLoading(true);
         setError(null);
         try {
-            const data = await getEventDetail(id);
+            const data = await getEventDetailByHost(id);
             setEvent(data);
             // Reverse-geocode check-in location in background
             reverseGeocode(data.latCheckInLocation, data.lngCheckInLocation)
@@ -197,7 +199,7 @@ const EventDetailScreen = () => {
         },
     });
 
-    const handleParticipants = () => console.log('View participants', event.id);
+    const handleParticipants = () => setSessionModalVisible(true);
     const handleCheckin = () => setShowCheckinCode(prev => !prev);
     const handleReviews = () => router.push({ pathname: '/screen/event-rating', params: { eventId: event.id } });
     const handleMoments = () => router.push({ pathname: '/screen/event-moments', params: { eventId: event.id } });
@@ -225,6 +227,7 @@ const EventDetailScreen = () => {
             return [
                 { key: 'cancel', label: 'Hủy sự kiện', icon: 'close-circle-outline', iconColor: '#EF4444', bgColor: '#FEE2E2', onPress: handleCancelEvent },
                 { key: 'update', label: 'Cập nhật', icon: 'refresh-outline', iconColor: '#059669', bgColor: '#D1FAE5', onPress: handleUpdate },
+                { key: 'participants', label: 'Danh sách đăng ký', icon: 'people-outline', iconColor: '#7C3AED', bgColor: '#EDE9FE', onPress: handleParticipants },
             ];
         }
 
@@ -238,6 +241,8 @@ const EventDetailScreen = () => {
             return [
                 { key: 'cancel', label: 'Hủy sự kiện', icon: 'close-circle-outline', iconColor: '#EF4444', bgColor: '#FEE2E2', onPress: handleCancelEvent },
                 { key: 'checkin', label: 'Tạo mã check-in', icon: 'qr-code-outline', iconColor: '#059669', bgColor: '#D1FAE5', onPress: handleCheckin },
+                { key: 'participants', label: 'Danh sách đăng ký', icon: 'people-outline', iconColor: '#7C3AED', bgColor: '#EDE9FE', onPress: handleParticipants },
+
             ];
         }
 
@@ -245,7 +250,7 @@ const EventDetailScreen = () => {
             return [
                 { key: 'reviews', label: 'Xem đánh giá', icon: 'star-outline', iconColor: '#F59E0B', bgColor: '#FEF3C7', onPress: handleReviews },
                 { key: 'moments', label: 'Khoảnh khắc', icon: 'images-outline', iconColor: '#EC4899', bgColor: '#FCE7F3', onPress: handleMoments },
-                { key: 'participants', label: 'Người tham gia', icon: 'people-outline', iconColor: '#7C3AED', bgColor: '#EDE9FE', onPress: handleParticipants },
+                { key: 'participants', label: 'Danh sách đăng ký', icon: 'people-outline', iconColor: '#7C3AED', bgColor: '#EDE9FE', onPress: handleParticipants },
                 { key: 'complaint', label: 'Khiếu nại điểm', icon: 'alert-circle-outline', iconColor: '#EF4444', bgColor: '#FEE2E2', onPress: handleComplaint },
             ];
         }
@@ -451,6 +456,14 @@ const EventDetailScreen = () => {
                     <View style={{ height: 32 }} />
                 </ScrollView>
             </SafeAreaView>
+
+            <EventSessionModal
+                visible={sessionModalVisible}
+                onClose={() => setSessionModalVisible(false)}
+                eventId={event.id}
+                eventName={event.name}
+                sessions={event.eventSessions}
+            />
         </>
     );
 };

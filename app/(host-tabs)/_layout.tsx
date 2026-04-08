@@ -42,15 +42,6 @@ const HostTabLayout = () => {
                 }}
             />
             <Tabs.Screen
-                name="members"
-                options={{
-                    title: 'Thành viên',
-                    tabBarIcon: ({ color, size }) => (
-                        <Ionicons name="people" size={size} color={color} />
-                    ),
-                }}
-            />
-            <Tabs.Screen
                 name="personal"
                 options={{
                     title: 'Cá nhân',

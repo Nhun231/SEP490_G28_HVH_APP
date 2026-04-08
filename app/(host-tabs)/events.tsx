@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, FlatList, ScrollView, RefreshControl, TextInput, Animated, Keyboard } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, FlatList, ScrollView, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useFocusEffect } from 'expo-router';
@@ -7,6 +7,7 @@ import { getMyEvents, MyEventStatus, getApiErrorMessage } from '@/services/event
 import HostEventCard, { HostEvent, EventStatus } from '../components/HostEventCard';
 import StatusChip, { ChipFilter } from '../components/StatusChip';
 import SkeletonCard from '../components/SkeletonCard';
+import EventListHeader, { MasterTabConfig } from '../components/EventListHeader';
 
 // keep events data in cache for each chip key 
 type CacheEntry = { events: HostEvent[]; hasMore: boolean; page: number; ts: number };
@@ -15,12 +16,17 @@ const eventCache = new Map<string, CacheEntry>();
 
 type MasterTab = 'active' | 'history';
 
+const MASTER_TABS: MasterTabConfig<MasterTab>[] = [
+    { key: 'active', label: 'Đang triển khai', icon: 'flash-outline' },
+    { key: 'history', label: 'Lịch sử', icon: 'archive-outline' },
+];
+
 const ACTIVE_CHIPS: ChipFilter[] = [
-    { key: 'EDITING', label: 'Soạn thảo' },
+    { key: 'EDITING', label: 'Bản nháp' },
     { key: 'SUBMITTED', label: 'Chờ duyệt' },
     { key: 'APPROVED_BY_MNG', label: 'Tổ chức duyệt' },
     { key: 'REJECTED_BY_MNG', label: 'Tổ chức từ chối' },
-    { key: 'REJECTED_BY_AD', label: 'Admin từ chối' },
+    { key: 'REJECTED_BY_AD', label: 'Quản trị viên từ chối' },
     { key: 'RECRUITING', label: 'Tuyển TNV' },
     { key: 'UPCOMING', label: 'Sắp diễn ra' },
     { key: 'ONGOING', label: 'Đang diễn ra' },
@@ -34,7 +40,6 @@ const HISTORY_CHIPS: ChipFilter[] = [
 
 const EventManagement = () => {
     const router = useRouter();
-    const inputRef = useRef<TextInput>(null);
 
     // Master tab & chip filter
     const [masterTab, setMasterTab] = useState<MasterTab>('active');
@@ -45,7 +50,6 @@ const EventManagement = () => {
     const [searchVisible, setSearchVisible] = useState(false);
     const [searchText, setSearchText] = useState('');
     const [searchQuery, setSearchQuery] = useState('');
-    const searchAnim = useRef(new Animated.Value(0)).current;
     const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     // API state
@@ -61,48 +65,33 @@ const EventManagement = () => {
     const isLoadingMoreRef = useRef(false); // prevent duplicate load more request
     const PAGE_SIZE = 10;
 
-    // Search bar animation
-    const openSearch = () => {
-        setSearchVisible(true);
-        Animated.spring(searchAnim, {
-            toValue: 1,
-            useNativeDriver: false,
-            bounciness: 6,
-        }).start(() => {
-            // Focus after animation
-            setTimeout(() => inputRef.current?.focus(), 50);
-        });
-    };
-
-    const closeSearch = () => {
-        Keyboard.dismiss();
-        setSearchText('');
-        setSearchQuery('');
-        Animated.timing(searchAnim, {
-            toValue: 0,
-            duration: 200,
-            useNativeDriver: false,
-        }).start(() => setSearchVisible(false));
-    };
-
+    // Search handlers
     const handleSearchChange = (text: string) => {
         setSearchText(text);
-        // only update query when user stop typing for 400ms
         if (debounceRef.current) clearTimeout(debounceRef.current);
         debounceRef.current = setTimeout(() => {
             setSearchQuery(text.trim());
         }, 400);
     };
 
+    const handleSearchClear = () => {
+        setSearchText('');
+        setSearchQuery('');
+    };
+
+    const handleSearchToggle = () => {
+        if (searchVisible) {
+            setSearchVisible(false);
+            setSearchText('');
+            setSearchQuery('');
+        } else {
+            setSearchVisible(true);
+        }
+    };
+
     useEffect(() => () => {
         if (debounceRef.current) clearTimeout(debounceRef.current);
     }, []);
-
-    // Animated height for the search bar container
-    const searchBarHeight = searchAnim.interpolate({
-        inputRange: [0, 1],
-        outputRange: [0, 52],
-    });
 
     // API fetch
     const fetchEvents = useCallback(async (page: number, isRefresh = false) => {
@@ -227,6 +216,9 @@ const EventManagement = () => {
         setMasterTab(tab);
         if (tab === 'active') setActiveChip('EDITING');
         else setHistoryChip('ENDED');
+        // Reset search when switching tabs
+        setSearchText('');
+        setSearchQuery('');
     };
 
     const handleEventPress = (id: string) => {
@@ -300,86 +292,20 @@ const EventManagement = () => {
     // JSX
     return (
         <SafeAreaView style={styles.container} edges={['top']}>
-            {/* Header */}
-            <View style={styles.header}>
-                <View style={{ flex: 1 }}>
-                    <Text style={styles.headerTitle}>Sự kiện của tôi</Text>
-                    <Text style={styles.headerSub}>Quản lý toàn bộ sự kiện bạn tổ chức</Text>
-                </View>
-                <TouchableOpacity
-                    style={[styles.headerIconBtn, searchVisible && styles.headerIconBtnActive]}
-                    onPress={searchVisible ? closeSearch : openSearch}
-                    activeOpacity={0.7}
-                >
-                    <Ionicons
-                        name={searchVisible ? 'close' : 'search-outline'}
-                        size={22}
-                        color="#FFFFFF"
-                    />
-                </TouchableOpacity>
-            </View>
-
-            {/* Animated Search Bar */}
-            <Animated.View style={[styles.searchWrapper, { height: searchBarHeight }]}>
-                {searchVisible && (
-                    <View style={styles.searchBar}>
-                        <Ionicons name="search-outline" size={18} color="#94A3B8" style={styles.searchIcon} />
-                        <TextInput
-                            ref={inputRef}
-                            style={styles.searchInput}
-                            placeholder="Tìm kiếm sự kiện..."
-                            placeholderTextColor="#94A3B8"
-                            value={searchText}
-                            onChangeText={handleSearchChange}
-                            returnKeyType="search"
-                            autoCorrect={false}
-                            autoCapitalize="none"
-                        />
-                        {searchText.length > 0 && (
-                            <TouchableOpacity
-                                onPress={() => { setSearchText(''); setSearchQuery(''); }}
-                                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                            >
-                                <Ionicons name="close-circle" size={18} color="#CBD5E1" />
-                            </TouchableOpacity>
-                        )}
-                    </View>
-                )}
-            </Animated.View>
-
-            {/* Master Tabs */}
-            <View style={styles.masterTabRow}>
-                <TouchableOpacity
-                    style={[styles.masterTab, masterTab === 'active' && styles.masterTabActive]}
-                    onPress={() => handleMasterTab('active')}
-                    activeOpacity={0.8}
-                >
-                    <Ionicons
-                        name="flash-outline"
-                        size={15}
-                        color={masterTab === 'active' ? '#42A4F5' : 'rgba(255,255,255,0.8)'}
-                        style={{ marginRight: 5 }}
-                    />
-                    <Text style={[styles.masterTabText, masterTab === 'active' && styles.masterTabTextActive]}>
-                        Đang triển khai
-                    </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                    style={[styles.masterTab, masterTab === 'history' && styles.masterTabActive]}
-                    onPress={() => handleMasterTab('history')}
-                    activeOpacity={0.8}
-                >
-                    <Ionicons
-                        name="archive-outline"
-                        size={15}
-                        color={masterTab === 'history' ? '#42A4F5' : 'rgba(255,255,255,0.8)'}
-                        style={{ marginRight: 5 }}
-                    />
-                    <Text style={[styles.masterTabText, masterTab === 'history' && styles.masterTabTextActive]}>
-                        Lịch sử
-                    </Text>
-                </TouchableOpacity>
-            </View>
+            {/* Shared Header: title, search bar, master tabs */}
+            <EventListHeader
+                title="Sự kiện của tôi"
+                subtitle="Quản lý toàn bộ sự kiện bạn tổ chức"
+                masterTabs={MASTER_TABS}
+                masterTab={masterTab}
+                onMasterTabChange={handleMasterTab}
+                searchPlaceholder="Tìm kiếm sự kiện..."
+                searchText={searchText}
+                onSearchChange={handleSearchChange}
+                onSearchClear={handleSearchClear}
+                searchVisible={searchVisible}
+                onSearchToggle={handleSearchToggle}
+            />
 
             {/* Chip bar + List */}
             <View style={styles.listWrapper}>
@@ -396,7 +322,6 @@ const EventManagement = () => {
                                 key={chip.key}
                                 chip={chip}
                                 isActive={currentChip === chip.key}
-                                count={chipCounts[chip.key] ?? 0}
                                 onPress={() => setCurrentChip(chip.key)}
                             />
                         ))}
@@ -404,27 +329,29 @@ const EventManagement = () => {
                 </View>
 
                 {/* Event list */}
-                <FlatList
-                    data={events}
-                    keyExtractor={item => item.id}
-                    renderItem={({ item }) => <HostEventCard item={item} onPress={handleEventPress} />}
-                    style={[styles.list, reloading && { opacity: 0.55 }]}
-                    contentContainerStyle={styles.listContent}
-                    showsVerticalScrollIndicator={false}
-                    keyboardShouldPersistTaps="handled"
-                    ListEmptyComponent={renderEmpty}
-                    ListFooterComponent={renderFooter}
-                    refreshControl={
-                        <RefreshControl
-                            refreshing={refreshing}
-                            onRefresh={handleRefresh}
-                            colors={['#42A4F5']}
-                            tintColor={'#42A4F5'}
-                        />
-                    }
-                    onEndReached={handleLoadMore}
-                    onEndReachedThreshold={0.3}
-                />
+                <View style={{ flex: 1 }} pointerEvents={reloading ? 'none' : 'auto'}>
+                    <FlatList
+                        data={events}
+                        keyExtractor={item => item.id}
+                        renderItem={({ item }) => <HostEventCard item={item} onPress={handleEventPress} />}
+                        style={[styles.list, reloading && { opacity: 0.55 }]}
+                        contentContainerStyle={styles.listContent}
+                        showsVerticalScrollIndicator={false}
+                        keyboardShouldPersistTaps="handled"
+                        ListEmptyComponent={renderEmpty}
+                        ListFooterComponent={renderFooter}
+                        refreshControl={
+                            <RefreshControl
+                                refreshing={refreshing}
+                                onRefresh={handleRefresh}
+                                colors={['#42A4F5']}
+                                tintColor={'#42A4F5'}
+                            />
+                        }
+                        onEndReached={handleLoadMore}
+                        onEndReachedThreshold={0.3}
+                    />
+                </View>
             </View>
 
             {/* FAB */}
@@ -436,7 +363,7 @@ const EventManagement = () => {
                 <Ionicons name="add" size={24} color="#FFFFFF" />
                 <Text style={styles.fabText}>Tạo sự kiện mới</Text>
             </TouchableOpacity>
-        </SafeAreaView>
+        </SafeAreaView >
     );
 };
 
@@ -444,102 +371,6 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: '#42A4F5',
-    },
-
-    // Header
-    header: {
-        backgroundColor: '#42A4F5',
-        paddingHorizontal: 20,
-        paddingTop: 4,
-        paddingBottom: 12,
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-    },
-    headerTitle: {
-        color: '#FFFFFF',
-        fontSize: 22,
-        fontWeight: '800',
-        letterSpacing: 0.2,
-    },
-    headerSub: {
-        color: 'rgba(255,255,255,0.82)',
-        fontSize: 13,
-        marginTop: 2,
-    },
-    headerIconBtn: {
-        width: 40,
-        height: 40,
-        borderRadius: 20,
-        backgroundColor: 'rgba(255,255,255,0.2)',
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginLeft: 10,
-    },
-    headerIconBtnActive: {
-        backgroundColor: 'rgba(255,255,255,0.35)',
-    },
-
-    // Animated search bar
-    searchWrapper: {
-        overflow: 'hidden',
-        paddingHorizontal: 16,
-        backgroundColor: '#42A4F5',
-    },
-    searchBar: {
-        flex: 1,
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: 'rgba(255,255,255,0.95)',
-        borderRadius: 12,
-        paddingHorizontal: 12,
-        marginBottom: 10,
-        height: 42,
-    },
-    searchIcon: {
-        marginRight: 8,
-    },
-    searchInput: {
-        flex: 1,
-        fontSize: 15,
-        color: '#1E293B',
-        paddingVertical: 0,
-        height: '100%',
-    },
-
-    // Master tabs
-    masterTabRow: {
-        flexDirection: 'row',
-        backgroundColor: 'rgba(255,255,255,0.18)',
-        marginHorizontal: 20,
-        marginBottom: 12,
-        borderRadius: 12,
-        padding: 4,
-        gap: 4,
-    },
-    masterTab: {
-        flex: 1,
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        paddingVertical: 10,
-        borderRadius: 10,
-    },
-    masterTabActive: {
-        backgroundColor: '#FFFFFF',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.12,
-        shadowRadius: 4,
-        elevation: 3,
-    },
-    masterTabText: {
-        fontSize: 14,
-        fontWeight: '600',
-        color: 'rgba(255,255,255,0.85)',
-    },
-    masterTabTextActive: {
-        color: '#42A4F5',
     },
 
     // Chip bar
