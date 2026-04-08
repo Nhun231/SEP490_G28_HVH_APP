@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, ActivityIndicator, Dimensions, Image } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, ActivityIndicator, Dimensions, Image, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useFocusEffect } from 'expo-router';
@@ -77,7 +77,22 @@ const QUICK_ACTIONS = [
         label: 'Danh sách\nTNV',
         icon: 'people' as const,
         color: '#00BCD4',
-        onPress: () => { /* TODO */ },
+        onPress: async (router: ReturnType<typeof useRouter>) => {
+            try {
+                const res = await getMyEvents({ pageSize: 1, pageNumber: 0, status: 'ONGOING' });
+                if (res.content && res.content.length > 0) {
+                    const eventId = res.content[0].id;
+                    router.push({
+                        pathname: '/screen/event-detail',
+                        params: { id: eventId, openSessionModal: 'true' }
+                    });
+                } else {
+                    Alert.alert('Thông báo', 'Không có sự kiện nào đang diễn ra.');
+                }
+            } catch (err) {
+                Alert.alert('Lỗi', 'Không thể lấy thông tin sự kiện.');
+            }
+        },
     },
     {
         key: 'profile',
@@ -119,7 +134,7 @@ const Dashboard = () => {
         try {
             setError(null);
 
-            // Extract total count from confirmed API format: { page: { totalElements: N } }
+            // Extract total count from nested page object
             const getCount = (res: MyEventsResponse): number => res.page.totalElements;
 
             // Fetch all status counts in parallel (pageSize=1 → minimal bandwidth)
@@ -127,7 +142,7 @@ const Dashboard = () => {
                 STAT_FETCH.map(([, status]) =>
                     status
                         ? getMyEvents({ pageSize: 1, pageNumber: 0, status })
-                        : Promise.resolve({ content: [], page: { totalElements: 0, totalPages: 0, size: 0, number: 0 } })
+                        : Promise.resolve({ content: [], page: { totalElements: 0, totalPages: 0, size: 0, number: 0 } } as MyEventsResponse)
                 )
             );
 

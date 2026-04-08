@@ -64,8 +64,10 @@ const EventApplicationsScreen = () => {
     const eventStatus = params.eventStatus || '';
     const sessionStartTime = params.sessionStartTime || null;
 
-    // Master tab state
-    const [masterTab, setMasterTab] = useState<AppTab>('PENDING');
+    // Master tab state — default to APPROVED for ONGOING events
+    const [masterTab, setMasterTab] = useState<AppTab>(
+        eventStatus === 'ONGOING' ? 'APPROVED' : 'PENDING'
+    );
 
     // Search state
     const [searchVisible, setSearchVisible] = useState(false);
