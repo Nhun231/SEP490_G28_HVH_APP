@@ -460,7 +460,6 @@ const EventDetailScreen = () => {
             <EventSessionModal
                 visible={sessionModalVisible}
                 onClose={() => setSessionModalVisible(false)}
-                eventId={event.id}
                 eventName={event.name}
                 sessions={event.eventSessions}
             />
@@ -612,12 +611,6 @@ const styles = StyleSheet.create({
         padding: 16,
         gap: 8,
     },
-    titleRow: {
-        flexDirection: 'row',
-        alignItems: 'flex-start',
-        gap: 10,
-        marginBottom: 10,
-    },
     eventTitle: {
         fontSize: 18,
         fontWeight: '800',
@@ -638,11 +631,6 @@ const styles = StyleSheet.create({
     },
 
     // Banner Image
-    bannerContainer: {
-        width: SCREEN_WIDTH,
-        height: 220,
-        marginBottom: 8,
-    },
     bannerImage: {
         width: SCREEN_WIDTH,
         height: 220,

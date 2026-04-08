@@ -81,7 +81,7 @@ export const registerVolunteerAccount = async (
 ): Promise<RegisterVolunteerResponse> => {
     try {
         const response = await baseAxios.post<RegisterVolunteerResponse>(
-            `/api/v1/volunteer/register-vol-acc`,
+            `/api/v1/volunteers/register-vol-acc`,
             params
         )
         return response.data

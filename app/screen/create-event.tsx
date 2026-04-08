@@ -1113,7 +1113,7 @@ const CreateEvent = () => {
                             {/* Is Serving Event Flag */}
                             <View style={styles.fieldWrapper}>
                                 <Text style={styles.fieldLabel}>Sự kiện có tính chất phục vụ</Text>
-                                <View style={styles.flagRow}>
+                                <View style={styles.toggleRow}>
                                     <TouchableOpacity
                                         onPress={() => setIsServingEvent(false)}
                                         style={[styles.toggleBtn, !isServingEvent ? styles.toggleBtnActive : styles.toggleBtnInactive]}
@@ -1625,10 +1625,6 @@ const styles = StyleSheet.create({
 
     // Toggle buttons (approval mode & serving flag)
     toggleRow: {
-        flexDirection: 'row',
-        gap: 10,
-    },
-    flagRow: {
         flexDirection: 'row',
         gap: 10,
     },
