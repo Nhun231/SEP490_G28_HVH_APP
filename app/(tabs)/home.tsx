@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useCallback } from "react";
+import { useFocusEffect } from "expo-router";
 import { ScrollView, View, ActivityIndicator, Text } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
@@ -25,9 +26,11 @@ const Home = () => {
         }
     }, []);
 
-    useEffect(() => {
-        fetchEvents();
-    }, [fetchEvents]);
+    useFocusEffect(
+        useCallback(() => {
+            fetchEvents();
+        }, [fetchEvents])
+    );
 
     const handleSearch = (text: string) => {
         // console.log('Search:', text); // Removed

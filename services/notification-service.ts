@@ -68,7 +68,7 @@ export async function registerFcmToken(): Promise<string | null> {
     console.log('[Notification] FCM Token:', fcmToken);
 
     // Send token to your backend so it can push notifications to this device
-    await baseAxios.post('/notification/register-token', {
+    await baseAxios.post('/notifications/register-token', {
       token: fcmToken,
       platform: Platform.OS,
     });

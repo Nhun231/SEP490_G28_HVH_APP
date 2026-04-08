@@ -14,7 +14,7 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 
 // ─── Service menu items ────────────────────────────────────────────────────────
 const SERVICES = [
-    { icon: 'calendar-outline', label: 'Hoạt động\nđã báo danh', color: '#F97316', bg: '#FFF3EB' },
+    { icon: 'calendar-outline', label: 'Hoạt động\nđã đăng ký', color: '#F97316', bg: '#FFF3EB' },
     { icon: 'checkmark-circle-outline', label: 'Hoạt động\nđã điểm danh', color: '#14B8A6', bg: '#E6FAF8' },
     { icon: 'share-social-outline', label: 'Khoảnh\nkhắc của tôi', color: '#8B5CF6', bg: '#F3EEFF' },
     { icon: 'card-outline', label: 'Dụng thẻ\ncộng tác', color: '#3B82F6', bg: '#EBF2FF' },
@@ -44,8 +44,6 @@ export default function Personal() {
         )
     }
 
-    const email = session?.user?.email ?? ''
-    const memberId = session?.user?.id ?? ''
 
     // ── Guest view ─────────────────────────────────────────────────────────────
     if (!isLoggedIn) {
@@ -142,26 +140,8 @@ export default function Personal() {
                             <Text style={styles.profileMotto}>Làm công ích sống, sống ý nghĩa công ích</Text>
                         </View>
                     </View>
-
-                    {/* ── Card 1: Member ID ───────────────────────────── */}
-                    <View style={styles.card}>
-                        <View style={styles.memberIdRow}>
-                            <View>
-                                <Text style={styles.cardLabel}>MÃ TÌNH NGUYỆN VIÊN</Text>
-                                <View style={styles.memberIdValueRow}>
-                                    <Text style={styles.memberId}>{memberId}</Text>
-                                    <TouchableOpacity style={styles.copyBtn}>
-                                        <Ionicons name="copy-outline" size={16} color="#9CA3AF" />
-                                    </TouchableOpacity>
-                                </View>
-                            </View>
-                            <TouchableOpacity style={styles.profileBtn}>
-                                <Ionicons name="create-outline" size={14} color="#42A4F5" />
-                                <Text style={styles.profileBtnText}>Thông tin cá nhân</Text>
-                            </TouchableOpacity>
-                        </View>
-                    </View>
                 </View>
+
 
                 {/* ── Card 2: Certificate store ─────────────────────── */}
                 <View style={styles.section}>
@@ -185,7 +165,17 @@ export default function Personal() {
                         <Text style={styles.sectionTitle}>Dịch vụ của tôi</Text>
                         <View style={styles.serviceGrid}>
                             {SERVICES.map((svc, idx) => (
-                                <TouchableOpacity key={idx} style={styles.serviceItem} activeOpacity={0.7}>
+                                <TouchableOpacity
+                                    key={idx}
+                                    style={styles.serviceItem}
+                                    activeOpacity={0.7}
+                                    onPress={() => {
+                                        if (idx === 0) {
+                                            // "Hoạt động đã đăng ký" → My Applications screen
+                                            router.push('/screen/my-applications' as any);
+                                        }
+                                    }}
+                                >
                                     <View style={[styles.serviceIconWrap, { backgroundColor: svc.bg }]}>
                                         <Ionicons name={svc.icon as any} size={24} color={svc.color} />
                                     </View>
@@ -241,7 +231,7 @@ const styles = StyleSheet.create({
         paddingVertical: 12,
         alignItems: 'center',
     },
-    logoutText: {
+    logoutBtnText: {
         color: '#ffffff',
         fontWeight: '600',
         fontSize: 16,
@@ -313,46 +303,6 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.07,
         shadowRadius: 6,
         elevation: 3,
-    },
-
-    // Member ID card
-    memberIdRow: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-    },
-    cardLabel: {
-        fontSize: 10,
-        color: '#9CA3AF',
-        fontWeight: '600',
-        letterSpacing: 0.5,
-        marginBottom: 6,
-    },
-    memberIdValueRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 6,
-    },
-    memberId: {
-        fontSize: 16,
-        fontWeight: '700',
-        color: '#1F2937',
-    },
-    copyBtn: { padding: 2 },
-    profileBtn: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        borderWidth: 1,
-        borderColor: '#42A4F5',
-        borderRadius: 8,
-        paddingHorizontal: 10,
-        paddingVertical: 6,
-        gap: 4,
-    },
-    profileBtnText: {
-        fontSize: 12,
-        color: '#42A4F5',
-        fontWeight: '600',
     },
 
     // Section spacing

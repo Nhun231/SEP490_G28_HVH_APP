@@ -6,6 +6,9 @@
   <component name="ChangeListManager">
     <list default="true" id="75668f23-b4c0-497d-81ac-fa2ee3afdab7" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/(tabs)/personal.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/(tabs)/personal.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/screen/my-applications.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/screen/my-applications.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/context/AuthContext.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/context/AuthContext.tsx" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -44,7 +47,7 @@
   "keyToString": {
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "RunOnceActivity.git.unshallow": "true",
-    "git-widget-placeholder": "dev",
+    "git-widget-placeholder": "feature/uc012-view-application-status",
     "ignore.virus.scanning.warn.message": "true",
     "last_opened_file_path": "D:/Documents/9th_semester/GRADUATEEEEE/SEP490_G28_HVH_APP",
     "node.js.detected.package.eslint": "true",
@@ -110,6 +113,8 @@
       <workItem from="1773658617417" duration="790000" />
       <workItem from="1773911188372" duration="3466000" />
       <workItem from="1774459017494" duration="1299000" />
+      <workItem from="1774629632998" duration="139000" />
+      <workItem from="1775531477225" duration="570000" />
     </task>
     <servers />
   </component>
@@ -127,7 +132,7 @@
                   <entry key="branch">
                     <value>
                       <list>
-                        <option value="dev" />
+                        <option value="feature/uc007-search-volunteer-event" />
                       </list>
                     </value>
                   </entry>
