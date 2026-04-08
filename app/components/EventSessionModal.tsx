@@ -14,6 +14,7 @@ export interface EventSessionModalProps {
     visible: boolean;
     onClose: () => void;
     eventName: string;
+    eventStatus: string;
     sessions: EventSessionResponse[];
 }
 
@@ -21,15 +22,16 @@ const EventSessionModal: React.FC<EventSessionModalProps> = ({
     visible,
     onClose,
     eventName,
+    eventStatus,
     sessions,
 }) => {
     const router = useRouter();
 
-    const handleSelectSession = (sessionId: string) => {
+    const handleSelectSession = (sessionId: string, sessionStartTime: string) => {
         onClose();
         router.push({
             pathname: '/screen/event-applications',
-            params: { eventName, sessionId },
+            params: { eventName, sessionId, eventStatus, sessionStartTime },
         });
     };
 
@@ -65,7 +67,7 @@ const EventSessionModal: React.FC<EventSessionModalProps> = ({
                                     key={session.id}
                                     style={styles.sessionCard}
                                     activeOpacity={0.85}
-                                    onPress={() => handleSelectSession(session.id)}
+                                    onPress={() => handleSelectSession(session.id, session.startDateTime)}
                                 >
                                     {/* Index badge */}
                                     <View style={styles.indexBadge}>

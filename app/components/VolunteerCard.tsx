@@ -7,11 +7,14 @@ export interface VolunteerApplication {
     id: string;
     name: string;
     nickName?: string | null;
+    email?: string | null;
+    phone?: string | null;
+    checkInTime?: string | null;
     avatarUrl?: string | null;
     creditScore: number;
     honorScore: number;
     address: string;
-    createdAt: string; // ISO datetime string
+    createdAt: string;
     status: 'PENDING' | 'APPROVED';
 }
 
@@ -19,6 +22,8 @@ interface VolunteerCardProps {
     item: VolunteerApplication;
     onApprove: (item: VolunteerApplication) => void;
     onReject: (item: VolunteerApplication, reason?: string) => void;
+    eventStatus?: string;
+    sessionStartTime?: string | null;
 }
 
 // get initials for avatar default
@@ -42,7 +47,15 @@ const formatRelativeTime = (isoString: string): string => {
     return `${diffDays} ngày trước`;
 };
 
-const VolunteerCard = ({ item, onApprove, onReject }: VolunteerCardProps) => {
+// format ISO datetime to "X giờ Y phút" for check-in display
+const formatCheckInTime = (isoString: string): string => {
+    const d = new Date(isoString);
+    const h = d.getHours();
+    const m = d.getMinutes();
+    return `${h} giờ ${m > 0 ? m + ' phút' : ''}`;
+};
+
+const VolunteerCard: React.FC<VolunteerCardProps> = ({ item, onApprove, onReject, eventStatus, sessionStartTime }) => {
     const [modalVisible, setModalVisible] = useState(false);
     const [pendingAction, setPendingAction] = useState<ModalAction>('approve');
 
@@ -94,10 +107,45 @@ const VolunteerCard = ({ item, onApprove, onReject }: VolunteerCardProps) => {
                             <Ionicons name="location-outline" size={14} color="#64748B" />
                             <Text style={styles.infoText} numberOfLines={1}>Địa chỉ: {displayAddress}</Text>
                         </View>
+                        {item.status === 'APPROVED' && item.email && (
+                            <View style={styles.infoRow}>
+                                <Ionicons name="mail-outline" size={14} color="#64748B" />
+                                <Text style={styles.infoText} numberOfLines={1}>Email: {item.email}</Text>
+                            </View>
+                        )}
 
-                        <Text style={styles.timeAgo}>
-                            Đăng ký: {formatRelativeTime(item.createdAt)}
-                        </Text>
+                        {item.status === 'APPROVED' && item.phone && (
+                            <View style={styles.infoRow}>
+                                <Ionicons name="call-outline" size={14} color="#64748B" />
+                                <Text style={styles.infoText} numberOfLines={1}>SĐT: {item.phone}</Text>
+                            </View>
+                        )}
+
+                        {/* Attendance badge — only for ONGOING events */}
+                        {item.status === 'APPROVED' && eventStatus === 'ONGOING' && (() => {
+                            const checkedIn = !!item.checkInTime &&
+                                (!sessionStartTime ||
+                                    new Date(item.checkInTime) >= new Date(sessionStartTime));
+                            return checkedIn ? (
+                                    <View style={[styles.attendanceBadge, styles.attendanceBadgePresent]}>
+                                    <Ionicons name="checkmark-circle" size={14} color="#16A34A" />
+                                    <Text style={[styles.attendanceBadgeText, { color: '#16A34A' }]}>
+                                        {'Đã điểm danh (Lúc: ' + formatCheckInTime(item.checkInTime!) + ')'}
+                                    </Text>
+                                </View>
+                            ) : (
+                                <View style={[styles.attendanceBadge, styles.attendanceBadgeAbsent]}>
+                                    <Ionicons name="close-circle" size={14} color="#DC2626" />
+                                    <Text style={[styles.attendanceBadgeText, { color: '#DC2626' }]}>Vắng</Text>
+                                </View>
+                            );
+                        })()}
+
+                        {item.status === 'PENDING' && (
+                            <Text style={styles.timeAgo}>
+                                Đăng ký: {formatRelativeTime(item.createdAt)}
+                            </Text>
+                        )}
                     </View>
                 </View>
 
@@ -235,5 +283,25 @@ const styles = StyleSheet.create({
         fontSize: 14,
         fontWeight: '700',
         color: '#FFFFFF',
+    },
+    attendanceBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        alignSelf: 'flex-start',
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+        borderRadius: 20,
+        marginTop: 6,
+        gap: 4,
+    },
+    attendanceBadgePresent: {
+        backgroundColor: '#DCFCE7',
+    },
+    attendanceBadgeAbsent: {
+        backgroundColor: '#FEE2E2',
+    },
+    attendanceBadgeText: {
+        fontSize: 12,
+        fontWeight: '700',
     },
 });

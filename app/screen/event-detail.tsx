@@ -461,6 +461,7 @@ const EventDetailScreen = () => {
                 visible={sessionModalVisible}
                 onClose={() => setSessionModalVisible(false)}
                 eventName={event.name}
+                eventStatus={event.status}
                 sessions={event.eventSessions}
             />
         </>
