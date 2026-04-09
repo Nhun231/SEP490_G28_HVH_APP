@@ -6,9 +6,9 @@ import { useRouter, useLocalSearchParams, Stack } from 'expo-router';
 import { MyEventStatus, EventDetailResponse, getEventDetailByHost, getApiErrorMessage, resolveSupabaseUrl, } from '@/services/event-service';
 import servedTargetsData from '@/assets/served_targets/doi_tuong_phuc_vu.json';
 import servedPlacesData from '@/assets/served_places/dia_diem_phuc_vu.json';
-import InfoRow from '@/app/components/InfoRow';
-import ServiceGrid, { ServiceOption } from '@/app/components/ServiceGrid';
-import EventSessionModal from '@/app/components/EventSessionModal';
+import InfoRow from '@/app/components/host/event-details/InfoRow';
+import ServiceGrid, { ServiceOption } from '@/app/components/host/event-details/ServiceGrid';
+import EventSessionModal from '@/app/components/host/event-details/EventSessionModal';
 import CancelEventModal from '@/app/components/CancelEventModal';
 
 const DEFAULT_IMAGE = 'https://images.unsplash.com/photo-1559027615-cd4628902d4a?w=800&h=400&fit=crop';

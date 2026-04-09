@@ -37,15 +37,13 @@ export default function Personal() {
                     style: 'destructive',
                     onPress: async () => {
                         await logout()
-                        router.replace('/(tabs)/home' as any)
+                        router.replace('/(vol-tabs)/home' as any)
                     },
                 },
             ]
         )
     }
 
-    const email = session?.user?.email ?? ''
-    const memberId = session?.user?.id ?? ''
 
     // ── Guest view ─────────────────────────────────────────────────────────────
     if (!isLoggedIn) {
@@ -142,26 +140,8 @@ export default function Personal() {
                             <Text style={styles.profileMotto}>Làm công ích sống, sống ý nghĩa công ích</Text>
                         </View>
                     </View>
-
-                    {/* ── Card 1: Member ID ───────────────────────────── */}
-                    <View style={styles.card}>
-                        <View style={styles.memberIdRow}>
-                            <View>
-                                <Text style={styles.cardLabel}>MÃ TÌNH NGUYỆN VIÊN</Text>
-                                <View style={styles.memberIdValueRow}>
-                                    <Text style={styles.memberId}>{memberId}</Text>
-                                    <TouchableOpacity style={styles.copyBtn}>
-                                        <Ionicons name="copy-outline" size={16} color="#9CA3AF" />
-                                    </TouchableOpacity>
-                                </View>
-                            </View>
-                            <TouchableOpacity style={styles.profileBtn}>
-                                <Ionicons name="create-outline" size={14} color="#42A4F5" />
-                                <Text style={styles.profileBtnText}>Thông tin cá nhân</Text>
-                            </TouchableOpacity>
-                        </View>
-                    </View>
                 </View>
+
 
                 {/* ── Card 2: Certificate store ─────────────────────── */}
                 <View style={styles.section}>
@@ -323,46 +303,6 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.07,
         shadowRadius: 6,
         elevation: 3,
-    },
-
-    // Member ID card
-    memberIdRow: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-    },
-    cardLabel: {
-        fontSize: 10,
-        color: '#9CA3AF',
-        fontWeight: '600',
-        letterSpacing: 0.5,
-        marginBottom: 6,
-    },
-    memberIdValueRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 6,
-    },
-    memberId: {
-        fontSize: 16,
-        fontWeight: '700',
-        color: '#1F2937',
-    },
-    copyBtn: { padding: 2 },
-    profileBtn: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        borderWidth: 1,
-        borderColor: '#42A4F5',
-        borderRadius: 8,
-        paddingHorizontal: 10,
-        paddingVertical: 6,
-        gap: 4,
-    },
-    profileBtnText: {
-        fontSize: 12,
-        color: '#42A4F5',
-        fontWeight: '600',
     },
 
     // Section spacing

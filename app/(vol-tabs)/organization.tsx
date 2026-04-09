@@ -22,10 +22,12 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import StarRating from '@/app/components/volunteer/organization/StarRating';
+
 // ─── Org Type Filter Options ─────────────────────────────────────────────────
 
 const ORG_TYPE_OPTIONS: { label: string; value: EOrgType | null }[] = [
-    { label: 'Tất cả loại', value: null },
+    { label: 'Tất cả lĩnh vực', value: null },
     { label: 'Quỹ xã hội', value: 'SOCIAL_FUND' },
     { label: 'Quỹ từ thiện', value: 'CHARITY_FUND' },
     { label: 'Phi chính phủ', value: 'NGO' },
@@ -36,29 +38,52 @@ const ORG_TYPE_OPTIONS: { label: string; value: EOrgType | null }[] = [
     { label: 'Khác', value: 'OTHER' },
 ];
 
-// ─── Org Type Selection Sheet ─────────────────────────────────────────────────
+// Mock rating buckets
+const RATING_OPTIONS = [
+    { label: 'Tất cả đánh giá', value: null },
+    { label: '4 sao trở lên', value: 4 },
+    { label: '3 sao trở lên', value: 3 },
+    { label: '2 sao trở lên', value: 2 },
+];
 
-interface OrgTypeSheetProps {
+// Mock hour buckets
+const HOUR_OPTIONS = [
+    { label: 'Tất cả số giờ', value: null },
+    { label: 'Trên 100,000 giờ', value: 100000 },
+    { label: 'Trên 50,000 giờ', value: 50000 },
+    { label: 'Trên 10,000 giờ', value: 10000 },
+];
+
+// ─── Generic Dropdown Sheet ───────────────────────────────────────────────────
+
+interface SheetOption<T> {
+    label: string;
+    value: T;
+}
+
+interface DropdownSheetProps<T> {
     visible: boolean;
-    selected: EOrgType | null;
-    onSelect: (v: EOrgType | null) => void;
+    title: string;
+    options: SheetOption<T>[];
+    selected: T;
+    onSelect: (v: T) => void;
     onClose: () => void;
 }
 
-function OrgTypeSheet({ visible, selected, onSelect, onClose }: OrgTypeSheetProps) {
+function DropdownSheet<T>({ visible, title, options, selected, onSelect, onClose }: DropdownSheetProps<T>) {
     if (!visible) return null;
     return (
         <View style={sheet.overlay}>
             <TouchableOpacity style={sheet.backdrop} onPress={onClose} activeOpacity={1} />
             <View style={sheet.container}>
                 <View style={sheet.handle} />
-                <Text style={sheet.title}>Chọn loại tổ chức</Text>
+                <Text style={sheet.title}>{title}</Text>
                 <ScrollView showsVerticalScrollIndicator={false}>
-                    {ORG_TYPE_OPTIONS.map((opt) => {
+                    {options.map((opt) => {
                         const active = selected === opt.value;
                         return (
                             <TouchableOpacity
-                                key={opt.label}
+                                key={String(opt.label)}
                                 style={[sheet.item, active && sheet.itemActive]}
                                 onPress={() => { onSelect(opt.value); onClose(); }}
                                 activeOpacity={0.7}
@@ -75,6 +100,7 @@ function OrgTypeSheet({ visible, selected, onSelect, onClose }: OrgTypeSheetProp
         </View>
     );
 }
+
 
 const sheet = StyleSheet.create({
     overlay: {
@@ -105,8 +131,22 @@ const sheet = StyleSheet.create({
 
 // ─── Org Card ────────────────────────────────────────────────────────────────
 
+// Mock ratings per org (until BE adds rating)
+const MOCK_RATINGS: Record<string, { rating: number; total: number }> = {};
+function getMockRating(id: string) {
+    if (!MOCK_RATINGS[id]) {
+        const seed = id.charCodeAt(0) + id.charCodeAt(id.length - 1);
+        MOCK_RATINGS[id] = {
+            rating: parseFloat((3.5 + (seed % 30) / 20).toFixed(1)),
+            total: 100 + (seed * 17) % 2200,
+        };
+    }
+    return MOCK_RATINGS[id];
+}
+
 function OrgCard({ org, onPress }: { org: OrganizationSimpleResponse; onPress: () => void }) {
     const typeLabel = org.orgType ? (ORG_TYPE_SHORT_LABELS[org.orgType] ?? org.orgType) : 'Khác';
+    const mock = getMockRating(org.id);
 
     return (
         <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.75}>
@@ -127,12 +167,23 @@ function OrgCard({ org, onPress }: { org: OrganizationSimpleResponse; onPress: (
                 <Ionicons name="chevron-forward" size={18} color="#9CA3AF" />
             </View>
 
+            {/* Star rating row */}
+            <View style={styles.ratingRow}>
+                <StarRating rating={mock.rating} totalRatings={mock.total} />
+            </View>
+
             {/* Stats */}
             <View style={styles.statsRow}>
                 <View style={styles.statBox}>
-                    <Ionicons name="calendar-outline" size={16} color="#42A4F5" />
-                    <Text style={styles.statLabel}>Số hoạt động</Text>
-                    <Text style={styles.statValue}>{org.numberOfHostedEvents.toLocaleString('vi-VN')}</Text>
+                    <Ionicons name="people-outline" size={16} color="#10B981" />
+                    <Text style={styles.statLabel}>Số thành viên</Text>
+                    <Text style={[styles.statValue, { color: '#10B981' }]}>{org.numberOfHostedEvents.toLocaleString('vi-VN')}</Text>
+                </View>
+                <View style={styles.statDivider} />
+                <View style={styles.statBox}>
+                    <Ionicons name="time-outline" size={16} color="#42A4F5" />
+                    <Text style={styles.statLabel}>Số giờ uy tín</Text>
+                    <Text style={[styles.statValue, { color: '#42A4F5' }]}>{org.creditHour.toLocaleString('vi-VN')}</Text>
                 </View>
             </View>
         </TouchableOpacity>
@@ -146,14 +197,23 @@ const PAGE_SIZE = 10;
 const Benefit = () => {
     const [searchText, setSearchText] = useState('');
     const [selectedOrgType, setSelectedOrgType] = useState<EOrgType | null>(null);
+    const [selectedRating, setSelectedRating] = useState<number | null>(null);
+    const [selectedHour, setSelectedHour] = useState<number | null>(null);
     const [orgTypeSheetVisible, setOrgTypeSheetVisible] = useState(false);
+    const [ratingSheetVisible, setRatingSheetVisible] = useState(false);
+    const [hourSheetVisible, setHourSheetVisible] = useState(false);
 
     const [orgs, setOrgs] = useState<OrganizationSimpleResponse[]>([]);
+    const [totalElements, setTotalElements] = useState(0);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [loadingMore, setLoadingMore] = useState(false);
     const [pageNumber, setPageNumber] = useState(0);
     const [hasMore, setHasMore] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+
+    // Guard against concurrent fetches
+    const isFetchingRef = useRef(false);
 
     // committed search (only triggers on button press)
     const [committedSearch, setCommittedSearch] = useState('');
@@ -164,35 +224,50 @@ const Benefit = () => {
         orgType?: EOrgType | null;
         append?: boolean;
     }) => {
-        const { page = 0, name, orgType, append = false } = opts;
-        const res: OrgListResponse = await getOrganizations({
-            pageNumber: page,
-            pageSize: PAGE_SIZE,
-            name: name || undefined,
-            orgTypes: orgType ? [orgType] : undefined,
-        });
-        const items = res.content ?? [];
-        const total = res.totalPages ?? 1;
+        if (isFetchingRef.current) return;
+        isFetchingRef.current = true;
+        try {
+            const { page = 0, name, orgType, append = false } = opts;
+            const res: OrgListResponse = await getOrganizations({
+                pageNumber: page,
+                pageSize: PAGE_SIZE,
+                name: name || undefined,
+                orgTypes: orgType ? [orgType] : undefined,
+            });
+            const items = res.content ?? [];
+            const total = res.totalPages ?? 1;
 
-        if (append) setOrgs(prev => [...prev, ...items]);
-        else setOrgs(items);
+            if (append) setOrgs(prev => [...prev, ...items]);
+            else setOrgs(items);
 
-        setPageNumber(page);
-        setHasMore(page + 1 < total);
+            setPageNumber(page);
+            setHasMore(page + 1 < total);
+            setTotalElements(res.totalElements ?? items.length);
+            setError(null);
+        } finally {
+            isFetchingRef.current = false;
+        }
     }, []);
 
     // Initial load
     useEffect(() => {
         (async () => {
             setLoading(true);
-            try { await fetchOrgs({}); } catch (e) { console.error(e); setOrgs([]); }
+            try { await fetchOrgs({}); }
+            catch (e) {
+                console.error('[Benefit] initial load error', e);
+                setOrgs([]);
+                setError('Không thể tải danh sách tổ chức. Vui lòng thử lại.');
+            }
             setLoading(false);
         })();
     }, [fetchOrgs]);
 
     const applyFilters = useCallback(async (name: string, orgType: EOrgType | null) => {
         setLoading(true);
-        try { await fetchOrgs({ page: 0, name, orgType }); } catch { setOrgs([]); }
+        setError(null);
+        try { await fetchOrgs({ page: 0, name, orgType }); }
+        catch { setOrgs([]); setError('Không thể tải danh sách. Vui lòng thử lại.'); }
         setLoading(false);
     }, [fetchOrgs]);
 
@@ -213,7 +288,9 @@ const Benefit = () => {
 
     const handleRefresh = useCallback(async () => {
         setRefreshing(true);
-        try { await fetchOrgs({ page: 0, name: committedSearch, orgType: selectedOrgType }); } catch { /* silent */ }
+        setError(null);
+        try { await fetchOrgs({ page: 0, name: committedSearch, orgType: selectedOrgType }); }
+        catch { /* silent */ }
         setRefreshing(false);
     }, [fetchOrgs, committedSearch, selectedOrgType]);
 
@@ -248,67 +325,90 @@ const Benefit = () => {
 
                 {/* SEARCH BAR */}
                 <View style={styles.searchRow}>
-                    <TextInput
-                        style={styles.searchInput}
-                        placeholder="Tìm kiếm theo tên tổ chức..."
-                        placeholderTextColor="#9CA3AF"
-                        value={searchText}
-                        onChangeText={setSearchText}
-                        onSubmitEditing={handleSearch}
-                        returnKeyType="search"
-                    />
-                    <TouchableOpacity onPress={handleSearch} style={styles.searchBtn}>
-                        <Ionicons name="search" size={20} color="#FFFFFF" />
+                    <View style={styles.searchInputWrap}>
+                        <Ionicons name="search" size={16} color="#9CA3AF" style={{ marginRight: 6 }} />
+                        <TextInput
+                            style={styles.searchInput}
+                            placeholder="Tìm kiếm theo tên hoặc mã tổ chức"
+                            placeholderTextColor="#9CA3AF"
+                            value={searchText}
+                            onChangeText={setSearchText}
+                            onSubmitEditing={handleSearch}
+                            returnKeyType="search"
+                        />
+                    </View>
+                    <TouchableOpacity onPress={handleSearch} style={styles.filterIconBtn}>
+                        <Ionicons name="options-outline" size={20} color="#6B7280" />
                     </TouchableOpacity>
                 </View>
 
-                {/* FILTER CHIPS ROW */}
-                <View style={styles.filterRow}>
-                    {/* Org type chip */}
+                {/* FILTER DROPDOWN ROWS */}
+                <View style={styles.filterSection}>
+                    {/* Lĩnh vực */}
                     <TouchableOpacity
-                        style={[styles.filterChip, selectedOrgType !== null && styles.filterChipActive]}
+                        style={styles.filterDropRow}
                         onPress={() => setOrgTypeSheetVisible(true)}
                         activeOpacity={0.7}
                     >
-                        <Ionicons
-                            name="business-outline"
-                            size={13}
-                            color={selectedOrgType !== null ? '#42A4F5' : '#6B7280'}
-                            style={{ marginRight: 3 }}
-                        />
-                        <Text style={[styles.filterChipText, selectedOrgType !== null && styles.filterChipTextActive]}>
-                            {selectedOrgType !== null
-                                ? ORG_TYPE_SHORT_LABELS[selectedOrgType]
-                                : 'Loại\ntổ chức'}
+                        <Text style={[styles.filterDropText, selectedOrgType !== null && styles.filterDropTextActive]}>
+                            {selectedOrgType !== null ? ORG_TYPE_SHORT_LABELS[selectedOrgType] : 'Tất cả lĩnh vực'}
                         </Text>
-                        <Ionicons
-                            name="chevron-down"
-                            size={12}
-                            color={selectedOrgType !== null ? '#42A4F5' : '#6B7280'}
-                            style={{ marginLeft: 2 }}
-                        />
+                        <Ionicons name="chevron-down" size={16} color={selectedOrgType !== null ? '#42A4F5' : '#374151'} />
                     </TouchableOpacity>
 
-                    <View style={styles.chipDivider} />
+                    {/* Đánh giá */}
+                    <TouchableOpacity
+                        style={styles.filterDropRow}
+                        onPress={() => setRatingSheetVisible(true)}
+                        activeOpacity={0.7}
+                    >
+                        <Text style={[styles.filterDropText, selectedRating !== null && styles.filterDropTextActive]}>
+                            {selectedRating !== null
+                                ? RATING_OPTIONS.find(o => o.value === selectedRating)?.label
+                                : 'Tất cả đánh giá'}
+                        </Text>
+                        <Ionicons name="chevron-down" size={16} color={selectedRating !== null ? '#42A4F5' : '#374151'} />
+                    </TouchableOpacity>
 
-                    {/* Clear / placeholder */}
-                    {selectedOrgType !== null ? (
-                        <TouchableOpacity style={styles.filterChip} onPress={handleClearFilter} activeOpacity={0.7}>
-                            <Ionicons name="close-circle" size={14} color="#EF4444" style={{ marginRight: 3 }} />
-                            <Text style={[styles.filterChipText, { color: '#EF4444' }]}>{'Xóa\nlọc'}</Text>
-                        </TouchableOpacity>
-                    ) : (
-                        <View style={[styles.filterChip, { opacity: 0 }]} pointerEvents="none">
-                            <Text style={styles.filterChipText}>{'Tất cả\nloại'}</Text>
-                        </View>
-                    )}
+                    {/* Số giờ */}
+                    <TouchableOpacity
+                        style={styles.filterDropRow}
+                        onPress={() => setHourSheetVisible(true)}
+                        activeOpacity={0.7}
+                    >
+                        <Text style={[styles.filterDropText, selectedHour !== null && styles.filterDropTextActive]}>
+                            {selectedHour !== null
+                                ? HOUR_OPTIONS.find(o => o.value === selectedHour)?.label
+                                : 'Tất cả số giờ'}
+                        </Text>
+                        <Ionicons name="chevron-down" size={16} color={selectedHour !== null ? '#42A4F5' : '#374151'} />
+                    </TouchableOpacity>
                 </View>
+
+                {/* Result count */}
+                {!loading && !error && (
+                    <Text style={styles.resultCount}>Tìm thấy {orgs.length} tổ chức</Text>
+                )}
 
                 {/* LIST */}
                 {loading ? (
                     <View style={styles.loadingContainer}>
                         <ActivityIndicator size="large" color="#42A4F5" />
                         <Text style={styles.loadingText}>Đang tải...</Text>
+                    </View>
+                ) : error ? (
+                    <View style={styles.emptyContainer}>
+                        <Ionicons name="cloud-offline-outline" size={48} color="#EF4444" />
+                        <Text style={[styles.emptyText, { color: '#EF4444' }]}>Lỗi tải dữ liệu</Text>
+                        <Text style={styles.emptySubText}>{error}</Text>
+                        <TouchableOpacity
+                            style={styles.retryBtn}
+                            onPress={() => applyFilters(committedSearch, selectedOrgType)}
+                            activeOpacity={0.75}
+                        >
+                            <Ionicons name="refresh" size={16} color="#fff" />
+                            <Text style={styles.retryBtnText}>Thử lại</Text>
+                        </TouchableOpacity>
                     </View>
                 ) : (
                     <FlatList
@@ -345,12 +445,30 @@ const Benefit = () => {
                 )}
             </View>
 
-            {/* ORG TYPE BOTTOM SHEET */}
-            <OrgTypeSheet
+            {/* BOTTOM SHEETS */}
+            <DropdownSheet
                 visible={orgTypeSheetVisible}
+                title="Chọn lĩnh vực"
+                options={ORG_TYPE_OPTIONS}
                 selected={selectedOrgType}
-                onSelect={handleOrgTypeConfirm}
+                onSelect={(v) => { setSelectedOrgType(v); applyFilters(committedSearch, v); }}
                 onClose={() => setOrgTypeSheetVisible(false)}
+            />
+            <DropdownSheet
+                visible={ratingSheetVisible}
+                title="Chọn đánh giá"
+                options={RATING_OPTIONS}
+                selected={selectedRating}
+                onSelect={(v) => { setSelectedRating(v); }}
+                onClose={() => setRatingSheetVisible(false)}
+            />
+            <DropdownSheet
+                visible={hourSheetVisible}
+                title="Chọn số giờ"
+                options={HOUR_OPTIONS}
+                selected={selectedHour}
+                onSelect={(v) => { setSelectedHour(v); }}
+                onClose={() => setHourSheetVisible(false)}
             />
         </SafeAreaView>
     );
@@ -362,7 +480,7 @@ export default Benefit;
 
 const styles = StyleSheet.create({
     safeArea: { flex: 1, backgroundColor: '#42A4F5' },
-    contentArea: { flex: 1, backgroundColor: '#E3F2FD' },
+    contentArea: { flex: 1, backgroundColor: '#F3F4F6' },
 
     /* Header */
     header: {
@@ -375,50 +493,62 @@ const styles = StyleSheet.create({
     /* Search */
     searchRow: {
         flexDirection: 'row', alignItems: 'center',
-        backgroundColor: '#FFFFFF', paddingHorizontal: 12, paddingVertical: 8,
+        backgroundColor: '#FFFFFF', paddingHorizontal: 12, paddingVertical: 10,
         borderBottomWidth: 1, borderBottomColor: '#E5E7EB', gap: 8,
     },
-    searchInput: {
-        flex: 1, height: 40, backgroundColor: '#F3F4F6',
-        borderRadius: 8, paddingHorizontal: 12, fontSize: 14, color: '#1F2937',
+    searchInputWrap: {
+        flex: 1, flexDirection: 'row', alignItems: 'center',
+        backgroundColor: '#F3F4F6', borderRadius: 10,
+        paddingHorizontal: 10, height: 40,
     },
-    searchBtn: {
-        width: 40, height: 40, backgroundColor: '#42A4F5',
-        borderRadius: 8, alignItems: 'center', justifyContent: 'center',
+    searchInput: {
+        flex: 1, fontSize: 14, color: '#1F2937',
+    },
+    filterIconBtn: {
+        width: 40, height: 40, alignItems: 'center', justifyContent: 'center',
+        borderRadius: 10, backgroundColor: '#F3F4F6',
     },
 
-    /* Filter chips */
-    filterRow: {
-        flexDirection: 'row', backgroundColor: '#FFFFFF',
-        paddingHorizontal: 8, paddingVertical: 6,
-        borderBottomWidth: 1, borderBottomColor: '#E5E7EB', alignItems: 'center',
+    /* Filter dropdown rows */
+    filterSection: {
+        backgroundColor: '#FFFFFF',
+        borderBottomWidth: 1, borderBottomColor: '#E5E7EB',
     },
-    filterChip: {
-        flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-        paddingVertical: 6, paddingHorizontal: 4, borderRadius: 8,
+    filterDropRow: {
+        flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+        paddingHorizontal: 16, paddingVertical: 12,
+        borderBottomWidth: 1, borderBottomColor: '#F3F4F6',
     },
-    filterChipActive: { backgroundColor: '#EBF5FF' },
-    filterChipText: {
-        fontSize: 12, color: '#374151', textAlign: 'center', lineHeight: 16,
+    filterDropText: { fontSize: 14, color: '#374151' },
+    filterDropTextActive: { color: '#42A4F5', fontWeight: '600' },
+
+    /* Result count */
+    resultCount: {
+        fontSize: 13, color: '#6B7280',
+        paddingHorizontal: 14, paddingVertical: 8,
     },
-    filterChipTextActive: { color: '#42A4F5', fontWeight: '600' },
-    chipDivider: { width: 1, height: 32, backgroundColor: '#E5E7EB' },
 
     /* List */
-    listContent: { paddingHorizontal: 12, paddingTop: 12, paddingBottom: 24 },
+    listContent: { paddingHorizontal: 12, paddingBottom: 24 },
 
     /* Loading */
     loadingContainer: { flex: 1, alignItems: 'center', justifyContent: 'center' },
     loadingText: { marginTop: 12, fontSize: 14, color: '#6B7280' },
 
-    /* Empty */
+    /* Empty / Error */
     emptyContainer: { alignItems: 'center', paddingTop: 80, paddingHorizontal: 32 },
     emptyText: { fontSize: 16, fontWeight: '600', color: '#374151', marginTop: 12, textAlign: 'center' },
     emptySubText: { fontSize: 13, color: '#9CA3AF', marginTop: 4, textAlign: 'center' },
+    retryBtn: {
+        flexDirection: 'row', alignItems: 'center', gap: 6,
+        backgroundColor: '#42A4F5', borderRadius: 10,
+        paddingHorizontal: 20, paddingVertical: 10, marginTop: 16,
+    },
+    retryBtnText: { fontSize: 14, fontWeight: '700', color: '#fff' },
 
     /* Org Card */
     card: {
-        backgroundColor: '#FFFFFF', borderRadius: 14, padding: 14, marginBottom: 12,
+        backgroundColor: '#FFFFFF', borderRadius: 14, padding: 14, marginBottom: 10,
         elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 1 },
         shadowOpacity: 0.07, shadowRadius: 4,
     },
@@ -430,16 +560,25 @@ const styles = StyleSheet.create({
     cardInfo: { flex: 1 },
     orgName: { fontSize: 14, fontWeight: '700', color: '#1F2937', marginBottom: 6, lineHeight: 20 },
     typeTag: {
-        alignSelf: 'flex-start', backgroundColor: '#E3F2FD',
+        alignSelf: 'flex-start', backgroundColor: '#FCE7F3',
         paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6,
     },
-    typeTagText: { fontSize: 11, color: '#42A4F5', fontWeight: '600' },
+    typeTagText: { fontSize: 11, color: '#DB2777', fontWeight: '600' },
 
+    /* Rating row */
+    ratingRow: { marginTop: 10, marginBottom: 2 },
+
+    /* Stats */
     statsRow: {
-        flexDirection: 'row', marginTop: 12, paddingTop: 12,
-        borderTopWidth: 1, borderTopColor: '#F3F4F6',
+        flexDirection: 'row', marginTop: 10, paddingTop: 10,
+        borderTopWidth: 1, borderTopColor: '#F3F4F6', gap: 8,
     },
-    statBox: { flex: 1, alignItems: 'center', gap: 2 },
-    statLabel: { fontSize: 11, color: '#9CA3AF', marginTop: 2 },
-    statValue: { fontSize: 16, fontWeight: '700', color: '#42A4F5' },
+    statBox: {
+        flex: 1, borderRadius: 10, padding: 10,
+        alignItems: 'center', gap: 3, backgroundColor: '#F0F9FF',
+    },
+    statDivider: { width: 8 },
+    statLabel: { fontSize: 11, color: '#6B7280', marginTop: 2 },
+    statValue: { fontSize: 15, fontWeight: '800' },
 });
+

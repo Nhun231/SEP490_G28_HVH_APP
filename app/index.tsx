@@ -14,10 +14,10 @@ function AppContent() {
         )
     }
 
-    if (!isLoggedIn) return <Redirect href="/(tabs)/home" />
+    if (!isLoggedIn) return <Redirect href="/(vol-tabs)/home" />
 
     //check for role to navigate after login
-    if (role === 'VOL') return <Redirect href="/(tabs)/home" />
+    if (role === 'VOL') return <Redirect href="/(vol-tabs)/home" />
     if (role === 'HOST') return <Redirect href={"/(host-tabs)/dashboard" as any} />
 
     //unknown / unhandled role -> back to login

@@ -45,7 +45,9 @@ export const signUpWithEmail = async ({ email, password }: SignUpParams) => {
  * Supabase will email a 6-digit OTP the user can enter in the app.
  */
 export const requestPasswordReset = async (email: string): Promise<void> => {
-    const { error } = await supabase.auth.resetPasswordForEmail(email)
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: 'sep490g28hvhapp://screen/forgot-password',
+    })
     if (error) throw new Error(error.message)
 }
 

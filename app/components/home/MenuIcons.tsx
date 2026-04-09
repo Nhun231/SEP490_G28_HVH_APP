@@ -28,7 +28,7 @@ export default function MenuIcons() {
                         <Text style={[styles.labelBase]}>Tìm hoạt động</Text>
                     </LinearGradient>
                     <View style={[styles.iconWrapper, { top: -30 }]} pointerEvents="none">
-                        <Image source={require('../../assets/images/heart.png')} style={[styles.imageStyle]} />
+                        <Image source={require('../../../assets/images/heart.png')} style={[styles.imageStyle]} />
                     </View>
                 </View>
             </TouchableOpacity>
@@ -46,7 +46,7 @@ export default function MenuIcons() {
                         <Text style={[styles.labelBase, { paddingLeft: 5 }]}>Tìm tổ chức</Text>
                     </LinearGradient>
                     <View style={[styles.iconWrapper, { width: 210, height: 95, right: -75 }]} pointerEvents="none">
-                        <Image source={require('../../assets/images/speaker.png')} style={[styles.imageStyle, { width: 210, height: 95 }]} />
+                        <Image source={require('../../../assets/images/speaker.png')} style={[styles.imageStyle, { width: 210, height: 95 }]} />
                     </View>
                 </View>
             </TouchableOpacity>
@@ -64,7 +64,7 @@ export default function MenuIcons() {
                         <Text style={[styles.labelBase, { paddingLeft: 8 }]}>Chứng nhận</Text>
                     </LinearGradient>
                     <View style={[styles.iconWrapper]}>
-                        <Image source={require('../../assets/images/certificate.png')} style={[styles.imageStyle]} />
+                        <Image source={require('../../../assets/images/certificate.png')} style={[styles.imageStyle]} />
                     </View>
                 </View>
             </TouchableOpacity>
@@ -82,7 +82,7 @@ export default function MenuIcons() {
                         <Text style={styles.labelBase}>Đăng ký tổ chức</Text>
                     </LinearGradient>
                     <View style={[styles.iconWrapper, { top: -30, right: -90 }]} pointerEvents="none">
-                        <Image source={require('../../assets/images/flag.png')} style={[styles.imageStyle]} />
+                        <Image source={require('../../../assets/images/flag.png')} style={[styles.imageStyle]} />
                     </View>
                 </View>
             </TouchableOpacity>
@@ -100,7 +100,7 @@ export default function MenuIcons() {
                         <Text style={styles.labelBase}>Khoảnh khắc tình nguyện</Text>
                     </LinearGradient>
                     <View style={[styles.iconWrapper, { width: 150, height: 95, top: -30, right: -50 }]} pointerEvents="none">
-                        <Image source={require('../../assets/images/camera.png')} style={[styles.imageStyle, { width: 150, height: 95 }]} />
+                        <Image source={require('../../../assets/images/camera.png')} style={[styles.imageStyle, { width: 150, height: 95 }]} />
                     </View>
                 </View>
             </TouchableOpacity>

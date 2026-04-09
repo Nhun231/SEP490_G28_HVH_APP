@@ -16,7 +16,7 @@ import {
     View,
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import DocumentUploadBox, { DocumentUpload } from '../components/DocumentUploadBox'
+import DocumentUploadBox, { DocumentUpload } from '../components/register-vol/DocumentUploadBox'
 
 const OTP_EXPIRATION_SECONDS = 300
 

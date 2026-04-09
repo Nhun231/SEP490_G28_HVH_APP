@@ -1,13 +1,19 @@
+/**
+ * Event Service - Handles API calls for event-related endpoints
+ */
+
 import baseAxios from '@/lib/baseAxios'
 import { AxiosError } from 'axios'
 
-const API_BASE = process.env.EXPO_PUBLIC_API_URL || 'https://api.hvh.okne.site'
-const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL || ''
+const API_BASE = process.env.EXPO_PUBLIC_API_URL || 'https://api.hvh.homes'
+const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL
+
+// ── API Error Response Types ──
 
 export interface ApiErrorMoreInfo {
     business?: string;
     auth?: string;
-    [key: string]: string | undefined;
+    [key: string]: string | undefined; // For validation field errors like "otp", "email", etc.
 }
 
 export interface ApiErrorResponse {
@@ -55,16 +61,7 @@ export interface EventFeedResponse {
     hasMore: boolean;
 }
 
-export interface EventFeedParams {
-    pageNumber?: number;
-    pageSize?: number;
-    refresh?: boolean;
-    name?: string;
-    address?: string;
-    startDate?: string;
-    endDate?: string;
-    activitySubDomainIds?: number[];
-}
+// ── My Events Types ──
 
 export type MyEventStatus =
     | 'EDITING'
@@ -75,7 +72,7 @@ export type MyEventStatus =
     | 'RECRUITING'
     | 'UPCOMING'
     | 'ONGOING'
-    | 'ENDED'
+    | 'ENDED'       // Event sessions finished, pending completion review
     | 'COMPLETED'
     | 'CANCELLED';
 
@@ -84,7 +81,6 @@ export interface MyEventItem {
     name: string;
     imageUrl: string | null;
     address: string;
-    status: MyEventStatus;
     startDate: string;          // ISO date e.g. "2026-04-10"
     recruitmentEndDate: string; // ISO date e.g. "2026-03-25"
     createdAt: string;          // ISO datetime with timezone
@@ -105,8 +101,24 @@ export interface MyEventsParams {
     pageNumber?: number;
     pageSize?: number;
     name?: string;
+    /** Single status filter (legacy) */
     status?: MyEventStatus;
+    /** Multiple status filter — when provided, appends each as a separate `status` query param */
+    statuses?: MyEventStatus[];
 }
+
+export interface EventFeedParams {
+    pageNumber?: number;
+    pageSize?: number;
+    refresh?: boolean;
+    name?: string;
+    address?: string;
+    startDate?: string;
+    endDate?: string;
+    activitySubDomainIds?: number[];
+}
+
+// ── Event Create/Update Types ──
 
 export type ImageUpdateAction = 'ADD' | 'REMOVE';
 export type SessionUpdateAction = 'ADD' | 'EDIT' | 'REMOVE';
@@ -126,7 +138,8 @@ export interface EventSession {
     expectedSerAmount: number;
 }
 
-export interface EventSessionResponse {
+// ── Event Detail interfaces ──
+export interface EventSessionDetailsResponse {
     id: string;
     startDateTime: string;
     endDateTime: string;
@@ -141,13 +154,11 @@ export interface EventCreateRequest {
     updateImages: UpdateImage[];
     description: string;
     address: string;
-    detailAddress: string;
     autoApprove: boolean;
-    servingActivity: boolean;
     activitySubDomainId: number;
-    servedTarget: string;
-    servingPlaceType: string;
-    recruitmentEndDate: string;
+    servedTarget: string;          // e.g., "WOMEN", "CHILDREN", etc.
+    servingPlaceType: string;      // e.g., "SCHOOL", "HOSPITAL", etc.
+    recruitmentEndDate: string;    // Format: "YYYY-MM-DD"
     eventSessions: EventSession[];
     checkInPlaceLat: number;
     checkInPlaceLng: number;
@@ -173,7 +184,7 @@ export interface EventDetailResponse {
     servingPlaceType: string;
     description: string;
     recruitmentEndDate: string;   // ISO date e.g. "2026-03-25"
-    eventSessions: EventSessionResponse[];
+    eventSessions: EventSessionDetailsResponse[];
     latCheckInLocation: number;
     lngCheckInLocation: number;
     checkInAccuracyMeters: number;
@@ -342,7 +353,7 @@ export interface EventDetailsResponse {
     checkInAccuracyMeters: number;
     hostPhone: string;
     orgName: string;
-    eventSessions: EventSessionResponse[];
+    eventSessions: EventSessionDetailsResponse[];
 }
 
 //  Vietnamese label maps for enums
@@ -421,22 +432,28 @@ export const saveEventForVolunteer = async (eventId: string): Promise<void> => {
 
 /**
  * Fetch all activity domains across all pages.
- * GET /api/v1/activity-domain/activity-domains
  */
 export const getAllActivityDomains = async (): Promise<ActivityDomain[]> => {
     const endpoint = `${API_BASE}/api/v1/activity-domain/activity-domains`
+    console.log('[EventService] Fetching activity domains:', endpoint)
 
-    const firstResponse = await baseAxios.get<ActivityDomainResponse>(endpoint, {
-        params: { page: 0, size: 100 },
-    })
+    const firstResponse = await baseAxios.get<ActivityDomainResponse>(
+        endpoint,
+        {
+            params: { page: 0, size: 100 },
+        }
+    )
 
     const firstData = firstResponse.data
     let allDomains = [...firstData.content]
 
     for (let page = 1; page < firstData.page.totalPages; page += 1) {
-        const pageResponse = await baseAxios.get<ActivityDomainResponse>(endpoint, {
-            params: { page, size: 100 },
-        })
+        const pageResponse = await baseAxios.get<ActivityDomainResponse>(
+            endpoint,
+            {
+                params: { page, size: 100 },
+            }
+        )
         allDomains = [...allDomains, ...pageResponse.data.content]
     }
 
@@ -444,21 +461,25 @@ export const getAllActivityDomains = async (): Promise<ActivityDomain[]> => {
 }
 
 /**
- * Save event as draft.
+ * Save event as draft
  * POST /api/v1/event/draft
  */
 export const saveDraftEvent = async (data: EventCreateRequest): Promise<EventCreateResponse> => {
     const endpoint = `${API_BASE}/api/v1/event/draft`
+    console.log('[EventService] Request body:', JSON.stringify(data, null, 2))
+
     const response = await baseAxios.post<EventCreateResponse>(endpoint, data)
     return response.data
 }
 
 /**
- * Submit event for approval.
+ * Submit event for approval
  * POST /api/v1/event/submit
  */
 export const submitEvent = async (data: EventCreateRequest): Promise<EventCreateResponse> => {
     const endpoint = `${API_BASE}/api/v1/event/submit`
+    console.log('[EventService] Request body:', JSON.stringify(data, null, 2))
+
     const response = await baseAxios.post<EventCreateResponse>(endpoint, data)
     return response.data
 }
@@ -479,12 +500,11 @@ export const applyEventSession = async (sessionId: string): Promise<void> => {
 export const getMyEvents = async (params: MyEventsParams = {}): Promise<MyEventsResponse> => {
     const endpoint = `${API_BASE}/api/v1/host/events/my-events`
 
+    // Build URLSearchParams to support multiple `status` values
     const query = new URLSearchParams()
     query.append('pageNumber', String(params.pageNumber ?? 0))
     query.append('pageSize', String(params.pageSize ?? 10))
     if (params.name) query.append('name', params.name)
-    if (params.status) query.append('status', params.status)
-
     const response = await baseAxios.get<MyEventsResponse>(`${endpoint}?${query.toString()}`)
     console.log('[getMyEvents] response:', JSON.stringify(response.data, null, 2))
     return response.data
@@ -516,7 +536,7 @@ export const getRegisteredParticipants = async (
     })
     console.log('[getRegisteredParticipants] response:', JSON.stringify(response.data, null, 2))
     return response.data
-}
+    }
 
 /**
  * Fetch approved (actual) participants for a session.

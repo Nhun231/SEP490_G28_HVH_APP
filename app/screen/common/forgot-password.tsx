@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import {
     Alert,
     KeyboardAvoidingView,
@@ -14,20 +14,16 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { Ionicons } from '@expo/vector-icons'
 import { useRouter } from 'expo-router'
-import {
-    requestPasswordReset,
-    verifyResetOtp,
-    updatePassword,
-} from '@/services/login-service'
+import { requestPasswordReset, updatePassword } from '@/services/login-service'
+import { useAuth } from '@/context/AuthContext'
 
 // ─── types ────────────────────────────────────────────────────────────
-type Step = 'email' | 'otp' | 'new-password'
-
-const OTP_LENGTH = 6
+type Step = 'email' | 'check-email' | 'new-password'
 
 // ─── component ───────────────────────────────────────────────────────
 export default function ForgotPassword() {
     const router = useRouter()
+    const { isPasswordRecovery, clearPasswordRecovery } = useAuth()
 
     const [step, setStep] = useState<Step>('email')
     const [loading, setLoading] = useState(false)
@@ -35,53 +31,18 @@ export default function ForgotPassword() {
     // Step 1
     const [email, setEmail] = useState('')
 
-    // Step 2 — OTP digits
-    const [otp, setOtp] = useState<string[]>(Array(OTP_LENGTH).fill(''))
-    const otpRefs = useRef<Array<TextInput | null>>(Array(OTP_LENGTH).fill(null))
-    const [resendCountdown, setResendCountdown] = useState(0)
-    const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null)
-
     // Step 3
     const [newPassword, setNewPassword] = useState('')
     const [confirmPassword, setConfirmPassword] = useState('')
     const [showNew, setShowNew] = useState(false)
     const [showConfirm, setShowConfirm] = useState(false)
 
-    // ── countdown timer ───────────────────────────────────────────────
-    const startCountdown = (seconds = 60) => {
-        if (countdownRef.current) clearInterval(countdownRef.current)
-        setResendCountdown(seconds)
-        countdownRef.current = setInterval(() => {
-            setResendCountdown(prev => {
-                if (prev <= 1) {
-                    clearInterval(countdownRef.current!)
-                    return 0
-                }
-                return prev - 1
-            })
-        }, 1000)
-    }
-
-    useEffect(() => () => { if (countdownRef.current) clearInterval(countdownRef.current) }, [])
-
-    // ── OTP helpers ───────────────────────────────────────────────────
-    const handleOtpChange = (value: string, index: number) => {
-        const cleaned = value.replace(/\D/g, '').slice(-1)
-        const next = [...otp]
-        next[index] = cleaned
-        setOtp(next)
-        if (cleaned && index < OTP_LENGTH - 1) {
-            otpRefs.current[index + 1]?.focus()
+    // ── Auto-advance to new-password when deep link returns ───────────
+    useEffect(() => {
+        if (isPasswordRecovery) {
+            setStep('new-password')
         }
-    }
-
-    const handleOtpKeyPress = (key: string, index: number) => {
-        if (key === 'Backspace' && !otp[index] && index > 0) {
-            otpRefs.current[index - 1]?.focus()
-        }
-    }
-
-    const otpValue = otp.join('')
+    }, [isPasswordRecovery])
 
     // ── handlers ─────────────────────────────────────────────────────
     const handleSendEmail = async () => {
@@ -92,8 +53,7 @@ export default function ForgotPassword() {
         setLoading(true)
         try {
             await requestPasswordReset(email.trim())
-            setStep('otp')
-            startCountdown()
+            setStep('check-email')
         } catch (err: unknown) {
             Alert.alert('Lỗi', (err as Error).message || 'Không thể gửi email. Vui lòng thử lại.')
         } finally {
@@ -102,31 +62,12 @@ export default function ForgotPassword() {
     }
 
     const handleResend = async () => {
-        if (resendCountdown > 0) return
         setLoading(true)
         try {
             await requestPasswordReset(email.trim())
-            startCountdown()
-            setOtp(Array(OTP_LENGTH).fill(''))
-            otpRefs.current[0]?.focus()
+            Alert.alert('Đã gửi lại', 'Vui lòng kiểm tra hộp thư của bạn.')
         } catch (err: unknown) {
             Alert.alert('Lỗi', (err as Error).message || 'Không thể gửi lại. Vui lòng thử lại.')
-        } finally {
-            setLoading(false)
-        }
-    }
-
-    const handleVerifyOtp = async () => {
-        if (otpValue.length < OTP_LENGTH) {
-            Alert.alert('Vui lòng nhập đủ mã xác nhận')
-            return
-        }
-        setLoading(true)
-        try {
-            await verifyResetOtp(email.trim(), otpValue)
-            setStep('new-password')
-        } catch (err: unknown) {
-            Alert.alert('Mã không hợp lệ', (err as Error).message || 'Mã xác nhận sai hoặc đã hết hạn.')
         } finally {
             setLoading(false)
         }
@@ -144,8 +85,9 @@ export default function ForgotPassword() {
         setLoading(true)
         try {
             await updatePassword(newPassword)
+            clearPasswordRecovery()
             Alert.alert(
-                'Thành công! 🎉',
+                'Thành công! ',
                 'Mật khẩu của bạn đã được cập nhật. Vui lòng đăng nhập lại.',
                 [{ text: 'Đăng nhập', onPress: () => router.replace('/screen/login') }]
             )
@@ -163,14 +105,14 @@ export default function ForgotPassword() {
             iconColor: '#42A4F5',
             iconBg: '#E3F2FD',
             title: 'Quên mật khẩu?',
-            subtitle: 'Nhập email đăng ký của bạn. Chúng tôi sẽ gửi mã xác nhận để đặt lại mật khẩu.',
+            subtitle: 'Nhập email đăng ký của bạn. Chúng tôi sẽ gửi link đặt lại mật khẩu.',
         },
-        otp: {
-            icon: 'shield-checkmark-outline' as const,
+        'check-email': {
+            icon: 'paper-plane-outline' as const,
             iconColor: '#0D9488',
             iconBg: '#E0F2F1',
-            title: 'Nhập mã xác nhận',
-            subtitle: `Mã 6 chữ số đã được gửi tới\n${email}`,
+            title: 'Kiểm tra email',
+            subtitle: `Chúng tôi đã gửi link đặt lại mật khẩu tới\n${email}\n\nVui lòng mở email và nhấn vào link để tiếp tục.`,
         },
         'new-password': {
             icon: 'lock-closed-outline' as const,
@@ -181,7 +123,9 @@ export default function ForgotPassword() {
         },
     }
 
+    const stepIndex = { email: 0, 'check-email': 1, 'new-password': 2 }
     const meta = stepMeta[step]
+    const currentIndex = stepIndex[step]
 
     // ── render ────────────────────────────────────────────────────────
     return (
@@ -200,8 +144,9 @@ export default function ForgotPassword() {
                         style={styles.backBtn}
                         onPress={() => {
                             if (step === 'email') router.back()
-                            else if (step === 'otp') setStep('email')
-                            else setStep('otp')
+                            else if (step === 'check-email') setStep('email')
+                            // On new-password step the user came via deep link, go to login
+                            else router.replace('/screen/login')
                         }}
                     >
                         <Ionicons name="arrow-back" size={22} color="#1F2937" />
@@ -209,14 +154,14 @@ export default function ForgotPassword() {
 
                     {/* Progress dots */}
                     <View style={styles.progressRow}>
-                        {(['email', 'otp', 'new-password'] as Step[]).map((s, i) => (
+                        {[0, 1, 2].map(i => (
                             <View
-                                key={s}
+                                key={i}
                                 style={[
                                     styles.progressDot,
-                                    step === s
+                                    i === currentIndex
                                         ? styles.progressDotActive
-                                        : i < (['email', 'otp', 'new-password'] as Step[]).indexOf(step)
+                                        : i < currentIndex
                                             ? styles.progressDotDone
                                             : styles.progressDotInactive,
                                 ]}
@@ -264,7 +209,7 @@ export default function ForgotPassword() {
                                 >
                                     {loading
                                         ? <ActivityIndicator color="#fff" />
-                                        : <Text style={styles.primaryBtnText}>Gửi mã xác nhận</Text>
+                                        : <Text style={styles.primaryBtnText}>Gửi link đặt lại mật khẩu</Text>
                                     }
                                 </TouchableOpacity>
 
@@ -275,53 +220,45 @@ export default function ForgotPassword() {
                             </>
                         )}
 
-                        {/* ── Step 2: OTP ── */}
-                        {step === 'otp' && (
+                        {/* ── Step 2: Check email ── */}
+                        {step === 'check-email' && (
                             <>
-                                <View style={styles.otpRow}>
-                                    {otp.map((digit, i) => (
-                                        <TextInput
-                                            key={i}
-                                            ref={ref => { otpRefs.current[i] = ref }}
-                                            style={[styles.otpBox, digit ? styles.otpBoxFilled : null]}
-                                            value={digit}
-                                            onChangeText={v => handleOtpChange(v, i)}
-                                            onKeyPress={({ nativeEvent }) => handleOtpKeyPress(nativeEvent.key, i)}
-                                            keyboardType="number-pad"
-                                            maxLength={1}
-                                            textAlign="center"
-                                            selectTextOnFocus
-                                        />
-                                    ))}
+                                {/* Tips box */}
+                                <View style={styles.tipsBox}>
+                                    <View style={styles.tipRow}>
+                                        <Ionicons name="checkmark-circle" size={16} color="#0D9488" />
+                                        <Text style={styles.tipText}>Kiểm tra thư mục Spam / Junk nếu không thấy email</Text>
+                                    </View>
+                                    <View style={styles.tipRow}>
+                                        <Ionicons name="checkmark-circle" size={16} color="#0D9488" />
+                                        <Text style={styles.tipText}>Link có hiệu lực trong 1 giờ</Text>
+                                    </View>
+                                    <View style={styles.tipRow}>
+                                        <Ionicons name="checkmark-circle" size={16} color="#0D9488" />
+                                        <Text style={styles.tipText}>Nhấn link trên thiết bị đã cài ứng dụng</Text>
+                                    </View>
                                 </View>
 
                                 <TouchableOpacity
-                                    style={[styles.primaryBtn, (loading || otpValue.length < OTP_LENGTH) && styles.btnDisabled]}
-                                    onPress={handleVerifyOtp}
-                                    disabled={loading || otpValue.length < OTP_LENGTH}
+                                    style={[styles.primaryBtn, { backgroundColor: '#0D9488' }, loading && styles.btnDisabled]}
+                                    onPress={handleResend}
+                                    disabled={loading}
                                     activeOpacity={0.8}
                                 >
                                     {loading
                                         ? <ActivityIndicator color="#fff" />
-                                        : <Text style={styles.primaryBtnText}>Xác nhận mã</Text>
+                                        : <Text style={styles.primaryBtnText}>Gửi lại email</Text>
                                     }
                                 </TouchableOpacity>
 
-                                <View style={styles.resendRow}>
-                                    <Text style={styles.resendLabel}>Không nhận được mã? </Text>
-                                    <TouchableOpacity onPress={handleResend} disabled={resendCountdown > 0 || loading}>
-                                        <Text style={[
-                                            styles.resendLink,
-                                            (resendCountdown > 0 || loading) && styles.resendLinkDisabled,
-                                        ]}>
-                                            {resendCountdown > 0 ? `Gửi lại (${resendCountdown}s)` : 'Gửi lại'}
-                                        </Text>
-                                    </TouchableOpacity>
-                                </View>
+                                <TouchableOpacity style={styles.backToLogin} onPress={() => setStep('email')}>
+                                    <Ionicons name="create-outline" size={15} color="#42A4F5" />
+                                    <Text style={styles.backToLoginText}>Đổi địa chỉ email</Text>
+                                </TouchableOpacity>
                             </>
                         )}
 
-                        {/* ── Step 3: New password ── */}
+                        {/* ── Step 3: New password (shown after deep link) ── */}
                         {step === 'new-password' && (
                             <>
                                 <View style={styles.inputGroup}>
@@ -380,7 +317,7 @@ export default function ForgotPassword() {
                                     )}
                                 </View>
 
-                                {/* Password strength hint */}
+                                {/* Password strength */}
                                 {newPassword.length > 0 && (
                                     <View style={styles.strengthRow}>
                                         {[0, 1, 2, 3].map(i => (
@@ -557,45 +494,27 @@ const styles = StyleSheet.create({
         marginLeft: 4,
     },
 
-    /* OTP */
-    otpRow: {
-        flexDirection: 'row',
+    /* Tips box */
+    tipsBox: {
+        width: '100%',
+        backgroundColor: '#F0FDF4',
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: '#D1FAE5',
+        padding: 16,
         gap: 10,
         marginBottom: 24,
     },
-    otpBox: {
-        width: 46,
-        height: 56,
-        borderRadius: 12,
-        borderWidth: 1.5,
-        borderColor: '#E5E7EB',
-        backgroundColor: '#F9FAFB',
-        fontSize: 22,
-        fontWeight: '700',
-        color: '#1F2937',
-    },
-    otpBoxFilled: {
-        borderColor: '#42A4F5',
-        backgroundColor: '#EFF8FF',
-    },
-
-    /* Resend */
-    resendRow: {
+    tipRow: {
         flexDirection: 'row',
-        alignItems: 'center',
-        marginTop: 16,
+        alignItems: 'flex-start',
+        gap: 8,
     },
-    resendLabel: {
-        fontSize: 14,
-        color: '#6B7280',
-    },
-    resendLink: {
-        fontSize: 14,
-        color: '#42A4F5',
-        fontWeight: '600',
-    },
-    resendLinkDisabled: {
-        color: '#9CA3AF',
+    tipText: {
+        flex: 1,
+        fontSize: 13,
+        color: '#065F46',
+        lineHeight: 19,
     },
 
     /* Primary button */

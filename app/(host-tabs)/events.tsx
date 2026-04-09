@@ -4,10 +4,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { getMyEvents, MyEventStatus, getApiErrorMessage } from '@/services/event-service';
-import HostEventCard, { HostEvent, EventStatus } from '../components/HostEventCard';
-import StatusChip, { ChipFilter } from '../components/StatusChip';
-import SkeletonCard from '../components/SkeletonCard';
-import EventListHeader, { MasterTabConfig } from '../components/EventListHeader';
+import HostEventCard, { HostEvent, EventStatus } from '../components/host/event-list/HostEventCard';
+import StatusChip, { ChipFilter } from '../components/host/event-list/StatusChip';
+import SkeletonCard from '../components/host/event-list/SkeletonCard';
+import EventListHeader, { MasterTabConfig } from '../components/host/event-list/EventListHeader';
 
 // keep events data in cache for each chip key 
 type CacheEntry = { events: HostEvent[]; hasMore: boolean; page: number; ts: number };

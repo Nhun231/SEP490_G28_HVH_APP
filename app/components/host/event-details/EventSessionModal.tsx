@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Modal, KeyboardAvoidingView, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { EventSessionResponse } from '@/services/event-service';
+import { EventSessionDetailsResponse } from '@/services/event-service';
 
 function parseIsoDateTime(iso: string): { date: string; time: string } {
     const [datePart, timePart] = iso.split('T');
@@ -15,7 +15,7 @@ export interface EventSessionModalProps {
     onClose: () => void;
     eventName: string;
     eventStatus: string;
-    sessions: EventSessionResponse[];
+    sessions: EventSessionDetailsResponse[];
 }
 
 const EventSessionModal: React.FC<EventSessionModalProps> = ({
@@ -30,7 +30,7 @@ const EventSessionModal: React.FC<EventSessionModalProps> = ({
     const handleSelectSession = (sessionId: string, sessionStartTime: string) => {
         onClose();
         router.push({
-            pathname: '/screen/event-applications',
+            pathname: '/screen/host-sceens/event-applications' as any,
             params: { eventName, sessionId, eventStatus, sessionStartTime },
         });
     };
