@@ -18,7 +18,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context'
 import DocumentUploadBox, { DocumentUpload } from '../components/register-vol/DocumentUploadBox'
 
-const OTP_EXPIRATION_SECONDS = 300
+const OTP_RESEND_COOLDOWN_SECONDS = 60
 
 export default function Register() {
     // Form fields
@@ -129,7 +129,7 @@ export default function Register() {
         try {
             await sendOtp({ email })
             setOtpSent(true)
-            setOtpTimer(OTP_EXPIRATION_SECONDS)
+            setOtpTimer(OTP_RESEND_COOLDOWN_SECONDS)
             Alert.alert('Thành công', 'Mã OTP đã được gửi đến email.')
         } catch (error) {
             Alert.alert('Lỗi', (error as Error).message)
@@ -458,7 +458,7 @@ export default function Register() {
                         {/* Timer Display */}
                         {otpTimer > 0 && (
                             <Text style={styles.timerText}>
-                                Mã sẽ hết hạn sau: {formatTime(otpTimer)}
+                                Có thể gửi lại OTP sau: {formatTime(otpTimer)}
                             </Text>
                         )}
 

@@ -159,7 +159,7 @@ export default function EventDetail() {
                     'Bạn cần đăng nhập để lưu sự kiện.',
                     [
                         { text: 'Huỷ', style: 'cancel' },
-                        { text: 'Đăng nhập', onPress: () => router.push('/screen/login' as any) },
+                        { text: 'Đăng nhập', onPress: () => router.push('/screen/common/login' as any) },
                     ]
                 );
             }
@@ -267,9 +267,13 @@ export default function EventDetail() {
         try {
             await applyEventSession(selectedSession.id);
             setApplyModalVisible(false);
+
+            const isAutoApprove = event?.autoApprove === true;
             Alert.alert(
-                'Đăng ký thành công',
-                'Bạn đã đăng ký tham gia hoạt động thành công. Chúc bạn có một buổi tình nguyện ý nghĩa!',
+                'Đăng ký thành công!',
+                isAutoApprove
+                    ? 'Đơn đăng ký của bạn đã được xác nhận tự động. Hẹn gặp bạn tại sự kiện!'
+                    : 'Đơn đăng ký của bạn đang chờ tổ chức xét duyệt. Chúng tôi sẽ thông báo kết quả sớm nhất!',
                 [{ text: 'Tuyệt vời', style: 'default' }]
             );
         } catch (err: unknown) {

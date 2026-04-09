@@ -354,6 +354,7 @@ export interface EventDetailsResponse {
     hostPhone: string;
     orgName: string;
     eventSessions: EventSessionDetailsResponse[];
+    autoApprove?: boolean;
 }
 
 //  Vietnamese label maps for enums

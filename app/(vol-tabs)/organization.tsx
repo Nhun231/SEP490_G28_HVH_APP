@@ -304,7 +304,7 @@ const Benefit = () => {
     }, [hasMore, loadingMore, loading, refreshing, pageNumber, fetchOrgs, committedSearch, selectedOrgType]);
 
     const handleOrgPress = (org: OrganizationSimpleResponse) => {
-        router.push({ pathname: '/screen/org-detail', params: { orgId: org.id, orgName: org.name } } as any);
+        router.push({ pathname: '/screen/volunteer-screens/org-detail', params: { orgId: org.id, orgName: org.name } } as any);
     };
 
     // ── Render ──

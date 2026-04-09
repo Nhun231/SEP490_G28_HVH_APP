@@ -70,7 +70,7 @@ const QUICK_ACTIONS = [
         icon: 'create' as const,
         color: '#4CAF50',
         onPress: (router: ReturnType<typeof useRouter>) =>
-            router.push('/screen/create-event' as any),
+            router.push('/screen/host-screens/create-event' as any),
     },
     {
         key: 'volunteers',
@@ -83,7 +83,7 @@ const QUICK_ACTIONS = [
                 if (res.content && res.content.length > 0) {
                     const eventId = res.content[0].id;
                     router.push({
-                        pathname: '/screen/event-detail',
+                        pathname: '/screen/host-screens/event-detail-host',
                         params: { id: eventId, openSessionModal: 'true' }
                     });
                 } else {

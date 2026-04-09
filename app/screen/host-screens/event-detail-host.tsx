@@ -191,18 +191,17 @@ const EventDetailScreen = () => {
 
     // edit event
     const handleEdit = () => router.push({
-        pathname: '/screen/create-event',
+        pathname: '/screen/host-screens/create-event',
         params: {
             eventId: event.id,
-            // Pass event object + geocoded address to prefill form
             eventData: JSON.stringify({ ...event, resolvedCheckinAddress: checkinAddress }),
         },
     });
 
     const handleParticipants = () => setSessionModalVisible(true);
     const handleCheckin = () => setShowCheckinCode(prev => !prev);
-    const handleReviews = () => router.push({ pathname: '/screen/event-rating', params: { eventId: event.id } });
-    const handleMoments = () => router.push({ pathname: '/screen/event-moments', params: { eventId: event.id } });
+    const handleReviews = () => router.push({ pathname: '/screen/host-screens/event-rating', params: { eventId: event.id } });
+    const handleMoments = () => router.push({ pathname: '/screen/host-screens/event-moments', params: { eventId: event.id } });
     const handleComplaint = () => console.log('Complain about points', event.id);
 
     const serviceOptions: ServiceOption[] = (() => {

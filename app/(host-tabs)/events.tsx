@@ -224,7 +224,7 @@ const EventManagement = () => {
     const handleEventPress = (id: string) => {
         const event = events.find(e => e.id === id);
         router.push({
-            pathname: '/screen/event-detail',
+            pathname: '/screen/host-screens/event-detail-host',
             params: { id, status: event?.status },
         });
     };
@@ -357,7 +357,7 @@ const EventManagement = () => {
             {/* FAB */}
             <TouchableOpacity
                 style={styles.fab}
-                onPress={() => router.push('/screen/create-event')}
+                onPress={() => router.push('/screen/host-screens/create-event')}
                 activeOpacity={0.85}
             >
                 <Ionicons name="add" size={24} color="#FFFFFF" />

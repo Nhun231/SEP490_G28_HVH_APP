@@ -18,7 +18,7 @@ const HostPersonal = () => {
                     style: 'destructive',
                     onPress: async () => {
                         await logout()
-                        router.replace('/screen/login')
+                        router.replace('/screen/common/login')
                     },
                 },
             ]

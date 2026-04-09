@@ -136,7 +136,7 @@ const EventMomentsScreen = () => {
 
     const handleMomentPress = (item: MomentItem) => {
         router.push({
-            pathname: '/screen/event-moment-detail',
+            pathname: '/screen/host-screens/event-moment-detail',
             params: { momentId: item.id },
         });
     };
