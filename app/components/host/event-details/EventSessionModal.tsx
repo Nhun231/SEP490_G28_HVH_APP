@@ -30,7 +30,7 @@ const EventSessionModal: React.FC<EventSessionModalProps> = ({
     const handleSelectSession = (sessionId: string, sessionStartTime: string) => {
         onClose();
         router.push({
-            pathname: '/screen/host-sceens/event-applications' as any,
+            pathname: '/screen/host-screens/event-applications' as any,
             params: { eventName, sessionId, eventStatus, sessionStartTime },
         });
     };
