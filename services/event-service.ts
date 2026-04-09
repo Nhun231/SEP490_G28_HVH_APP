@@ -89,12 +89,12 @@ export interface MyEventItem {
 
 export interface MyEventsResponse {
     content: MyEventItem[];
-    // Spring Page<T> serializes pagination at the top level (not nested under 'page')
-    totalPages: number;
-    totalElements: number;
-    number: number;     // current page index (0-based)
-    size: number;
-    last: boolean;
+    page: {
+        size: number;
+        number: number;
+        totalElements: number;
+        totalPages: number;
+    };
 }
 
 export interface MyEventsParams {
@@ -506,6 +506,7 @@ export const getMyEvents = async (params: MyEventsParams = {}): Promise<MyEvents
     query.append('pageSize', String(params.pageSize ?? 10))
     if (params.name) query.append('name', params.name)
     const response = await baseAxios.get<MyEventsResponse>(`${endpoint}?${query.toString()}`)
+    console.log('[getMyEvents] response:', JSON.stringify(response.data, null, 2))
     return response.data
 }
 
@@ -653,4 +654,13 @@ export const cancelVolApplication = async (applicationId: string): Promise<void>
     const url = `${API_BASE}/api/v1/vol/event-applications/${applicationId}/cancel`
     console.log('[EventService] Cancelling application:', applicationId)
     await baseAxios.put(url)
+}
+
+/**
+ * Cancel an event (host only).
+ * PUT /api/v1/host/events/{eventId}/cancel
+ */
+export const cancelEvent = async (eventId: string, reason: string): Promise<void> => {
+    const endpoint = `${API_BASE}/api/v1/host/events/${eventId}/cancel`
+    await baseAxios.put(endpoint, { reason })
 }

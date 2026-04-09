@@ -9,6 +9,7 @@ import servedPlacesData from '@/assets/served_places/dia_diem_phuc_vu.json';
 import InfoRow from '@/app/components/host/event-details/InfoRow';
 import ServiceGrid, { ServiceOption } from '@/app/components/host/event-details/ServiceGrid';
 import EventSessionModal from '@/app/components/host/event-details/EventSessionModal';
+import CancelEventModal from '@/app/components/CancelEventModal';
 
 const DEFAULT_IMAGE = 'https://images.unsplash.com/photo-1559027615-cd4628902d4a?w=800&h=400&fit=crop';
 
@@ -72,9 +73,10 @@ const STATUS_CONFIG: Record<EventStatus, { label: string; color: string; bgColor
 
 const EventDetailScreen = () => {
     const router = useRouter();
-    const { id } = useLocalSearchParams<{ id: string }>();
+    const { id, openSessionModal } = useLocalSearchParams<{ id: string; openSessionModal?: string }>();
     const [showCheckinCode, setShowCheckinCode] = useState(false);
     const [sessionModalVisible, setSessionModalVisible] = useState(false);
+    const [cancelModalVisible, setCancelModalVisible] = useState(false);
 
     // API state
     const [event, setEvent] = useState<EventDetailResponse | null>(null);
@@ -91,6 +93,11 @@ const EventDetailScreen = () => {
         try {
             const data = await getEventDetailByHost(id);
             setEvent(data);
+
+            if (openSessionModal === 'true') {
+                setSessionModalVisible(true);
+            }
+
             // Reverse-geocode check-in location in background
             reverseGeocode(data.latCheckInLocation, data.lngCheckInLocation)
                 .then(addr => setCheckinAddress(addr));
@@ -176,15 +183,8 @@ const EventDetailScreen = () => {
         ],
     );
 
-    // cancel event
-    const handleCancelEvent = () => Alert.alert(
-        'Xác nhận hủy',
-        'Bạn có chắc muốn hủy sự kiện này?',
-        [
-            { text: 'Không', style: 'cancel' },
-            { text: 'Hủy sự kiện', style: 'destructive', onPress: () => console.log('[TODO] Cancel event', event.id) },
-        ],
-    );
+    // cancel event — opens reason modal
+    const handleCancelEvent = () => setCancelModalVisible(true);
 
     // update event
     const handleUpdate = () => console.log('[TODO] Update recruiting info', event.id);
@@ -463,6 +463,17 @@ const EventDetailScreen = () => {
                 eventName={event.name}
                 eventStatus={event.status}
                 sessions={event.eventSessions}
+            />
+
+            <CancelEventModal
+                visible={cancelModalVisible}
+                eventId={event.id}
+                eventName={event.name}
+                onCancel={() => setCancelModalVisible(false)}
+                onConfirmed={() => {
+                    setCancelModalVisible(false);
+                    fetchDetail();
+                }}
             />
         </>
     );

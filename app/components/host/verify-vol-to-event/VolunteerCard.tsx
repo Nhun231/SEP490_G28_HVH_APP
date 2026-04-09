@@ -127,7 +127,7 @@ const VolunteerCard: React.FC<VolunteerCardProps> = ({ item, onApprove, onReject
                                 (!sessionStartTime ||
                                     new Date(item.checkInTime) >= new Date(sessionStartTime));
                             return checkedIn ? (
-                                    <View style={[styles.attendanceBadge, styles.attendanceBadgePresent]}>
+                                <View style={[styles.attendanceBadge, styles.attendanceBadgePresent]}>
                                     <Ionicons name="checkmark-circle" size={14} color="#16A34A" />
                                     <Text style={[styles.attendanceBadgeText, { color: '#16A34A' }]}>
                                         {'Đã điểm danh (Lúc: ' + formatCheckInTime(item.checkInTime!) + ')'}
