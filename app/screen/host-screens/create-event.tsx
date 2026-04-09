@@ -4,12 +4,12 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter, Stack, useLocalSearchParams } from 'expo-router';
-import DatePickerInput from '../components/DatePickerInput';
-import DocumentUploadBox, { DocumentUpload } from '../components/DocumentUploadBox';
-import BottomSheetPicker, { OptionItem } from '../components/BottomSheetPicker';
-import MapLocationPicker, { LocationData } from '../components/MapLocationPicker';
-import PickerField from '../components/PickerField';
-import EventDayCard, { EventDay, DayErrorField } from '../components/EventDayCard';
+import DatePickerInput from '../../components/DatePickerInput';
+import DocumentUploadBox, { DocumentUpload } from '../../components/DocumentUploadBox';
+import BottomSheetPicker, { OptionItem } from '../../components/BottomSheetPicker';
+import MapLocationPicker, { LocationData } from '../../components/MapLocationPicker';
+import PickerField from '../../components/PickerField';
+import EventDayCard, { EventDay, DayErrorField } from '../../components/EventDayCard';
 import {
     ActivityDomain,
     getAllActivityDomains,
@@ -25,9 +25,9 @@ import {
     getEventDetailByHost,
 } from '@/services/event-service';
 import { getFileExtension, getMimeType, uploadImageToSupabase } from '@/services/upload-service';
-import servedTargetsData from '../../assets/served_targets/doi_tuong_phuc_vu.json';
-import servedPlacesData from '../../assets/served_places/dia_diem_phuc_vu.json';
-import wardsData from '../../assets/wards/phuong_xa_moi_ha_noi.json';
+import servedTargetsData from '../../../assets/served_targets/doi_tuong_phuc_vu.json';
+import servedPlacesData from '../../../assets/served_places/dia_diem_phuc_vu.json';
+import wardsData from '../../../assets/wards/phuong_xa_moi_ha_noi.json';
 
 interface EventFormErrors {
     eventName?: string;

@@ -450,7 +450,7 @@ const MyApplications = () => {
 
     const handleGoBack = () => {
         if (router.canGoBack()) router.back();
-        else router.replace('/(tabs)/home');
+        else router.replace('/(vol-tabs)/home');
     };
 
     // ─── Render ───────────────────────────────────────────────────────────────

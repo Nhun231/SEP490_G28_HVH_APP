@@ -29,10 +29,10 @@ import {
     getApiErrorMessage,
 } from '@/services/event-service';
 import { useAuth } from '@/context/AuthContext';
-import ImageViewerModal from '../components/ImageViewerModal';
-import EventSessionCard from '../components/EventSessionCard';
-import ApplyConfirmModal from '../components/ApplyConfirmModal';
-import SessionPickerSheet from '../components/SessionPickerSheet';
+import ImageViewerModal from '../../components/ImageViewerModal';
+import EventSessionCard from '../../components/EventSessionCard';
+import ApplyConfirmModal from '../../components/ApplyConfirmModal';
+import SessionPickerSheet from '../../components/SessionPickerSheet';
 
 
 const { width: SCREEN_W } = Dimensions.get('window');
@@ -148,7 +148,7 @@ export default function EventDetail() {
 
     const handleGoBack = () => {
         if (router.canGoBack()) router.back();
-        else router.replace('/(tabs)/home');
+        else router.replace('/(vol-tabs)/home');
     };
 
     const handleSaveEvent = async () => {

@@ -3,8 +3,8 @@ import { View, Text, FlatList, StyleSheet, TouchableOpacity, RefreshControl, Act
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams, Stack } from 'expo-router';
-import EventListHeader, { MasterTabConfig } from '../components/EventListHeader';
-import VolunteerCard, { VolunteerApplication } from '../components/VolunteerCard';
+import EventListHeader, { MasterTabConfig } from '../../components/EventListHeader';
+import VolunteerCard, { VolunteerApplication } from '../../components/VolunteerCard';
 import { getRegisteredParticipants, RegisteredParticipant, getApiErrorMessage } from '@/services/event-service';
 
 type AppTab = 'PENDING' | 'APPROVED';

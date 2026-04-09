@@ -65,7 +65,7 @@ export default function OrgDetail() {
 
     const handleBack = () => {
         if (router.canGoBack()) router.back();
-        else router.replace('/(tabs)/benefit' as any);
+        else router.replace('/(vol-tabs)/benefit' as any);
     };
 
     const coverUrl = getFullImageUrl(org?.coverImageUrl);

@@ -37,7 +37,7 @@ export default function Personal() {
                     style: 'destructive',
                     onPress: async () => {
                         await logout()
-                        router.replace('/(tabs)/home' as any)
+                        router.replace('/(vol-tabs)/home' as any)
                     },
                 },
             ]
