@@ -3,11 +3,11 @@ import { useFocusEffect } from "expo-router";
 import { ScrollView, View, ActivityIndicator, Text } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
-import SearchBar from "../components/SearchBar";
-import Banner from "../components/Banner";
-import MenuIcons from "../components/MenuIcons";
-import SectionHeader from "../components/SectionHeader";
-import EventCard, { EventCardData } from "../components/EventCard";
+import SearchBar from "../components/home/SearchBar";
+import Banner from "../components/home/Banner";
+import MenuIcons from "../components/home/MenuIcons";
+import SectionHeader from "../components/home/SectionHeader";
+import EventCard, { EventCardData } from "../components/home/EventCard";
 import { getEventFeeds, EventSimpleResponse } from "@/services/event-service";
 
 const Home = () => {

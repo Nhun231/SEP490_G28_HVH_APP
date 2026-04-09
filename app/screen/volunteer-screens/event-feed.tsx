@@ -14,9 +14,9 @@ import {
     View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import EventCard from '../../components/EventCard';
-import AreaFilterSheet from '../../components/AreaFilterSheet';
-import DomainFilterSheet from '../../components/DomainFilterSheet';
+import EventCard from '../../components/home/EventCard';
+import AreaFilterSheet from '../../components/volunteer/event-feed/AreaFilterSheet';
+import DomainFilterSheet from '../../components/volunteer/event-feed/DomainFilterSheet';
 
 // ─── helpers ────────────────────────────────────────────────────────
 const VIETNAMESE_DAYS = ['CN', 'Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7'];

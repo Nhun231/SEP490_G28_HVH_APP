@@ -29,10 +29,10 @@ import {
     getApiErrorMessage,
 } from '@/services/event-service';
 import { useAuth } from '@/context/AuthContext';
-import ImageViewerModal from '../../components/ImageViewerModal';
-import EventSessionCard from '../../components/EventSessionCard';
-import ApplyConfirmModal from '../../components/ApplyConfirmModal';
-import SessionPickerSheet from '../../components/SessionPickerSheet';
+import ImageViewerModal from '../../components/volunteer/even-details/ImageViewerModal';
+import EventSessionCard from '../../components/volunteer/even-details/EventSessionCard';
+import ApplyConfirmModal from '../../components/volunteer/application/ApplyConfirmModal';
+import SessionPickerSheet from '../../components/volunteer/application/SessionPickerSheet';
 
 
 const { width: SCREEN_W } = Dimensions.get('window');

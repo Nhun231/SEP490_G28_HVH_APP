@@ -22,7 +22,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import StarRating from '@/app/components/StarRating';
+import StarRating from '@/app/components/volunteer/organization/StarRating';
 
 // ─── Org Type Filter Options ─────────────────────────────────────────────────
 
@@ -581,4 +581,4 @@ const styles = StyleSheet.create({
     statLabel: { fontSize: 11, color: '#6B7280', marginTop: 2 },
     statValue: { fontSize: 15, fontWeight: '800' },
 });
-
+

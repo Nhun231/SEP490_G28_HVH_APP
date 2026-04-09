@@ -4,12 +4,12 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter, Stack, useLocalSearchParams } from 'expo-router';
-import DatePickerInput from '../../components/DatePickerInput';
-import DocumentUploadBox, { DocumentUpload } from '../../components/DocumentUploadBox';
-import BottomSheetPicker, { OptionItem } from '../../components/BottomSheetPicker';
-import MapLocationPicker, { LocationData } from '../../components/MapLocationPicker';
-import PickerField from '../../components/PickerField';
-import EventDayCard, { EventDay, DayErrorField } from '../../components/EventDayCard';
+import DatePickerInput from '../../components/host/create-event/DatePickerInput';
+import DocumentUploadBox, { DocumentUpload } from '../../components/register-vol/DocumentUploadBox';
+import BottomSheetPicker, { OptionItem } from '../../components/host/create-event/BottomSheetPicker';
+import MapLocationPicker, { LocationData } from '../../components/host/create-event/MapLocationPicker';
+import PickerField from '../../components/host/create-event/PickerField';
+import EventDayCard, { EventDay, DayErrorField } from '../../components/host/create-event/EventDayCard';
 import {
     ActivityDomain,
     getAllActivityDomains,

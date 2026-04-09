@@ -37,7 +37,7 @@ function getFullImageUrl(path: string | null | undefined): string | null {
     return `${supabaseUrl}/storage/v1/object/public/hvh-bucket/${path}`;
 }
 
-import StarRating from '@/app/components/StarRating';
+import StarRating from '@/app/components/volunteer/organization/StarRating';
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
