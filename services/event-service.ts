@@ -214,6 +214,33 @@ export interface RegisteredParticipantsResponse {
     hasMore: boolean;
 }
 
+export interface ActualParticipant {
+    volunteerId: string;
+    fullName: string;
+    nickName: string | null;
+    email: string | null;
+    phone: string | null;
+    bio: string | null;
+    avatarUrl: string | null;
+    address: string | null;
+    creditScore: number;
+    honorScore: number;
+    avgRating: number;
+    eventApplicationId: string;
+    checkInTime: string | null;
+    checkOutTime: string | null;
+}
+
+export interface ActualParticipantsResponse {
+    content: ActualParticipant[];
+    page: {
+        size: number;
+        number: number;
+        totalElements: number;
+        totalPages: number;
+    };
+}
+
 export interface ApplicationActionResponse {
     success: boolean;
     message?: string;
@@ -471,7 +498,7 @@ export const applyEventSession = async (sessionId: string): Promise<void> => {
  * GET /api/v1/host/event/my-events
  */
 export const getMyEvents = async (params: MyEventsParams = {}): Promise<MyEventsResponse> => {
-    const endpoint = `${API_BASE}/api/v1/host/event/my-events`
+    const endpoint = `${API_BASE}/api/v1/host/events/my-events`
 
     // Build URLSearchParams to support multiple `status` values
     const query = new URLSearchParams()
@@ -487,7 +514,7 @@ export const getMyEvents = async (params: MyEventsParams = {}): Promise<MyEvents
  * GET /api/v1/host/event/event-details/{id}
  */
 export const getEventDetailByHost = async (id: string): Promise<EventDetailResponse> => {
-    const endpoint = `${API_BASE}/api/v1/host/event/event-details/${id}`
+    const endpoint = `${API_BASE}/api/v1/host/events/event-details/${id}`
     const response = await baseAxios.get<EventDetailResponse>(endpoint)
     console.log('[getEventDetailByHost] response:', JSON.stringify(response.data, null, 2))
     return response.data
@@ -502,13 +529,30 @@ export const getRegisteredParticipants = async (
     pageNumber: number = 0,
     pageSize: number = 10,
 ): Promise<RegisteredParticipantsResponse> => {
-    const endpoint = `${API_BASE}/api/v1/host/event-session/${sessionId}/registered-participants`
+    const endpoint = `${API_BASE}/api/v1/host/event-sessions/${sessionId}/registered-participants`
     const response = await baseAxios.get<RegisteredParticipantsResponse>(endpoint, {
         params: { pageNumber, pageSize },
     })
     console.log('[getRegisteredParticipants] response:', JSON.stringify(response.data, null, 2))
     return response.data
     }
+
+/**
+ * Fetch approved (actual) participants for a session.
+ * GET /api/v1/host/event-sessions/{sessionId}/actual-participants
+ */
+export const getActualParticipants = async (
+    sessionId: string,
+    pageNumber: number = 0,
+    pageSize: number = 10,
+): Promise<ActualParticipantsResponse> => {
+    const endpoint = `${API_BASE}/api/v1/host/event-sessions/${sessionId}/actual-participants`
+    const response = await baseAxios.get<ActualParticipantsResponse>(endpoint, {
+        params: { pageNumber, pageSize },
+    })
+    console.log('[getActualParticipants] response:', JSON.stringify(response.data, null, 2))
+    return response.data
+}
 
 /**
  * Approve a volunteer application.

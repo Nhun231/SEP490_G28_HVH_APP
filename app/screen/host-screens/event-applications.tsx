@@ -1,11 +1,17 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
-import { View, Text, FlatList, StyleSheet, TouchableOpacity, RefreshControl, ActivityIndicator } from 'react-native';
+import { View, Text, FlatList, StyleSheet, RefreshControl, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams, Stack } from 'expo-router';
 import EventListHeader, { MasterTabConfig } from '../../components/host/event-list/EventListHeader';
 import VolunteerCard, { VolunteerApplication } from '../../components/host/verify-vol-to-event/VolunteerCard';
-import { getRegisteredParticipants, RegisteredParticipant, getApiErrorMessage } from '@/services/event-service';
+import {
+    getRegisteredParticipants,
+    RegisteredParticipant,
+    getActualParticipants,
+    ActualParticipant,
+    getApiErrorMessage,
+} from '@/services/event-service';
 
 type AppTab = 'PENDING' | 'APPROVED';
 
@@ -16,8 +22,8 @@ const MASTER_TABS: MasterTabConfig<AppTab>[] = [
 
 const PAGE_SIZE = 10;
 
-// Map API participant → VolunteerApplication used by VolunteerCard
-function toVolunteerApplication(p: RegisteredParticipant): VolunteerApplication {
+// Map pending API participant → VolunteerApplication
+function fromPending(p: RegisteredParticipant): VolunteerApplication {
     return {
         id: p.applicationId,
         name: p.name,
@@ -31,38 +37,37 @@ function toVolunteerApplication(p: RegisteredParticipant): VolunteerApplication 
     };
 }
 
-// mock approved data
-const MOCK_APPROVED: VolunteerApplication[] = [
-    {
-        id: 'mock-4',
-        name: 'Phạm Thu Hà',
-        avatarUrl: null,
-        creditScore: 60,
-        honorScore: 29,
-        address: 'Cầu Giấy, Hà Nội',
-        createdAt: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString(),
+// Map approved API participant → VolunteerApplication
+// checkInTime is used as createdAt fallback; if null use current time
+function fromApproved(p: ActualParticipant): VolunteerApplication {
+    return {
+        id: p.eventApplicationId,
+        name: p.fullName,
+        nickName: p.nickName,
+        email: p.email,
+        phone: p.phone,
+        checkInTime: p.checkInTime,
+        avatarUrl: p.avatarUrl ?? null,
+        creditScore: p.creditScore,
+        honorScore: p.honorScore,
+        address: p.address ?? '',
+        createdAt: p.checkInTime ?? new Date().toISOString(),
         status: 'APPROVED',
-    },
-    {
-        id: 'mock-5',
-        name: 'Nguyễn Văn An',
-        avatarUrl: null,
-        creditScore: 70,
-        honorScore: 28,
-        address: 'Thanh Xuân, Hà Nội',
-        createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-        status: 'APPROVED',
-    },
-];
+    };
+}
 
 const EventApplicationsScreen = () => {
     const router = useRouter();
-    const params = useLocalSearchParams<{ eventName?: string; sessionId?: string }>();
+    const params = useLocalSearchParams<{ eventName?: string; sessionId?: string; eventStatus?: string; sessionStartTime?: string }>();
     const eventName = params.eventName || 'Sự kiện';
     const sessionId = params.sessionId || '';
+    const eventStatus = params.eventStatus || '';
+    const sessionStartTime = params.sessionStartTime || null;
 
-    // Master tab state
-    const [masterTab, setMasterTab] = useState<AppTab>('PENDING');
+    // Master tab state — default to APPROVED for ONGOING events
+    const [masterTab, setMasterTab] = useState<AppTab>(
+        eventStatus === 'ONGOING' ? 'APPROVED' : 'PENDING'
+    );
 
     // Search state
     const [searchVisible, setSearchVisible] = useState(false);
@@ -70,58 +75,100 @@ const EventApplicationsScreen = () => {
     const [searchQuery, setSearchQuery] = useState('');
     const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-    // Pending data 
+    // Pending state
     const [pendingList, setPendingList] = useState<VolunteerApplication[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [refreshing, setRefreshing] = useState(false);
-    const [loadingMore, setLoadingMore] = useState(false);
-    const [hasMore, setHasMore] = useState(false);
-    const pageNumberRef = useRef(0);
+    const [pendingLoading, setPendingLoading] = useState(true);
+    const [pendingRefreshing, setPendingRefreshing] = useState(false);
+    const [pendingLoadingMore, setPendingLoadingMore] = useState(false);
+    const [pendingHasMore, setPendingHasMore] = useState(false);
+    const pendingPageRef = useRef(0);
 
-    // Approved data (mock)
-    const [approvedList] = useState<VolunteerApplication[]>(MOCK_APPROVED);
+    // Approved state
+    const [approvedList, setApprovedList] = useState<VolunteerApplication[]>([]);
+    const [approvedLoading, setApprovedLoading] = useState(true);
+    const [approvedRefreshing, setApprovedRefreshing] = useState(false);
+    const [approvedLoadingMore, setApprovedLoadingMore] = useState(false);
+    const [approvedHasMore, setApprovedHasMore] = useState(false);
+    const approvedPageRef = useRef(0);
 
-    // Fetch pending participants
+    // Fetch pending participants (cursor-based)
     const fetchPending = useCallback(async (page: number, replace: boolean) => {
         if (!sessionId) return;
         try {
             const res = await getRegisteredParticipants(sessionId, page, PAGE_SIZE);
-            const mapped = res.registeredParticipants.map(toVolunteerApplication);
+            const mapped = res.registeredParticipants.map(fromPending);
             if (replace) {
                 setPendingList(mapped);
             } else {
                 setPendingList(prev => [...prev, ...mapped]);
             }
-            setHasMore(res.hasMore);
-            pageNumberRef.current = page;
+            setPendingHasMore(res.hasMore);
+            pendingPageRef.current = page;
         } catch (err) {
-            console.error('[EventApplications] fetch error:', getApiErrorMessage(err));
+            console.error('[EventApplications] fetchPending error:', getApiErrorMessage(err));
         }
     }, [sessionId]);
 
-    // Initial load
+    // Fetch approved participants (page-based — hasMore derived from totalPages)
+    const fetchApproved = useCallback(async (page: number, replace: boolean) => {
+        if (!sessionId) return;
+        try {
+            const res = await getActualParticipants(sessionId, page, PAGE_SIZE);
+            const mapped = res.content.map(fromApproved);
+            if (replace) {
+                setApprovedList(mapped);
+            } else {
+                setApprovedList(prev => [...prev, ...mapped]);
+            }
+            setApprovedHasMore(res.page.number + 1 < res.page.totalPages);
+            approvedPageRef.current = page;
+        } catch (err) {
+            console.error('[EventApplications] fetchApproved error:', getApiErrorMessage(err));
+        }
+    }, [sessionId]);
+
+    // Initial load — both tabs in parallel
     useEffect(() => {
         (async () => {
-            setLoading(true);
-            await fetchPending(0, true);
-            setLoading(false);
+            setPendingLoading(true);
+            setApprovedLoading(true);
+            await Promise.all([fetchPending(0, true), fetchApproved(0, true)]);
+            setPendingLoading(false);
+            setApprovedLoading(false);
         })();
-    }, [fetchPending]);
+    }, [fetchPending, fetchApproved]);
 
-    // Pull-to-refresh
+    // Pull-to-refresh per tab
     const handleRefresh = useCallback(async () => {
-        setRefreshing(true);
-        await fetchPending(0, true);
-        setRefreshing(false);
-    }, [fetchPending]);
+        if (masterTab === 'PENDING') {
+            setPendingRefreshing(true);
+            await fetchPending(0, true);
+            setPendingRefreshing(false);
+        } else {
+            setApprovedRefreshing(true);
+            await fetchApproved(0, true);
+            setApprovedRefreshing(false);
+        }
+    }, [masterTab, fetchPending, fetchApproved]);
 
-    // Load more (cursor pagination)
+    // Load more per tab
     const handleLoadMore = useCallback(async () => {
-        if (!hasMore || loadingMore || loading || refreshing) return;
-        setLoadingMore(true);
-        await fetchPending(pageNumberRef.current + 1, false);
-        setLoadingMore(false);
-    }, [hasMore, loadingMore, loading, refreshing, fetchPending]);
+        if (masterTab === 'PENDING') {
+            if (!pendingHasMore || pendingLoadingMore || pendingLoading || pendingRefreshing) return;
+            setPendingLoadingMore(true);
+            await fetchPending(pendingPageRef.current + 1, false);
+            setPendingLoadingMore(false);
+        } else {
+            if (!approvedHasMore || approvedLoadingMore || approvedLoading || approvedRefreshing) return;
+            setApprovedLoadingMore(true);
+            await fetchApproved(approvedPageRef.current + 1, false);
+            setApprovedLoadingMore(false);
+        }
+    }, [
+        masterTab,
+        pendingHasMore, pendingLoadingMore, pendingLoading, pendingRefreshing, fetchPending,
+        approvedHasMore, approvedLoadingMore, approvedLoading, approvedRefreshing, fetchApproved,
+    ]);
 
     // Search debounce
     const handleSearchChange = (text: string) => {
@@ -153,13 +200,18 @@ const EventApplicationsScreen = () => {
         };
     }, []);
 
-    // remove item from list after approve/reject succeeds in modal
+    // Optimistic update: remove item from pending list after approve/reject succeeds
     const handleRemoveFromList = useCallback((item: VolunteerApplication) => {
         setPendingList(prev => prev.filter(v => v.id !== item.id));
     }, []);
 
-    // Filtered list
-    const currentList = masterTab === 'PENDING' ? pendingList : approvedList;
+    // Derived values for active tab
+    const isPending = masterTab === 'PENDING';
+    const currentList = isPending ? pendingList : approvedList;
+    const isLoading = isPending ? pendingLoading : approvedLoading;
+    const isRefreshing = isPending ? pendingRefreshing : approvedRefreshing;
+    const isLoadingMore = isPending ? pendingLoadingMore : approvedLoadingMore;
+
     const filteredList = searchQuery
         ? currentList.filter(
             v =>
@@ -168,21 +220,17 @@ const EventApplicationsScreen = () => {
         )
         : currentList;
 
-    // Section label
-    const sectionLabel =
-        masterTab === 'PENDING'
-            ? `DANH SÁCH CHỜ (${pendingList.length}${hasMore ? '+' : ''})`
-            : `ĐÃ DUYỆT GẦN ĐÂY (${approvedList.length})`;
+    const sectionLabel = isPending
+        ? `DANH SÁCH CHỜ (${pendingList.length}${pendingHasMore ? '+' : ''})`
+        : `ĐÃ DUYỆT (${approvedList.length}${approvedHasMore ? '+' : ''})`;
 
-    // Footer (load-more indicator)
     const renderFooter = () => {
-        if (!loadingMore) return null;
+        if (!isLoadingMore) return null;
         return <ActivityIndicator style={{ padding: 16 }} size="small" color="#42A4F5" />;
     };
 
-    // Empty state
     const renderEmpty = () => {
-        if (loading) return null;
+        if (isLoading) return null;
         return (
             <View style={styles.emptyContainer}>
                 <View style={styles.emptyIconWrapper}>
@@ -190,7 +238,7 @@ const EventApplicationsScreen = () => {
                         name={
                             searchQuery
                                 ? 'search-outline'
-                                : masterTab === 'PENDING'
+                                : isPending
                                     ? 'hourglass-outline'
                                     : 'checkmark-circle-outline'
                         }
@@ -201,14 +249,14 @@ const EventApplicationsScreen = () => {
                 <Text style={styles.emptyTitle}>
                     {searchQuery
                         ? 'Không tìm thấy kết quả'
-                        : masterTab === 'PENDING'
+                        : isPending
                             ? 'Chưa có đơn đăng ký'
                             : 'Chưa có ai được duyệt'}
                 </Text>
                 <Text style={styles.emptySubtitle}>
                     {searchQuery
                         ? `Không có tình nguyện viên khớp với "${searchText}"`
-                        : masterTab === 'PENDING'
+                        : isPending
                             ? 'Các đơn đăng ký chờ duyệt sẽ hiển thị tại đây.'
                             : 'Tình nguyện viên được duyệt sẽ hiển thị tại đây.'}
                 </Text>
@@ -220,7 +268,6 @@ const EventApplicationsScreen = () => {
         <>
             <Stack.Screen options={{ headerShown: false }} />
             <SafeAreaView style={styles.container} edges={['top']}>
-                {/* Shared header */}
                 <EventListHeader
                     title="Danh sách đăng ký"
                     subtitle={`Sự kiện: ${eventName}`}
@@ -236,12 +283,10 @@ const EventApplicationsScreen = () => {
                     onBack={() => router.back()}
                 />
 
-                {/* Content */}
                 <View style={styles.listWrapper}>
                     <Text style={styles.sectionLabel}>{sectionLabel}</Text>
 
-                    {/* Loading skeleton for initial fetch */}
-                    {loading && masterTab === 'PENDING' ? (
+                    {isLoading ? (
                         <View style={styles.loadingBox}>
                             <ActivityIndicator size="large" color="#42A4F5" />
                             <Text style={styles.loadingText}>Đang tải danh sách...</Text>
@@ -255,6 +300,8 @@ const EventApplicationsScreen = () => {
                                     item={item}
                                     onApprove={handleRemoveFromList}
                                     onReject={handleRemoveFromList}
+                                    eventStatus={eventStatus}
+                                    sessionStartTime={sessionStartTime}
                                 />
                             )}
                             contentContainerStyle={styles.listContent}
@@ -263,16 +310,14 @@ const EventApplicationsScreen = () => {
                             ListEmptyComponent={renderEmpty}
                             ListFooterComponent={renderFooter}
                             refreshControl={
-                                masterTab === 'PENDING' ? (
-                                    <RefreshControl
-                                        refreshing={refreshing}
-                                        onRefresh={handleRefresh}
-                                        colors={['#42A4F5']}
-                                        tintColor="#42A4F5"
-                                    />
-                                ) : undefined
+                                <RefreshControl
+                                    refreshing={isRefreshing}
+                                    onRefresh={handleRefresh}
+                                    colors={['#42A4F5']}
+                                    tintColor="#42A4F5"
+                                />
                             }
-                            onEndReached={masterTab === 'PENDING' ? handleLoadMore : undefined}
+                            onEndReached={handleLoadMore}
                             onEndReachedThreshold={0.3}
                         />
                     )}

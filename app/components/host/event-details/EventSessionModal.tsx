@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Modal, KeyboardAvoidingView, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { EventSessionResponse } from '@/services/event-service';
+import { EventSessionDetailsResponse } from '@/services/event-service';
 
 function parseIsoDateTime(iso: string): { date: string; time: string } {
     const [datePart, timePart] = iso.split('T');
@@ -14,22 +14,24 @@ export interface EventSessionModalProps {
     visible: boolean;
     onClose: () => void;
     eventName: string;
-    sessions: EventSessionResponse[];
+    eventStatus: string;
+    sessions: EventSessionDetailsResponse[];
 }
 
 const EventSessionModal: React.FC<EventSessionModalProps> = ({
     visible,
     onClose,
     eventName,
+    eventStatus,
     sessions,
 }) => {
     const router = useRouter();
 
-    const handleSelectSession = (sessionId: string) => {
+    const handleSelectSession = (sessionId: string, sessionStartTime: string) => {
         onClose();
         router.push({
-            pathname: '/screen/host-sceens/event-applications',
-            params: { eventName, sessionId },
+            pathname: '/screen/host-screens/event-applications' as any,
+            params: { eventName, sessionId, eventStatus, sessionStartTime },
         });
     };
 
@@ -65,7 +67,7 @@ const EventSessionModal: React.FC<EventSessionModalProps> = ({
                                     key={session.id}
                                     style={styles.sessionCard}
                                     activeOpacity={0.85}
-                                    onPress={() => handleSelectSession(session.id)}
+                                    onPress={() => handleSelectSession(session.id, session.startDateTime)}
                                 >
                                     {/* Index badge */}
                                     <View style={styles.indexBadge}>
