@@ -20,7 +20,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import {
     EventDetailsResponse,
-    EventSessionDetailsResponse,
+    EventSessionResponse,
     getEventDetails,
     saveEventForVolunteer,
     applyEventSession,
@@ -87,13 +87,13 @@ export default function EventDetail() {
         if (!savedKey) return;
         AsyncStorage.getItem(savedKey).then(val => {
             if (val === 'true') setSaved(true);
-        }).catch(() => {});
+        }).catch(() => { });
     }, [savedKey]);
 
     // ── Apply flow state ──
     const [applyModalVisible, setApplyModalVisible] = useState(false);
     const [sessionPickerVisible, setSessionPickerVisible] = useState(false);
-    const [selectedSession, setSelectedSession] = useState<EventSessionDetailsResponse | null>(null);
+    const [selectedSession, setSelectedSession] = useState<EventSessionResponse | null>(null);
     const [applying, setApplying] = useState(false);
 
     const carouselRef = useRef<FlatList>(null);
@@ -194,8 +194,8 @@ export default function EventDetail() {
         const query = encodeURIComponent(event.detailAddress || event.address);
 
         const openGoogle = () =>
-            Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${query}`).catch(() => {});
-        
+            Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${query}`).catch(() => { });
+
         const openApple = () =>
             Linking.openURL(`maps://?q=${query}`).catch(openGoogle);
 
@@ -255,7 +255,7 @@ export default function EventDetail() {
         }
     };
 
-    const handleSessionSelected = (session: EventSessionDetailsResponse) => {
+    const handleSessionSelected = (session: EventSessionResponse) => {
         setSessionPickerVisible(false);
         setSelectedSession(session);
         setApplyModalVisible(true);
@@ -802,6 +802,16 @@ const styles = StyleSheet.create({
         lineHeight: 18,
     },
     mapLinkBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+        alignSelf: 'flex-end',
+        backgroundColor: '#E3F2FD',
+        borderRadius: 20,
+        paddingHorizontal: 14,
+        paddingVertical: 7,
+    },
+    sessionHeader: {
         flexDirection: 'row',
         alignItems: 'center',
         gap: 6,
