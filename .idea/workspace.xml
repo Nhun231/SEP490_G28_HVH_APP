@@ -6,7 +6,6 @@
   <component name="ChangeListManager">
     <list default="true" id="75668f23-b4c0-497d-81ac-fa2ee3afdab7" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/screen/my-applications.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/screen/my-applications.tsx" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -41,22 +40,22 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "RunOnceActivity.git.unshallow": "true",
-    "git-widget-placeholder": "dev",
-    "ignore.virus.scanning.warn.message": "true",
-    "last_opened_file_path": "D:/Documents/9th_semester/GRADUATEEEEE/SEP490_G28_HVH_APP",
-    "node.js.detected.package.eslint": "true",
-    "node.js.detected.package.tslint": "true",
-    "node.js.selected.package.eslint": "(autodetect)",
-    "node.js.selected.package.tslint": "(autodetect)",
-    "nodejs_package_manager_path": "npm",
-    "ts.external.directory.path": "D:\\Documents\\9th_semester\\GRADUATEEEEE\\SEP490_G28_HVH_APP\\node_modules\\typescript\\lib",
-    "vue.rearranger.settings.migration": "true"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;dev&quot;,
+    &quot;ignore.virus.scanning.warn.message&quot;: &quot;true&quot;,
+    &quot;last_opened_file_path&quot;: &quot;D:/Documents/9th_semester/GRADUATEEEEE/SEP490_G28_HVH_APP&quot;,
+    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
+    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
+    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
+    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
+    &quot;ts.external.directory.path&quot;: &quot;D:\\Documents\\9th_semester\\GRADUATEEEEE\\SEP490_G28_HVH_APP\\node_modules\\typescript\\lib&quot;,
+    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
   }
-}]]></component>
+}</component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
       <recent name="D:\Documents\9th_semester\GRADUATEEEEE\SEP490_G28_HVH_APP" />
@@ -113,6 +112,7 @@
       <workItem from="1774459017494" duration="1299000" />
       <workItem from="1774629632998" duration="139000" />
       <workItem from="1775531477225" duration="570000" />
+      <workItem from="1775735710658" duration="729000" />
     </task>
     <servers />
   </component>
@@ -130,7 +130,7 @@
                   <entry key="branch">
                     <value>
                       <list>
-                        <option value="feature/uc007-search-volunteer-event" />
+                        <option value="SEP490_G28_HVH_APP/feature/uc025-view-registered-participants" />
                       </list>
                     </value>
                   </entry>

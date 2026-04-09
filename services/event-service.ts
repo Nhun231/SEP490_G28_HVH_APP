@@ -5,7 +5,8 @@
 import baseAxios from '@/lib/baseAxios'
 import { AxiosError } from 'axios'
 
-const API_BASE = process.env.EXPO_PUBLIC_API_URL || 'https://api.hvh.okne.site'
+const API_BASE = process.env.EXPO_PUBLIC_API_URL || 'https://api.hvh.homes'
+const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL
 
 // ── API Error Response Types ──
 
@@ -20,108 +21,6 @@ export interface ApiErrorResponse {
     message: string;
     moreInfo?: ApiErrorMoreInfo;
 }
-
-const isRecord = (value: unknown): value is Record<string, unknown> => {
-    return typeof value === 'object' && value !== null;
-};
-
-const normalizeApiErrorResponse = (data: unknown): ApiErrorResponse | null => {
-    if (!isRecord(data)) return null;
-
-    const moreInfoRaw = data.moreInfo;
-    const moreInfo = isRecord(moreInfoRaw)
-        ? Object.entries(moreInfoRaw).reduce<ApiErrorMoreInfo>((acc, [key, value]) => {
-            if (typeof value === 'string') {
-                acc[key] = value;
-            }
-            return acc;
-        }, {})
-        : undefined;
-
-    return {
-        code: typeof data.code === 'number' ? data.code : -1,
-        message: typeof data.message === 'string' ? data.message : '',
-        moreInfo,
-    };
-};
-
-/**
- * Extract user-friendly error messages from API error response.
- * Returns an array of error messages from moreInfo (excluding keys).
- */
-export const extractApiErrorMessages = (error: unknown): string[] => {
-    if (error instanceof AxiosError && error.response?.data) {
-        const apiError = normalizeApiErrorResponse(error.response.data);
-        if (!apiError) return [];
-        const messages: string[] = [];
-
-        if (apiError.moreInfo) {
-            const fieldLevelMessages: string[] = [];
-            Object.entries(apiError.moreInfo).forEach(([key, value]) => {
-                if (value && typeof value === 'string' && key !== 'business' && key !== 'auth') {
-                    fieldLevelMessages.push(value);
-                }
-            });
-
-            // If there are field-level validation messages, show only those.
-            if (fieldLevelMessages.length > 0) {
-                messages.push(...fieldLevelMessages);
-            } else {
-                if (apiError.moreInfo.business) {
-                    messages.push(apiError.moreInfo.business);
-                }
-                if (apiError.moreInfo.auth) {
-                    messages.push(apiError.moreInfo.auth);
-                }
-            }
-        }
-
-        // If no messages found in moreInfo, use the main message
-        if (messages.length === 0 && apiError.message) {
-            messages.push(apiError.message);
-        }
-
-        return messages;
-    }
-
-    // Fallback for non-Axios errors
-    if (error instanceof Error) {
-        return [error.message];
-    }
-
-    return ['Đã xảy ra lỗi không xác định'];
-};
-
-/**
- * Return API error payload as pretty raw text for debugging/demo logs.
- */
-export const getApiErrorRawText = (error: unknown): string | undefined => {
-    if (!(error instanceof AxiosError)) return undefined;
-    const data = error.response?.data;
-    if (data === undefined) return undefined;
-
-    if (typeof data === 'string') {
-        return data;
-    }
-
-    if (isRecord(data)) {
-        return JSON.stringify(data, null, 4);
-    }
-
-    try {
-        return JSON.stringify(data, null, 4);
-    } catch {
-        return String(data);
-    }
-};
-
-/**
- * Extract a single combined error message from API error response.
- * Joins all messages with newlines.
- */
-export const getApiErrorMessage = (error: unknown): string => {
-    return extractApiErrorMessages(error).join('\n');
-};
 
 export interface ActivitySubDomain {
     id: number;
@@ -235,6 +134,8 @@ export interface EventSession {
     updateAction: SessionUpdateAction;
     startDateTime: string; // ISO 8601 format with timezone (e.g., "2026-04-01T05:30:00+07:00")
     endDateTime: string;   // ISO 8601 format with timezone
+    expectedVolAmount: number;
+    expectedSerAmount: number;
 }
 
 // ── Event Detail interfaces ──
@@ -266,10 +167,143 @@ export interface EventCreateRequest {
 
 export interface EventCreateResponse {
     eventId: string;
-    imageUploadUrls?: Array<{
-        imageId: string;
-        uploadUrl: string;
-    }>;
+    uploadUrls?: Array<string>;
+}
+
+export interface EventDetailResponse {
+    id: string;
+    name: string;
+    status: MyEventStatus;
+    imageUrls: string[];
+    address: string;
+    detailAddress: string;
+    checkInCode: string | null;
+    totalVolunteers: number;
+    totalServed: number;
+    servedTarget: string;
+    servingPlaceType: string;
+    description: string;
+    recruitmentEndDate: string;   // ISO date e.g. "2026-03-25"
+    eventSessions: EventSessionDetailsResponse[];
+    latCheckInLocation: number;
+    lngCheckInLocation: number;
+    checkInAccuracyMeters: number;
+    autoApprove: boolean;
+    servingActivity: boolean;
+    activitySubDomain: string;
+    note?: string | null;         // Warning message from backend (e.g. image errors)
+}
+
+export interface RegisteredParticipant {
+    applicationId: string;
+    volunteerId: string;
+    email: string;
+    phone: string;
+    nickName: string | null;
+    name: string;
+    avatarUrl: string | null;
+    address: string | null;
+    creditScore: number;
+    honorScore: number;
+    createdAt: string; // ISO datetime
+}
+
+export interface RegisteredParticipantsResponse {
+    registeredParticipants: RegisteredParticipant[];
+    nextCursor: string | null;
+    hasMore: boolean;
+}
+
+export interface ApplicationActionResponse {
+    success: boolean;
+    message?: string;
+}
+
+const isRecord = (value: unknown): value is Record<string, unknown> => {
+    return typeof value === 'object' && value !== null;
+};
+
+// helper function to normalize API error response
+const normalizeApiErrorResponse = (data: unknown): ApiErrorResponse | null => {
+    if (!isRecord(data)) return null;
+
+    const moreInfoRaw = data.moreInfo;
+    const moreInfo = isRecord(moreInfoRaw)
+        ? Object.entries(moreInfoRaw).reduce<ApiErrorMoreInfo>((acc, [key, value]) => {
+            if (typeof value === 'string') {
+                acc[key] = value;
+            }
+            return acc;
+        }, {})
+        : undefined;
+
+    return {
+        code: typeof data.code === 'number' ? data.code : -1,
+        message: typeof data.message === 'string' ? data.message : '',
+        moreInfo,
+    };
+};
+
+// helper function to extract user-friendly error messages from API error response
+export const extractApiErrorMessages = (error: unknown): string[] => {
+    if (error instanceof AxiosError && error.response?.data) {
+        const apiError = normalizeApiErrorResponse(error.response.data);
+        if (!apiError) return [];
+        const messages: string[] = [];
+
+        if (apiError.moreInfo) {
+            const fieldLevelMessages: string[] = [];
+            Object.entries(apiError.moreInfo).forEach(([key, value]) => {
+                if (value && typeof value === 'string' && key !== 'business' && key !== 'auth') {
+                    fieldLevelMessages.push(value);
+                }
+            });
+
+            if (fieldLevelMessages.length > 0) {
+                messages.push(...fieldLevelMessages);
+            } else {
+                if (apiError.moreInfo.business) messages.push(apiError.moreInfo.business);
+                if (apiError.moreInfo.auth) messages.push(apiError.moreInfo.auth);
+            }
+        }
+
+        if (messages.length === 0 && apiError.message) {
+            messages.push(apiError.message);
+        }
+
+        return messages;
+    }
+
+    if (error instanceof Error) return [error.message];
+    return ['Đã xảy ra lỗi không xác định'];
+};
+
+// helper function to get a single combined error message from API error response
+export const getApiErrorMessage = (error: unknown): string => {
+    return extractApiErrorMessages(error).join('\n');
+};
+
+// helper function to get API error payload as raw text for debugging
+export const getApiErrorRawText = (error: unknown): string | undefined => {
+    if (!(error instanceof AxiosError)) return undefined;
+    const data = error.response?.data;
+    if (data === undefined) return undefined;
+    if (typeof data === 'string') return data;
+    try {
+        return JSON.stringify(data, null, 4);
+    } catch {
+        return String(data);
+    }
+};
+
+/**
+ * Supabase returns relative image paths like "/object/sign/..."
+ * This helper resolves them to full public URLs.
+ */
+export const resolveSupabaseUrl = (url: string | null | undefined): string | null => {
+    if (!url) return null;
+    if (url.startsWith('http://') || url.startsWith('https://')) return url;
+    return SUPABASE_URL + '/storage/v1' + url;
 }
 
 /**
@@ -444,20 +478,60 @@ export const getMyEvents = async (params: MyEventsParams = {}): Promise<MyEvents
     query.append('pageNumber', String(params.pageNumber ?? 0))
     query.append('pageSize', String(params.pageSize ?? 10))
     if (params.name) query.append('name', params.name)
+    const response = await baseAxios.get<MyEventsResponse>(`${endpoint}?${query.toString()}`)
+    return response.data
+}
 
-    if (params.statuses && params.statuses.length > 0) {
-        // Append each status separately so server receives: ?status=X&status=Y
-        params.statuses.forEach(s => query.append('status', s))
-    } else if (params.status) {
-        query.append('status', params.status)
+/**
+ * Fetch event detail for the host.
+ * GET /api/v1/host/event/event-details/{id}
+ */
+export const getEventDetailByHost = async (id: string): Promise<EventDetailResponse> => {
+    const endpoint = `${API_BASE}/api/v1/host/event/event-details/${id}`
+    const response = await baseAxios.get<EventDetailResponse>(endpoint)
+    console.log('[getEventDetailByHost] response:', JSON.stringify(response.data, null, 2))
+    return response.data
+}
+
+/**
+ * Fetch pending participants for a session.
+ * GET /api/v1/host/event-session/{sessionId}/registered-participants
+ */
+export const getRegisteredParticipants = async (
+    sessionId: string,
+    pageNumber: number = 0,
+    pageSize: number = 10,
+): Promise<RegisteredParticipantsResponse> => {
+    const endpoint = `${API_BASE}/api/v1/host/event-session/${sessionId}/registered-participants`
+    const response = await baseAxios.get<RegisteredParticipantsResponse>(endpoint, {
+        params: { pageNumber, pageSize },
+    })
+    console.log('[getRegisteredParticipants] response:', JSON.stringify(response.data, null, 2))
+    return response.data
     }
 
-    const url = `${endpoint}?${query.toString()}`
-    console.log('[EventService] Fetching my events:', url)
+/**
+ * Approve a volunteer application.
+ * POST /api/v1/host/event-applications/{id}/approve
+ */
+export const approveVolunteerApplication = async (
+    applicationId: string,
+): Promise<ApplicationActionResponse> => {
+    const endpoint = `${API_BASE}/api/v1/host/event-applications/${applicationId}/approve`
+    const response = await baseAxios.put<ApplicationActionResponse>(endpoint)
+    return response.data
+}
 
-    const response = await baseAxios.get<MyEventsResponse>(url)
-
-    console.log('[EventService] My events fetched:', response.data.content.length, 'events')
+/**
+ * Reject a volunteer application.
+ * POST /api/v1/host/event-applications/{id}/reject
+ */
+export const rejectVolunteerApplication = async (
+    applicationId: string,
+    reason: string,
+): Promise<ApplicationActionResponse> => {
+    const endpoint = `${API_BASE}/api/v1/host/event-applications/${applicationId}/reject`
+    const response = await baseAxios.put<ApplicationActionResponse>(endpoint, { rejectionReason: reason })
     return response.data
 }
 
