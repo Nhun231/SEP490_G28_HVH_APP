@@ -1,6 +1,6 @@
 import {
     EOrgType,
-    ORG_TYPE_LABELS,
+    ORG_TYPE_SHORT_LABELS,
     OrganizationDetailsResponse,
     getOrganizationDetails,
 } from '@/services/organization-service';
@@ -10,7 +10,8 @@ import { router, useLocalSearchParams } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
     ActivityIndicator,
-    Linking,
+    Dimensions,
+    Platform,
     ScrollView,
     StyleSheet,
     Text,
@@ -18,6 +19,12 @@ import {
     View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+
+// ─── Constants ───────────────────────────────────────────────────────────────
+
+const MOCK_RATING = 3.2;
+const { width: SCREEN_W } = Dimensions.get('window');
+const COVER_HEIGHT = 240;
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -30,35 +37,16 @@ function getFullImageUrl(path: string | null | undefined): string | null {
     return `${supabaseUrl}/storage/v1/object/public/hvh-bucket/${path}`;
 }
 
-function formatDate(iso: string | null): string {
-    if (!iso) return '—';
-    try {
-        const d = new Date(iso);
-        return `${d.getDate().toString().padStart(2, '0')}/${(d.getMonth() + 1).toString().padStart(2, '0')}/${d.getFullYear()}`;
-    } catch { return '—'; }
-}
-
-// ─── Detail Row ───────────────────────────────────────────────────────────────
-
-function InfoRow({ icon, label, value }: { icon: string; label: string; value: string }) {
-    return (
-        <View style={styles.infoRow}>
-            <Ionicons name={icon as any} size={18} color="#42A4F5" style={styles.infoIcon} />
-            <View style={styles.infoTexts}>
-                <Text style={styles.infoLabel}>{label}</Text>
-                <Text style={styles.infoValue}>{value}</Text>
-            </View>
-        </View>
-    );
-}
+import StarRating from '@/app/components/StarRating';
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
 export default function OrgDetail() {
-    const { orgId, orgName } = useLocalSearchParams<{ orgId: string; orgName?: string }>();
+    const { orgId } = useLocalSearchParams<{ orgId: string; orgName?: string }>();
     const [org, setOrg] = useState<OrganizationDetailsResponse | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [saved, setSaved] = useState(false);
 
     const fetchOrg = useCallback(async () => {
         if (!orgId) return;
@@ -80,13 +68,11 @@ export default function OrgDetail() {
         else router.replace('/(tabs)/benefit' as any);
     };
 
-    const handleCallManager = () => {
-        if (org?.managerPhone) Linking.openURL(`tel:${org.managerPhone}`);
-    };
-
     const coverUrl = getFullImageUrl(org?.coverImageUrl);
     const avatarUrl = getFullImageUrl(org?.avatarImageUrl);
-    const orgTypeLabel = org?.orgType ? (ORG_TYPE_LABELS[org.orgType as EOrgType] ?? org.orgType) : null;
+    const orgTypeLabel = org?.orgType
+        ? (ORG_TYPE_SHORT_LABELS[org.orgType as EOrgType] ?? org.orgType)
+        : null;
 
     // ── Loading ──
     if (loading) {
@@ -125,21 +111,28 @@ export default function OrgDetail() {
                             transition={200}
                         />
                     ) : (
-                        <View style={styles.coverPlaceholder}>
-                            <Ionicons name="business" size={52} color="rgba(255,255,255,0.5)" />
-                        </View>
+                        <View style={styles.coverPlaceholder} />
                     )}
 
-                    {/* Back button overlay */}
-                    <TouchableOpacity style={styles.backBtn} onPress={handleBack}>
-                        <Ionicons name="close" size={22} color="#1F2937" />
-                    </TouchableOpacity>
+                    {/* Back + Save overlay */}
+                    <View style={styles.headerOverlay}>
+                        <TouchableOpacity style={styles.circleBtn} onPress={handleBack}>
+                            <Ionicons name="arrow-back" size={22} color="#1F2937" />
+                        </TouchableOpacity>
+                        <TouchableOpacity style={styles.circleBtn} onPress={() => setSaved(v => !v)}>
+                            <Ionicons
+                                name={saved ? 'heart' : 'heart-outline'}
+                                size={22}
+                                color={saved ? '#EF4444' : '#1F2937'}
+                            />
+                        </TouchableOpacity>
+                    </View>
                 </View>
 
                 {/* ── CONTENT ── */}
                 <View style={styles.content}>
 
-                    {/* Avatar + name header */}
+                    {/* Avatar + name row */}
                     <View style={styles.titleRow}>
                         <View style={styles.avatarWrap}>
                             {avatarUrl ? (
@@ -149,9 +142,20 @@ export default function OrgDetail() {
                                     <Ionicons name="business" size={28} color="#42A4F5" />
                                 </View>
                             )}
+                            {org.dhaRegistered && (
+                                <View style={styles.verifiedBadge}>
+                                    <Ionicons name="checkmark-circle" size={18} color="#10B981" />
+                                </View>
+                            )}
                         </View>
+
                         <View style={styles.titleTexts}>
                             <Text style={styles.orgName}>{org.name}</Text>
+
+                            {/* Star rating */}
+                            <StarRating rating={MOCK_RATING} />
+
+                            {/* Org type badge */}
                             {orgTypeLabel && (
                                 <View style={styles.typeTag}>
                                     <Text style={styles.typeTagText}>{orgTypeLabel}</Text>
@@ -163,15 +167,20 @@ export default function OrgDetail() {
                     {/* DHA badge */}
                     {org.dhaRegistered && (
                         <View style={styles.dhaBadge}>
-                            <Ionicons name="shield-checkmark" size={16} color="#10B981" />
+                            <Ionicons name="shield-checkmark" size={15} color="#10B981" />
                             <Text style={styles.dhaBadgeText}>Đã đăng ký với cơ quan nhà nước (DHA)</Text>
                         </View>
                     )}
 
-                    {/* Stats chips */}
+                    {/* ── STATS ── */}
                     <View style={styles.statsRow}>
                         <View style={styles.statChip}>
-                            <Ionicons name="time-outline" size={18} color="#42A4F5" />
+                            <Ionicons name="people-outline" size={20} color="#42A4F5" />
+                            <Text style={styles.statValue}>—</Text>
+                            <Text style={styles.statLabel}>Số thành viên</Text>
+                        </View>
+                        <View style={styles.statChip}>
+                            <Ionicons name="time-outline" size={20} color="#42A4F5" />
                             <Text style={styles.statValue}>
                                 {org.totalHonorHours != null
                                     ? org.totalHonorHours.toLocaleString('vi-VN')
@@ -179,14 +188,21 @@ export default function OrgDetail() {
                             </Text>
                             <Text style={styles.statLabel}>Giờ uy tín</Text>
                         </View>
-                        <View style={styles.statChip}>
-                            <Ionicons name="calendar-outline" size={18} color="#42A4F5" />
-                            <Text style={styles.statValue}>{formatDate(org.createdAt)}</Text>
-                            <Text style={styles.statLabel}>Ngày thành lập</Text>
+                    </View>
+
+                    {/* ── Hoạt động gần đây ── */}
+                    <View style={styles.section}>
+                        <Text style={styles.sectionTitle}>Hoạt động gần đây</Text>
+                        <View style={styles.comingSoonBox}>
+                            <Ionicons name="construct-outline" size={28} color="#42A4F5" />
+                            <Text style={styles.comingSoonTitle}>Đang phát triển</Text>
+                            <Text style={styles.comingSoonSub}>
+                                Tính năng này sẽ sớm được cập nhật.
+                            </Text>
                         </View>
                     </View>
 
-                    {/* Introduction */}
+                    {/* ── Giới thiệu tổ chức ── */}
                     {org.orgIntroduction ? (
                         <View style={styles.section}>
                             <Text style={styles.sectionTitle}>Giới thiệu tổ chức</Text>
@@ -194,23 +210,7 @@ export default function OrgDetail() {
                         </View>
                     ) : null}
 
-                    {/* Contact info */}
-                    <View style={styles.section}>
-                        <Text style={styles.sectionTitle}>Thông tin liên hệ</Text>
-                        {org.managerEmail && (
-                            <InfoRow icon="mail-outline" label="Email quản lý" value={org.managerEmail} />
-                        )}
-                        {org.managerPhone && (
-                            <TouchableOpacity onPress={handleCallManager}>
-                                <InfoRow icon="call-outline" label="Số điện thoại" value={org.managerPhone} />
-                            </TouchableOpacity>
-                        )}
-                        {!org.managerEmail && !org.managerPhone && (
-                            <Text style={styles.noContact}>Chưa có thông tin liên hệ</Text>
-                        )}
-                    </View>
-
-                    {/* Notes */}
+                    {/* Note */}
                     {org.note ? (
                         <View style={styles.section}>
                             <Text style={styles.sectionTitle}>Ghi chú</Text>
@@ -218,7 +218,7 @@ export default function OrgDetail() {
                         </View>
                     ) : null}
 
-                    <View style={{ height: 32 }} />
+                    <View style={{ height: 40 }} />
                 </View>
             </ScrollView>
         </View>
@@ -226,8 +226,6 @@ export default function OrgDetail() {
 }
 
 // ─── Styles ──────────────────────────────────────────────────────────────────
-
-const COVER_HEIGHT = 220;
 
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: '#FFFFFF' },
@@ -244,37 +242,60 @@ const styles = StyleSheet.create({
     },
     retryBtnText: { color: '#FFF', fontWeight: '600' },
 
-    /* Cover */
+    /* ── Cover ── */
     coverContainer: { position: 'relative', height: COVER_HEIGHT },
-    coverImage: { width: '100%', height: COVER_HEIGHT },
+    coverImage: { width: SCREEN_W, height: COVER_HEIGHT },
     coverPlaceholder: {
-        width: '100%', height: COVER_HEIGHT,
-        backgroundColor: '#42A4F5', alignItems: 'center', justifyContent: 'center',
+        width: SCREEN_W, height: COVER_HEIGHT, backgroundColor: '#E3F2FD',
     },
-    backBtn: {
-        position: 'absolute', top: 48, left: 16,
-        width: 36, height: 36, borderRadius: 18,
-        backgroundColor: 'rgba(255,255,255,0.88)',
+    headerOverlay: {
+        position: 'absolute',
+        top: Platform.OS === 'ios' ? 50 : 36,
+        left: 0,
+        right: 0,
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        paddingHorizontal: 16,
+    },
+    circleBtn: {
+        width: 38, height: 38, borderRadius: 19,
+        backgroundColor: 'rgba(255,255,255,0.85)',
         alignItems: 'center', justifyContent: 'center',
-        elevation: 3,
+        elevation: 2,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.15,
+        shadowRadius: 2,
     },
 
-    /* Content */
+    /* ── Content ── */
     content: { padding: 16 },
 
-    titleRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 14, marginBottom: 12 },
-    avatarWrap: { flexShrink: 0, marginTop: -44 },
+    titleRow: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        gap: 14,
+        marginBottom: 12,
+    },
+    avatarWrap: { position: 'relative', flexShrink: 0, marginTop: -44 },
     avatar: {
-        width: 78, height: 78, borderRadius: 14,
+        width: 76, height: 76, borderRadius: 14,
         borderWidth: 3, borderColor: '#FFFFFF',
     },
     avatarPlaceholder: {
-        width: 78, height: 78, borderRadius: 14,
-        backgroundColor: '#E3F2FD', alignItems: 'center', justifyContent: 'center',
-        borderWidth: 3, borderColor: '#FFFFFF', marginTop: -44,
+        width: 76, height: 76, borderRadius: 14,
+        backgroundColor: '#E3F2FD',
+        alignItems: 'center', justifyContent: 'center',
+        borderWidth: 3, borderColor: '#FFFFFF',
     },
-    titleTexts: { flex: 1, paddingTop: 4 },
-    orgName: { fontSize: 18, fontWeight: '700', color: '#1F2937', lineHeight: 26, marginBottom: 6 },
+    verifiedBadge: {
+        position: 'absolute', bottom: -4, right: -4,
+        backgroundColor: '#fff', borderRadius: 10, padding: 1,
+    },
+    titleTexts: { flex: 1, paddingTop: 4, gap: 6 },
+    orgName: {
+        fontSize: 18, fontWeight: '700', color: '#1F2937', lineHeight: 26,
+    },
     typeTag: {
         alignSelf: 'flex-start', backgroundColor: '#E3F2FD',
         paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8,
@@ -284,34 +305,51 @@ const styles = StyleSheet.create({
     dhaBadge: {
         flexDirection: 'row', alignItems: 'center', gap: 6,
         backgroundColor: '#D1FAE5', paddingHorizontal: 12, paddingVertical: 7,
-        borderRadius: 8, alignSelf: 'flex-start', marginBottom: 14,
+        borderRadius: 8, alignSelf: 'flex-start', marginBottom: 16,
     },
     dhaBadgeText: { fontSize: 12, color: '#065F46', fontWeight: '600' },
 
+    /* ── Stats ── */
     statsRow: {
         flexDirection: 'row', gap: 12, marginBottom: 20,
     },
     statChip: {
         flex: 1, backgroundColor: '#F0F8FF',
-        borderRadius: 12, padding: 14, alignItems: 'center', gap: 4,
+        borderRadius: 12, padding: 14,
+        alignItems: 'center', gap: 4,
         borderWidth: 1, borderColor: '#BBDEFB',
     },
-    statValue: { fontSize: 15, fontWeight: '700', color: '#1F2937' },
+    statValue: { fontSize: 16, fontWeight: '800', color: '#1F2937' },
     statLabel: { fontSize: 11, color: '#9CA3AF' },
 
+    /* ── Section ── */
     section: { marginBottom: 20 },
-    sectionTitle: { fontSize: 16, fontWeight: '700', color: '#1F2937', marginBottom: 12 },
-    introText: { fontSize: 14, color: '#4B5563', lineHeight: 22 },
-    noContact: { fontSize: 14, color: '#9CA3AF', fontStyle: 'italic' },
-
-    infoRow: {
-        flexDirection: 'row', alignItems: 'flex-start',
-        gap: 12, marginBottom: 12,
-        backgroundColor: '#F9FAFB', borderRadius: 10, padding: 12,
-        borderWidth: 1, borderColor: '#E5E7EB',
+    sectionTitle: {
+        fontSize: 16, fontWeight: '700', color: '#1F2937', marginBottom: 12,
     },
-    infoIcon: { marginTop: 2 },
-    infoTexts: { flex: 1 },
-    infoLabel: { fontSize: 11, color: '#9CA3AF', marginBottom: 3 },
-    infoValue: { fontSize: 14, color: '#1F2937', fontWeight: '600' },
+
+    /* Coming soon */
+    comingSoonBox: {
+        backgroundColor: '#F9FAFB',
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: '#E5E7EB',
+        borderStyle: 'dashed',
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 32,
+        paddingHorizontal: 20,
+        gap: 8,
+    },
+    comingSoonTitle: {
+        fontSize: 14, fontWeight: '700', color: '#42A4F5',
+    },
+    comingSoonSub: {
+        fontSize: 13, color: '#9CA3AF', textAlign: 'center', lineHeight: 19,
+    },
+
+    /* Intro */
+    introText: {
+        fontSize: 14, color: '#4B5563', lineHeight: 22,
+    },
 });
