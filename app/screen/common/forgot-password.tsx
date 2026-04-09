@@ -182,7 +182,7 @@ export default function ForgotPassword() {
                         onPress={() => {
                             if (step === 'email') router.back()
                             else if (step === 'otp') setStep('email')
-                            else router.replace('/screen/login')
+                            else router.replace('/screen/common/login')
                         }}
                     >
                         <Ionicons name="arrow-back" size={22} color="#1F2937" />
@@ -340,7 +340,7 @@ export default function ForgotPassword() {
 
                                 <TouchableOpacity
                                     style={[styles.primaryBtn, { backgroundColor: '#10B981' }]}
-                                    onPress={() => router.replace('/screen/login')}
+                                    onPress={() => router.replace('/screen/common/login')}
                                     activeOpacity={0.8}
                                 >
                                     <Text style={styles.primaryBtnText}>Đăng nhập ngay</Text>

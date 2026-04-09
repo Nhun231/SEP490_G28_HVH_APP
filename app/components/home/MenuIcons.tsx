@@ -6,7 +6,7 @@ import { router } from 'expo-router';
 
 export default function MenuIcons() {
     const handleFindEvent = () => {
-        router.push('/screen/event-feed' as any);
+        router.push('/screen/volunteer-screens/event-feed' as any);
     };
 
     return (

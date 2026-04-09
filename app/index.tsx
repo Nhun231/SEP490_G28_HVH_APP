@@ -21,7 +21,7 @@ function AppContent() {
     if (role === 'HOST') return <Redirect href={"/(host-tabs)/dashboard" as any} />
 
     //unknown / unhandled role -> back to login
-    return <Redirect href="/screen/login" />
+    return <Redirect href="/screen/common/login" />
 }
 
 export default function Index() {
