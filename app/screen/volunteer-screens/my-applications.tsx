@@ -8,7 +8,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { router, useFocusEffect } from 'expo-router';
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useState, useRef } from 'react';
 import {
     ActivityIndicator,
     Alert,
@@ -185,9 +185,9 @@ function ApplicationEventCard({ item, onPress, onCancel }: ApplicationCardProps)
                             <TouchableOpacity
                                 style={cardStyles.cancelBtn}
                                 onPress={() => onCancel(item)}
-                                activeOpacity={0.7}
+                                activeOpacity={0.75}
                             >
-                                <Ionicons name="close-circle-outline" size={13} color="#DC2626" />
+                                <Ionicons name="trash-outline" size={14} color="#FFFFFF" />
                                 <Text style={cardStyles.cancelBtnText}>Hủy đơn</Text>
                             </TouchableOpacity>
                         )}
@@ -284,21 +284,24 @@ const cardStyles = StyleSheet.create({
     cancelBtn: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 4,
-        paddingHorizontal: 10,
-        paddingVertical: 4,
+        gap: 5,
+        paddingHorizontal: 12,
+        paddingVertical: 6,
         borderRadius: 20,
-        borderWidth: 1,
-        borderColor: '#FECACA',
-        backgroundColor: '#FFF5F5',
+        backgroundColor: '#DC2626',
+        elevation: 2,
+        shadowColor: '#DC2626',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.35,
+        shadowRadius: 4,
     },
     cancelBtnDisabled: {
         opacity: 0.5,
     },
     cancelBtnText: {
         fontSize: 12,
-        fontWeight: '600',
-        color: '#DC2626',
+        fontWeight: '700',
+        color: '#FFFFFF',
     },
 });
 
@@ -328,15 +331,29 @@ const MyApplications = () => {
             } else {
                 setItems(response.content);
             }
-            setCurrentPage(response.number);
-            setTotalPages(response.totalPages);
+            
+            // Safely parse pagination info as some BE endpoints wrap pagination in `page: { ... }`
+            const anyResp = response as any;
+            let pNum = typeof response.number === 'number' ? response.number : (anyResp.page?.number ?? 0);
+            let pTotal = typeof response.totalPages === 'number' ? response.totalPages : (anyResp.page?.totalPages ?? 1);
+            
+            pNum = Number.isNaN(pNum) ? 0 : pNum;
+            pTotal = Number.isNaN(pTotal) ? 1 : pTotal;
+            
+            setCurrentPage(pNum);
+            setTotalPages(pTotal);
         },
         []
     );
 
+    const hasFetched = useRef(false);
+
     // Reload list every time the screen gains focus (e.g. returning from event-detail)
     useFocusEffect(
         useCallback(() => {
+            if (hasFetched.current) return;
+            hasFetched.current = true;
+
             let active = true;
             (async () => {
                 setLoading(true);
@@ -433,7 +450,7 @@ const MyApplications = () => {
 
     const handleGoBack = () => {
         if (router.canGoBack()) router.back();
-        else router.replace('/(tabs)/home');
+        else router.replace('/(vol-tabs)/home');
     };
 
     // ─── Render ───────────────────────────────────────────────────────────────

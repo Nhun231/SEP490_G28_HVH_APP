@@ -32,7 +32,7 @@ export default function RootLayout() {
           <Stack.Screen name="screen/event-detail" options={{ headerShown: false }} />
           <Stack.Screen name="screen/my-applications" options={{ headerShown: false }} />
           <Stack.Screen name="screen/org-detail" options={{ headerShown: false }} />
-          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack.Screen name="(vol-tabs)" options={{ headerShown: false }} />
           <Stack.Screen name="(host-tabs)" options={{ headerShown: false }} />
         </Stack>
       </AuthProvider>

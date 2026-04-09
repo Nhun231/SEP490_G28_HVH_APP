@@ -29,7 +29,7 @@ export default function Auth() {
             const role = payload?.app_metadata?.role
 
             if (role === 'VOL') {
-                router.replace('/(tabs)/home')
+                router.replace('/(vol-tabs)/home')
             } else if (role === 'HOST') {
                 router.replace('/(host-tabs)/dashboard' as any)
             } else {

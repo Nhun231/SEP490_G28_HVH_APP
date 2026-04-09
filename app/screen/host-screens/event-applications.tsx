@@ -3,8 +3,8 @@ import { View, Text, FlatList, StyleSheet, RefreshControl, ActivityIndicator } f
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams, Stack } from 'expo-router';
-import EventListHeader, { MasterTabConfig } from '../components/EventListHeader';
-import VolunteerCard, { VolunteerApplication } from '../components/VolunteerCard';
+import EventListHeader, { MasterTabConfig } from '../../components/host/event-list/EventListHeader';
+import VolunteerCard, { VolunteerApplication } from '../../components/host/verify-vol-to-event/VolunteerCard';
 import {
     getRegisteredParticipants,
     RegisteredParticipant,
@@ -64,8 +64,10 @@ const EventApplicationsScreen = () => {
     const eventStatus = params.eventStatus || '';
     const sessionStartTime = params.sessionStartTime || null;
 
-    // Master tab state
-    const [masterTab, setMasterTab] = useState<AppTab>('PENDING');
+    // Master tab state — default to APPROVED for ONGOING events
+    const [masterTab, setMasterTab] = useState<AppTab>(
+        eventStatus === 'ONGOING' ? 'APPROVED' : 'PENDING'
+    );
 
     // Search state
     const [searchVisible, setSearchVisible] = useState(false);

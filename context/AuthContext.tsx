@@ -13,6 +13,8 @@ interface AuthContextValue {
     isLoggedIn: boolean
     isLoading: boolean
     role: UserRole
+    isPasswordRecovery: boolean
+    clearPasswordRecovery: () => void
     logout: () => Promise<void>
 }
 
@@ -31,6 +33,7 @@ export const useAuth = () => {
 const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const [session, setSession] = useState<Session | null>(null)
     const [isLoading, setIsLoading] = useState(true)
+    const [isPasswordRecovery, setIsPasswordRecovery] = useState(false)
     const isRefreshing = useRef(false)
     const alertShownRef = useRef(false)
 
@@ -41,9 +44,12 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             setIsLoading(false)
         })
 
-        // Listen for auth state changes (sign-in, sign-out, token refresh)
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+        // Listen for auth state changes (sign-in, sign-out, token refresh, password recovery)
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
             setSession(session)
+            if (event === 'PASSWORD_RECOVERY') {
+                setIsPasswordRecovery(true)
+            }
         })
 
         return () => subscription.unsubscribe()
@@ -121,6 +127,9 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         return () => baseAxios.interceptors.response.eject(responseInterceptor)
     }, [])
 
+    // Clear password recovery flag after new password is set
+    const clearPasswordRecovery = () => setIsPasswordRecovery(false)
+
     // Logout
     const logout = async () => {
         await supabase.auth.signOut()
@@ -134,6 +143,8 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             isLoggedIn: !!session,
             isLoading,
             role: (session?.user.app_metadata?.role as UserRole) ?? null,
+            isPasswordRecovery,
+            clearPasswordRecovery,
             logout,
         }}>
             {children}
