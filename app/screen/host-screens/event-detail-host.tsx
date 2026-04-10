@@ -4,7 +4,7 @@ import { useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams, Stack } from 'expo-router';
-import { MyEventStatus, EventDetailResponse, getEventDetailByHost, getApiErrorMessage, resolveSupabaseUrl, } from '@/services/event-service';
+import { MyEventStatus, EventDetailResponse, getEventDetailByHost, getApiErrorMessage, resolveSupabaseUrl, deleteEvent } from '@/services/event-service';
 import servedTargetsData from '@/assets/served_targets/doi_tuong_phuc_vu.json';
 import servedPlacesData from '@/assets/served_places/dia_diem_phuc_vu.json';
 import InfoRow from '@/app/components/host/event-details/InfoRow';
@@ -201,7 +201,18 @@ const EventDetailScreen = () => {
         'Bạn có chắc muốn xóa sự kiện này? Hành động này không thể hoàn tác.',
         [
             { text: 'Hủy', style: 'cancel' },
-            { text: 'Xóa', style: 'destructive', onPress: () => console.log('[TODO] Delete event', event.id) },
+            {
+                text: 'Xóa', style: 'destructive', onPress: async () => {
+                    try {
+                        await deleteEvent(event.id);
+                        Alert.alert('Thành công', 'Sự kiện đã được xóa.', [
+                            { text: 'OK', onPress: () => router.back() },
+                        ]);
+                    } catch (e) {
+                        Alert.alert('Thông báo', getApiErrorMessage(e) || 'Không thể xóa sự kiện. Vui lòng thử lại.');
+                    }
+                },
+            },
         ],
     );
 

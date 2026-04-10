@@ -181,14 +181,19 @@ const EventManagement = () => {
         fetchEvents(0);
     }, [masterTab, activeChip, historyChip, searchQuery]);
 
-    // When back to tab — only fetch if cache has expired
+    // When screen regains focus (e.g. returning after delete/cancel/update) — always force-refresh
+    // Skip the very first focus (initial mount already handled by the useEffect above)
+    const focusMountedRef = useRef(false);
     useFocusEffect(useCallback(() => {
+        if (!focusMountedRef.current) {
+            focusMountedRef.current = true;
+            return;
+        }
+        // Invalidate cache for current chip so fetchEvents skips stale-while-revalidate
         const chipFilter = masterTab === 'active' ? activeChip : historyChip;
         const cacheKey = `${chipFilter}::${searchQuery}`;
-        const cached = eventCache.get(cacheKey);
-        if (!cached || Date.now() - cached.ts >= CACHE_TTL_MS) {
-            fetchEvents(0);
-        }
+        eventCache.delete(cacheKey);
+        fetchEvents(0);
     }, [masterTab, activeChip, historyChip, searchQuery, fetchEvents]));
 
     const handleRefresh = useCallback(() => fetchEvents(0, true), [fetchEvents]);

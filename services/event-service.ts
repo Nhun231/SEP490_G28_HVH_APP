@@ -703,3 +703,12 @@ export const updateEvent = async (eventId: string, body: EventUpdateRequest): Pr
     console.log('[UpdateEvent] Response:', response.data)
     return response.data
 }
+
+/**
+ * Delete an event (host only — only EDITING status is deletable).
+ * DELETE /api/v1/host/events/{eventId}
+ */
+export const deleteEvent = async (eventId: string): Promise<void> => {
+    const endpoint = `${API_BASE}/api/v1/host/events/${eventId}`
+    await baseAxios.delete(endpoint)
+}

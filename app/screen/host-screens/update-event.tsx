@@ -411,6 +411,7 @@ const UpdateEvent = () => {
         const origLng = prefillEvent?.lngCheckInLocation ?? 0;
         const origRadius = prefillEvent?.checkInAccuracyMeters ?? 300;
         const currentRadius = parseInt(checkInRadius, 10) || 300;
+        // if new lat and long bigger than 0.000001 (11cm) = changed 
         const latChanged = Math.abs(checkInLocation.latitude - origLat) > 1e-6;
         const lngChanged = Math.abs(checkInLocation.longitude - origLng) > 1e-6;
         const radiusChanged = currentRadius !== origRadius;
