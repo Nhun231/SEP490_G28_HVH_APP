@@ -1,5 +1,6 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Image, Alert, Dimensions, ActivityIndicator } from 'react-native';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Image, Alert, Dimensions, ActivityIndicator, RefreshControl } from 'react-native';
+import { useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams, Stack } from 'expo-router';
@@ -9,7 +10,7 @@ import servedPlacesData from '@/assets/served_places/dia_diem_phuc_vu.json';
 import InfoRow from '@/app/components/host/event-details/InfoRow';
 import ServiceGrid, { ServiceOption } from '@/app/components/host/event-details/ServiceGrid';
 import EventSessionModal from '@/app/components/host/event-details/EventSessionModal';
-import CancelEventModal from '@/app/components/CancelEventModal';
+import CancelEventModal from '@/app/components/host/event-details/CancelEventModal';
 
 const DEFAULT_IMAGE = 'https://images.unsplash.com/photo-1559027615-cd4628902d4a?w=800&h=400&fit=crop';
 
@@ -81,6 +82,7 @@ const EventDetailScreen = () => {
     // API state
     const [event, setEvent] = useState<EventDetailResponse | null>(null);
     const [loading, setLoading] = useState(true);
+    const [refreshing, setRefreshing] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
     // Reverse-geocoded check-in address
@@ -110,6 +112,26 @@ const EventDetailScreen = () => {
     }, [id]);
 
     useEffect(() => { fetchDetail(); }, [fetchDetail]);
+
+    // Re-fetch whenever this screen regains focus (e.g. returning from update-event / create-event)
+    // Skip the very first focus (initial mount already handled by useEffect above)
+    const isMountedRef = useRef(false);
+    useFocusEffect(
+        useCallback(() => {
+            if (!isMountedRef.current) {
+                isMountedRef.current = true;
+                return;
+            }
+            fetchDetail();
+        }, [fetchDetail])
+    );
+
+    // Pull-to-refresh handler
+    const handleRefresh = useCallback(async () => {
+        setRefreshing(true);
+        await fetchDetail();
+        setRefreshing(false);
+    }, [fetchDetail]);
 
     if (loading) {
         return (
@@ -186,12 +208,18 @@ const EventDetailScreen = () => {
     // cancel event — opens reason modal
     const handleCancelEvent = () => setCancelModalVisible(true);
 
-    // update event
-    const handleUpdate = () => console.log('[TODO] Update recruiting info', event.id);
+    // update event — opens update form (only allows editing non-classification fields)
+    const handleUpdate = () => router.push({
+        pathname: '/screen/host-screens/update-event' as any,
+        params: {
+            eventId: event.id,
+            eventData: JSON.stringify({ ...event, resolvedCheckinAddress: checkinAddress }),
+        },
+    });
 
     // edit event
     const handleEdit = () => router.push({
-        pathname: '/screen/create-event',
+        pathname: '/screen/host-screens/create-event' as any,
         params: {
             eventId: event.id,
             // Pass event object + geocoded address to prefill form
@@ -201,8 +229,8 @@ const EventDetailScreen = () => {
 
     const handleParticipants = () => setSessionModalVisible(true);
     const handleCheckin = () => setShowCheckinCode(prev => !prev);
-    const handleReviews = () => router.push({ pathname: '/screen/event-rating', params: { eventId: event.id } });
-    const handleMoments = () => router.push({ pathname: '/screen/event-moments', params: { eventId: event.id } });
+    const handleReviews = () => router.push({ pathname: '/screen/host-screens/event-rating' as any, params: { eventId: event.id } });
+    const handleMoments = () => router.push({ pathname: '/screen/host-screens/event-moments' as any, params: { eventId: event.id } });
     const handleComplaint = () => console.log('Complain about points', event.id);
 
     const serviceOptions: ServiceOption[] = (() => {
@@ -289,6 +317,14 @@ const EventDetailScreen = () => {
                     style={styles.scroll}
                     contentContainerStyle={styles.scrollContent}
                     showsVerticalScrollIndicator={false}
+                    refreshControl={
+                        <RefreshControl
+                            refreshing={refreshing}
+                            onRefresh={handleRefresh}
+                            colors={['#42A4F5']}
+                            tintColor="#42A4F5"
+                        />
+                    }
                 >
                     {/* Title card (with event image on top) */}
                     <View style={styles.titleCard}>
@@ -468,7 +504,6 @@ const EventDetailScreen = () => {
             <CancelEventModal
                 visible={cancelModalVisible}
                 eventId={event.id}
-                eventName={event.name}
                 onCancel={() => setCancelModalVisible(false)}
                 onConfirmed={() => {
                     setCancelModalVisible(false);

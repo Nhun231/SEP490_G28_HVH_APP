@@ -6,7 +6,6 @@ import { cancelEvent, getApiErrorMessage } from '@/services/event-service';
 export interface CancelEventModalProps {
     visible: boolean;
     eventId: string;
-    eventName: string;
     onCancel: () => void;
     onConfirmed: () => void;
 }
@@ -16,7 +15,6 @@ const MAX_CHARS = 300;
 const CancelEventModal: React.FC<CancelEventModalProps> = ({
     visible,
     eventId,
-    eventName,
     onCancel,
     onConfirmed,
 }) => {

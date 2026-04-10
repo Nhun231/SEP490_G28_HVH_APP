@@ -79,6 +79,7 @@ export type MyEventStatus =
 export interface MyEventItem {
     id: string;
     name: string;
+    status: MyEventStatus;
     imageUrl: string | null;
     address: string;
     startDate: string;          // ISO date e.g. "2026-04-10"
@@ -154,6 +155,8 @@ export interface EventCreateRequest {
     updateImages: UpdateImage[];
     description: string;
     address: string;
+    detailAddress: string;
+    servingActivity: boolean;
     autoApprove: boolean;
     activitySubDomainId: number;
     servedTarget: string;          // e.g., "WOMEN", "CHILDREN", etc.
@@ -412,7 +415,7 @@ export const getEventFeeds = async (params: EventFeedParams = {}): Promise<Event
 
 // Fetch single event detail (public — no auth required)
 export const getEventDetails = async (eventId: string): Promise<EventDetailsResponse> => {
-    const url = `${API_BASE}/api/v1/events/event-details/${eventId}`
+    const url = `${API_BASE}/api/v1/host/events/event-details/${eventId}`
     const response = await fetch(url)
     if (!response.ok) {
         const errorText = await response.text()
@@ -434,7 +437,7 @@ export const saveEventForVolunteer = async (eventId: string): Promise<void> => {
  * Fetch all activity domains across all pages.
  */
 export const getAllActivityDomains = async (): Promise<ActivityDomain[]> => {
-    const endpoint = `${API_BASE}/api/v1/activity-domain/activity-domains`
+    const endpoint = `${API_BASE}/api/v1/activity-domains`
     console.log('[EventService] Fetching activity domains:', endpoint)
 
     const firstResponse = await baseAxios.get<ActivityDomainResponse>(
@@ -465,7 +468,7 @@ export const getAllActivityDomains = async (): Promise<ActivityDomain[]> => {
  * POST /api/v1/event/draft
  */
 export const saveDraftEvent = async (data: EventCreateRequest): Promise<EventCreateResponse> => {
-    const endpoint = `${API_BASE}/api/v1/event/draft`
+    const endpoint = `${API_BASE}/api/v1/host/events/draft`
     console.log('[EventService] Request body:', JSON.stringify(data, null, 2))
 
     const response = await baseAxios.post<EventCreateResponse>(endpoint, data)
@@ -477,7 +480,7 @@ export const saveDraftEvent = async (data: EventCreateRequest): Promise<EventCre
  * POST /api/v1/event/submit
  */
 export const submitEvent = async (data: EventCreateRequest): Promise<EventCreateResponse> => {
-    const endpoint = `${API_BASE}/api/v1/event/submit`
+    const endpoint = `${API_BASE}/api/v1/host/events/submit`
     console.log('[EventService] Request body:', JSON.stringify(data, null, 2))
 
     const response = await baseAxios.post<EventCreateResponse>(endpoint, data)
@@ -500,13 +503,16 @@ export const applyEventSession = async (sessionId: string): Promise<void> => {
 export const getMyEvents = async (params: MyEventsParams = {}): Promise<MyEventsResponse> => {
     const endpoint = `${API_BASE}/api/v1/host/events/my-events`
 
-    // Build URLSearchParams to support multiple `status` values
     const query = new URLSearchParams()
     query.append('pageNumber', String(params.pageNumber ?? 0))
     query.append('pageSize', String(params.pageSize ?? 10))
     if (params.name) query.append('name', params.name)
+    if (params.status) query.append('status', params.status)
+    if (params.statuses?.length) {
+        params.statuses.forEach(s => query.append('status', s))
+    }
+
     const response = await baseAxios.get<MyEventsResponse>(`${endpoint}?${query.toString()}`)
-    console.log('[getMyEvents] response:', JSON.stringify(response.data, null, 2))
     return response.data
 }
 
@@ -536,7 +542,7 @@ export const getRegisteredParticipants = async (
     })
     console.log('[getRegisteredParticipants] response:', JSON.stringify(response.data, null, 2))
     return response.data
-    }
+}
 
 /**
  * Fetch approved (actual) participants for a session.
@@ -663,4 +669,36 @@ export const cancelVolApplication = async (applicationId: string): Promise<void>
 export const cancelEvent = async (eventId: string, reason: string): Promise<void> => {
     const endpoint = `${API_BASE}/api/v1/host/events/${eventId}/cancel`
     await baseAxios.put(endpoint, { reason })
+}
+
+// Request body for PUT /api/v1/host/events/{eventId}/update
+export interface EventUpdateRequest {
+    updateImages?: UpdateImage[];
+    description?: string;
+    autoApprove?: boolean;
+    servingPlaceType?: string;
+    address?: string;
+    detailAddress?: string;
+    recruitmentEndDate?: string;
+    eventSessions?: EventSession[];
+    checkInLocationLat?: number;
+    checkInLocationLng?: number;
+    checkInLocationAccuracyMeters?: number;
+}
+
+export interface EventUpdateResponse {
+    eventId: string;
+    uploadUrls?: Array<string>;
+}
+
+/**
+ * Update a recruiting event (host only).
+ * PUT /api/v1/host/events/{eventId}/update
+ */
+export const updateEvent = async (eventId: string, body: EventUpdateRequest): Promise<EventUpdateResponse> => {
+    const endpoint = `${API_BASE}/api/v1/host/events/${eventId}/update`
+    console.log('[UpdateEvent] Request body:', JSON.stringify(body, null, 2))
+    const response = await baseAxios.put<EventUpdateResponse>(endpoint, body)
+    console.log('[UpdateEvent] Response:', response.data)
+    return response.data
 }

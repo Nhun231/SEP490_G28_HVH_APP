@@ -73,7 +73,7 @@ export default function TimePickerInput({
 
     return (
         <View className="mb-4">
-            <Text className="text-gray-700 text-sm font-medium mb-2">
+            <Text className="text-gray-700 text-sm font-bold mb-2">
                 {label}
                 {required && <Text style={styles.required}> *</Text>}
             </Text>

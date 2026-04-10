@@ -200,10 +200,31 @@ const EventApplicationsScreen = () => {
         };
     }, []);
 
-    // Optimistic update: remove item from pending list after approve/reject succeeds
-    const handleRemoveFromList = useCallback((item: VolunteerApplication) => {
+    // After approve/reject: remove item optimistically then refresh pending list to sync count
+    const handleRemoveFromList = useCallback(async (item: VolunteerApplication) => {
+        // Optimistic remove
         setPendingList(prev => prev.filter(v => v.id !== item.id));
-    }, []);
+        // Then refresh both pending (count may have changed) and approved
+        setPendingRefreshing(true);
+        setApprovedRefreshing(true);
+        await Promise.all([fetchPending(0, true), fetchApproved(0, true)]);
+        setPendingRefreshing(false);
+        setApprovedRefreshing(false);
+    }, [fetchPending, fetchApproved]);
+
+    // Tab switch: reload the target tab's data from page 0
+    const handleTabChange = useCallback(async (tab: AppTab) => {
+        setMasterTab(tab);
+        if (tab === 'PENDING') {
+            setPendingLoading(true);
+            await fetchPending(0, true);
+            setPendingLoading(false);
+        } else {
+            setApprovedLoading(true);
+            await fetchApproved(0, true);
+            setApprovedLoading(false);
+        }
+    }, [fetchPending, fetchApproved]);
 
     // Derived values for active tab
     const isPending = masterTab === 'PENDING';
@@ -273,7 +294,7 @@ const EventApplicationsScreen = () => {
                     subtitle={`Sự kiện: ${eventName}`}
                     masterTabs={MASTER_TABS}
                     masterTab={masterTab}
-                    onMasterTabChange={(tab) => setMasterTab(tab)}
+                    onMasterTabChange={handleTabChange}
                     searchPlaceholder="Tìm tên, vị trí..."
                     searchText={searchText}
                     onSearchChange={handleSearchChange}
