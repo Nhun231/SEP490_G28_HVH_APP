@@ -37,7 +37,7 @@ const TabLayout = () => {
                 }}
             />
             <Tabs.Screen
-                name="benefit"
+                name="organization"
                 options={{
                     title: 'Tổ chức',
                     tabBarIcon: ({ color }) => (
@@ -60,15 +60,6 @@ const TabLayout = () => {
                     title: 'Cá nhân',
                     tabBarIcon: ({ color }) => (
                         <Ionicons name="person" size={20} color={color} />
-                    ),
-                }}
-            />
-            <Tabs.Screen
-                name="event"
-                options={{
-                    title: 'Event',
-                    tabBarIcon: ({ color }) => (
-                        <Ionicons name="calendar" size={20} color={color} />
                     ),
                 }}
             />

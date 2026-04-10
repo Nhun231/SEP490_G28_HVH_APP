@@ -58,21 +58,33 @@ export interface UploadProgressCallback {
  * @param email - User's email address
  * @throws Error if the request fails
  */
+const API_BASE = process.env.EXPO_PUBLIC_API_URL || 'https://api.hvh.okne.site'
+
+// A plain axios instance with NO auth interceptors — for public (unauthenticated) endpoints
+const publicAxios = axios.create({
+    baseURL: API_BASE,
+    headers: { 'Content-Type': 'application/json' },
+})
+
 export const sendOtp = async ({ email }: SendOtpParams): Promise<void> => {
     try {
-        await baseAxios.post(
+        await publicAxios.post(
             `/api/v1/email-otp/verify-register-vol-acc`,
             null,
-            {
-                params: { email },
-            }
+            { params: { email } }
         )
     } catch (error) {
-        console.log(error)
+        console.log('[sendOtp] error:', error)
         if (axios.isAxiosError(error)) {
-            throw new Error(error.response?.data?.message || `Failed to send OTP to ${email}`)
+            const data = error.response?.data
+            const msg =
+                data?.moreInfo?.business ||
+                data?.moreInfo?.auth ||
+                data?.message ||
+                `Không thể gửi OTP đến ${email}`
+            throw new Error(msg)
         }
-        throw new Error(`Failed to send OTP to ${email}`)
+        throw new Error(`Không thể gửi OTP đến ${email}`)
     }
 }
 
@@ -80,16 +92,22 @@ export const registerVolunteerAccount = async (
     params: RegisterVolunteerParams
 ): Promise<RegisterVolunteerResponse> => {
     try {
-        const response = await baseAxios.post<RegisterVolunteerResponse>(
+        const response = await publicAxios.post<RegisterVolunteerResponse>(
             `/api/v1/volunteers/register-vol-acc`,
             params
         )
         return response.data
     } catch (error) {
         if (axios.isAxiosError(error)) {
-            throw new Error(error.response?.data?.message || 'Registration failed')
+            const data = error.response?.data
+            const msg =
+                data?.moreInfo?.business ||
+                data?.moreInfo?.auth ||
+                data?.message ||
+                'Đăng ký thất bại'
+            throw new Error(msg)
         }
-        throw new Error('Registration failed')
+        throw new Error('Đăng ký thất bại')
     }
 }
 

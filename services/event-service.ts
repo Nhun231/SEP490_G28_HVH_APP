@@ -435,7 +435,7 @@ export const saveEventForVolunteer = async (eventId: string): Promise<void> => {
  * Fetch all activity domains across all pages.
  */
 export const getAllActivityDomains = async (): Promise<ActivityDomain[]> => {
-    const endpoint = `${API_BASE}/api/v1/activity-domain/activity-domains`
+    const endpoint = `${API_BASE}/api/v1/activity-domains`
     console.log('[EventService] Fetching activity domains:', endpoint)
 
     const firstResponse = await baseAxios.get<ActivityDomainResponse>(

@@ -2,6 +2,7 @@ import { completeRegistration, sendOtp } from '@/services/register-service'
 import { getFileExtension, getMimeType } from '@/services/upload-service'
 import { Ionicons } from '@expo/vector-icons'
 import * as ImagePicker from 'expo-image-picker'
+import { router } from 'expo-router'
 import React, { useEffect, useState } from 'react'
 import {
     ActivityIndicator,
@@ -219,8 +220,14 @@ export default function Register() {
                     }))
                 }
             )
-            Alert.alert('Thành công', 'Đăng ký thành công! Vui lòng chờ xét duyệt.')
-            // TODO: Navigate to success screen or login
+            Alert.alert(
+                'Đăng ký thành công!',
+                'Tài khoản của bạn đang chờ xét duyệt. Bạn sẽ nhận được thông báo qua email sau khi được duyệt.',
+                [{
+                    text: 'Đăng nhập',
+                    onPress: () => router.replace('/screen/common/login'),
+                }]
+            )
         } catch (error) {
             Alert.alert('Lỗi', (error as Error).message || JSON.stringify(error))
         } finally {
@@ -235,10 +242,10 @@ export default function Register() {
     }
 
     return (
-        <SafeAreaView style={styles.safeArea}>
+        <SafeAreaView style={styles.safeArea} edges={['top']}>
             {/* Header */}
             <View style={styles.header}>
-                <TouchableOpacity style={styles.backButton}>
+                <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
                     <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
                 </TouchableOpacity>
                 <View>
@@ -247,6 +254,7 @@ export default function Register() {
                 </View>
             </View>
 
+            {/* Body */}
             <KeyboardAvoidingView
                 behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
                 style={styles.keyboardView}
@@ -465,7 +473,10 @@ export default function Register() {
                         {/* Footer */}
                         <Text style={styles.footerText}>
                             Đã có tài khoản?{' '}
-                            <Text style={styles.linkText}>Đăng nhập!</Text>
+                            <Text
+                                style={styles.linkText}
+                                onPress={() => router.replace('/screen/common/login')}
+                            >Đăng nhập!</Text>
                         </Text>
                     </View>
                 </ScrollView>
@@ -477,7 +488,7 @@ export default function Register() {
 const styles = StyleSheet.create({
     safeArea: {
         flex: 1,
-        backgroundColor: '#F3F4F6',
+        backgroundColor: '#42A4F5',
     },
     header: {
         backgroundColor: '#42A4F5',
@@ -501,6 +512,7 @@ const styles = StyleSheet.create({
     },
     keyboardView: {
         flex: 1,
+        backgroundColor: '#F3F4F6',
     },
     scrollContainer: {
         flexGrow: 1,

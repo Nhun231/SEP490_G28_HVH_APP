@@ -106,73 +106,74 @@ export default function DomainFilterSheet({ visible, initialSelectedIds, onConfi
                     ) : (
                         <View style={styles.body}>
                             {/* ── Left panel: domain list ── */}
-                            <ScrollView
-                                style={styles.domainList}
-                                showsVerticalScrollIndicator={false}
-                            >
-                                {domains.map((domain, idx) => {
-                                    const isActive = idx === activeDomainIndex;
-                                    const count = countForDomain(domain);
-                                    return (
-                                        <TouchableOpacity
-                                            key={domain.name}
-                                            style={[styles.domainItem, isActive && styles.domainItemActive]}
-                                            onPress={() => setActiveDomainIndex(idx)}
-                                            activeOpacity={0.7}
-                                        >
-                                            {isActive && (
-                                                <View style={styles.domainActiveLine} />
-                                            )}
-                                            <Text
-                                                style={[
-                                                    styles.domainText,
-                                                    isActive && styles.domainTextActive,
-                                                ]}
-                                                numberOfLines={3}
+                            <View style={styles.domainListWrapper}>
+                                <ScrollView
+                                    style={styles.domainList}
+                                    showsVerticalScrollIndicator={false}
+                                >
+                                    {domains.map((domain, idx) => {
+                                        const isActive = idx === activeDomainIndex;
+                                        const count = countForDomain(domain);
+                                        return (
+                                            <TouchableOpacity
+                                                key={domain.name}
+                                                style={[styles.domainItem, isActive && styles.domainItemActive]}
+                                                onPress={() => setActiveDomainIndex(idx)}
+                                                activeOpacity={0.7}
                                             >
-                                                {domain.name}
-                                            </Text>
-                                            {count > 0 && (
-                                                <View style={styles.domainBadge}>
-                                                    <Text style={styles.domainBadgeText}>{count}</Text>
-                                                </View>
-                                            )}
-                                        </TouchableOpacity>
-                                    );
-                                })}
-                            </ScrollView>
-
-                            {/* Divider */}
-                            <View style={styles.divider} />
+                                                {isActive && (
+                                                    <View style={styles.domainActiveLine} />
+                                                )}
+                                                <Text
+                                                    style={[
+                                                        styles.domainText,
+                                                        isActive && styles.domainTextActive,
+                                                    ]}
+                                                    numberOfLines={3}
+                                                >
+                                                    {domain.name}
+                                                </Text>
+                                                {count > 0 && (
+                                                    <View style={styles.domainBadge}>
+                                                        <Text style={styles.domainBadgeText}>{count}</Text>
+                                                    </View>
+                                                )}
+                                            </TouchableOpacity>
+                                        );
+                                    })}
+                                </ScrollView>
+                            </View>
 
                             {/* ── Right panel: subdomain chips ── */}
-                            <ScrollView
-                                style={styles.subdomainPanel}
-                                showsVerticalScrollIndicator={false}
-                                contentContainerStyle={styles.subdomainContent}
-                            >
-                                {activeDomain ? (
-                                    activeDomain.activitySubDomainList.length === 0 ? (
-                                        <Text style={styles.emptySubText}>Không có lĩnh vực con</Text>
-                                    ) : (
-                                        activeDomain.activitySubDomainList.map(sub => {
-                                            const isSelected = selectedIds.includes(sub.id);
-                                            return (
-                                                <TouchableOpacity
-                                                    key={sub.id}
-                                                    style={[styles.subChip, isSelected && styles.subChipActive]}
-                                                    onPress={() => toggleSubdomain(sub.id)}
-                                                    activeOpacity={0.7}
-                                                >
-                                                    <Text style={[styles.subChipText, isSelected && styles.subChipTextActive]}>
-                                                        {sub.name}
-                                                    </Text>
-                                                </TouchableOpacity>
-                                            );
-                                        })
-                                    )
-                                ) : null}
-                            </ScrollView>
+                            <View style={styles.subdomainPanelWrapper}>
+                                <ScrollView
+                                    style={styles.subdomainPanel}
+                                    showsVerticalScrollIndicator={false}
+                                    contentContainerStyle={styles.subdomainContent}
+                                >
+                                    {activeDomain ? (
+                                        activeDomain.activitySubDomainList.length === 0 ? (
+                                            <Text style={styles.emptySubText}>Không có lĩnh vực con</Text>
+                                        ) : (
+                                            activeDomain.activitySubDomainList.map(sub => {
+                                                const isSelected = selectedIds.includes(sub.id);
+                                                return (
+                                                    <TouchableOpacity
+                                                        key={sub.id}
+                                                        style={[styles.subChip, isSelected && styles.subChipActive]}
+                                                        onPress={() => toggleSubdomain(sub.id)}
+                                                        activeOpacity={0.7}
+                                                    >
+                                                        <Text style={[styles.subChipText, isSelected && styles.subChipTextActive]}>
+                                                            {sub.name}
+                                                        </Text>
+                                                    </TouchableOpacity>
+                                                );
+                                            })
+                                        )
+                                    ) : null}
+                                </ScrollView>
+                            </View>
                         </View>
                     )}
 
@@ -253,12 +254,15 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
     },
 
-    /* Left: domain list */
-    domainList: {
-        width: 120,
-        backgroundColor: '#F9FAFB',
+    /* Left: domain list wrapper (controls 1/3 width) */
+    domainListWrapper: {
+        flex: 1,
         borderRightWidth: 1,
         borderRightColor: '#E5E7EB',
+    },
+    domainList: {
+        flex: 1,
+        backgroundColor: '#F9FAFB',
     },
     domainItem: {
         flexDirection: 'row',
@@ -311,10 +315,13 @@ const styles = StyleSheet.create({
         backgroundColor: '#E5E7EB',
     },
 
-    /* Right: subdomain chips */
+    /* Right: subdomain chips wrapper (controls 2/3 width) */
+    subdomainPanelWrapper: {
+        flex: 2,
+        backgroundColor: '#FFFFFF',
+    },
     subdomainPanel: {
         flex: 1,
-        backgroundColor: '#FFFFFF',
     },
     subdomainContent: {
         flexDirection: 'row',
