@@ -37,12 +37,12 @@ const Home = () => {
     };
 
     const handleSeeMore = () => {
-        router.push('/screen/event-feed' as any);
+        router.push('/screen/volunteer-screens/event-feed' as any);
     };
 
     const handleEventPress = (event: EventSimpleResponse) => {
         if (event.id) {
-            router.push({ pathname: '/screen/event-detail', params: { eventId: event.id } } as any);
+            router.push({ pathname: '/screen/volunteer-screens/event-detail-vol', params: { eventId: event.id } } as any);
         }
     };
 

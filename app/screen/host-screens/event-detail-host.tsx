@@ -222,7 +222,6 @@ const EventDetailScreen = () => {
         pathname: '/screen/host-screens/create-event' as any,
         params: {
             eventId: event.id,
-            // Pass event object + geocoded address to prefill form
             eventData: JSON.stringify({ ...event, resolvedCheckinAddress: checkinAddress }),
         },
     });

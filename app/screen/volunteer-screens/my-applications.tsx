@@ -410,7 +410,7 @@ const MyApplications = () => {
 
     const handleCardPress = useCallback((item: VolApplicationItem) => {
         router.push({
-            pathname: '/screen/event-detail',
+            pathname: '/screen/volunteer-screens/event-detail-vol',
             params: { eventId: item.eventId },
         } as any);
     }, []);

@@ -85,7 +85,7 @@ export default function Personal() {
                             <TouchableOpacity
                                 style={styles.loginBtn}
                                 activeOpacity={0.85}
-                                onPress={() => router.push('/screen/login' as any)}
+                                onPress={() => router.push('/screen/common/login' as any)}
                             >
                                 <Ionicons name="log-in-outline" size={20} color="#fff" />
                                 <Text style={styles.loginBtnText}>Đăng nhập</Text>
@@ -172,7 +172,7 @@ export default function Personal() {
                                     onPress={() => {
                                         if (idx === 0) {
                                             // "Hoạt động đã đăng ký" → My Applications screen
-                                            router.push('/screen/my-applications' as any);
+                                            router.push('/screen/volunteer-screens/my-applications' as any);
                                         }
                                     }}
                                 >

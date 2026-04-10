@@ -134,7 +134,7 @@ export default function Auth() {
                         <View style={styles.inputContainer}>
                             <View style={styles.labelRow}>
                                 <Text style={styles.label}>Mật khẩu</Text>
-                                <TouchableOpacity onPress={() => router.push('/screen/forgot-password' as any)}>
+                                <TouchableOpacity onPress={() => router.push('/screen/common/forgot-password' as any)}>
                                     <Text style={styles.forgotPassword}>Quên mật khẩu?</Text>
                                 </TouchableOpacity>
                             </View>
