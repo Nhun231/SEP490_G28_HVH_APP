@@ -10,7 +10,7 @@ import {
     Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { EventSessionDetailsResponse } from '@/services/event-service';
+import { EventSessionDetailsResponse } from '@/services/event-types';
 
 // ─── helpers ─────────────────────────────────────────────────────────
 

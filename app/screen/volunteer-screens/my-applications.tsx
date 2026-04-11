@@ -1,10 +1,6 @@
-import {
-    EventApplicationStatus,
-    VolApplicationItem,
-    cancelVolApplication,
-    getApiErrorMessage,
-    getVolApplications,
-} from '@/services/event-service';
+import { EventApplicationStatus, VolApplicationItem } from '@/services/event-types';
+import { getVolApplications, cancelVolApplication } from '@/services/vol-event-service';
+import { getApiErrorMessage } from '@/services/api-helpers';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { router, useFocusEffect } from 'expo-router';

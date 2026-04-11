@@ -3,7 +3,9 @@ import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Image, Alert, Dim
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams, Stack } from 'expo-router';
-import { MyEventStatus, EventDetailResponse, getEventDetailByHost, getApiErrorMessage, resolveSupabaseUrl, } from '@/services/event-service';
+import { MyEventStatus, EventDetailResponse } from '@/services/event-types';
+import { getEventDetailByHost } from '@/services/host-event-service';
+import { getApiErrorMessage, resolveSupabaseUrl } from '@/services/api-helpers';
 import servedTargetsData from '@/assets/served_targets/doi_tuong_phuc_vu.json';
 import servedPlacesData from '@/assets/served_places/dia_diem_phuc_vu.json';
 import InfoRow from '@/app/components/host/event-details/InfoRow';

@@ -1,6 +1,6 @@
 import React from 'react';
 import { TouchableOpacity, Text, StyleSheet } from 'react-native';
-import { MyEventStatus } from '@/services/event-service';
+import { MyEventStatus } from '@/services/event-types';
 
 export type EventStatus = MyEventStatus;
 

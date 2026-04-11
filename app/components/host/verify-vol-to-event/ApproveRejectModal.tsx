@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Modal, Image, TextInput, KeyboardAvoidingView, Platform, ScrollView, ActivityIndicator, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { VolunteerApplication } from './VolunteerCard';
-import { approveVolunteerApplication, rejectVolunteerApplication, getApiErrorMessage } from '@/services/event-service';
+import { approveVolunteerApplication, rejectVolunteerApplication } from '@/services/host-event-service';
+import { getApiErrorMessage } from '@/services/api-helpers';
 
 // get initials for avatar default
 function getInitials(name: string): string {

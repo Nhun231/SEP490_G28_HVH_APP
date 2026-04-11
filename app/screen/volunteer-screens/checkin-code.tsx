@@ -13,7 +13,7 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import { Ionicons } from '@expo/vector-icons'
 import { router } from 'expo-router'
 import { checkEventByCode } from '@/services/checkin-service'
-import { getApiErrorMessage } from '@/services/event-service'
+import { getApiErrorMessage } from '@/services/api-helpers'
 
 const { width: SCREEN_W } = Dimensions.get('window')
 const CODE_LENGTH = 6

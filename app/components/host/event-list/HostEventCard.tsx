@@ -1,7 +1,8 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { MyEventStatus, resolveSupabaseUrl } from '@/services/event-service';
+import { MyEventStatus } from '@/services/event-types';
+import { resolveSupabaseUrl } from '@/services/api-helpers';
 
 export type EventStatus = MyEventStatus;
 

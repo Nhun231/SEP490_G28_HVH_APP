@@ -10,7 +10,8 @@ import {
     Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { ActivityDomain, getAllActivityDomains } from '@/services/event-service';
+import { ActivityDomain } from '@/services/event-types';
+import { getAllActivityDomains } from '@/services/public-event-service';
 
 // ─── helpers ────────────────────────────────────────────────────────
 // Collapse duplicate domain names into one entry, merging their subdomains

@@ -14,7 +14,7 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import { Ionicons } from '@expo/vector-icons'
 import { router, useLocalSearchParams } from 'expo-router'
 import { quickCheckIn } from '@/services/checkin-service'
-import { getApiErrorMessage } from '@/services/event-service'
+import { getApiErrorMessage } from '@/services/api-helpers'
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 function padTwo(n: number): string {

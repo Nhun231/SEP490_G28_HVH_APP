@@ -3,7 +3,8 @@ import { View, Text, TouchableOpacity, StyleSheet, FlatList, ScrollView, Refresh
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useFocusEffect } from 'expo-router';
-import { getMyEvents, MyEventStatus, getApiErrorMessage } from '@/services/event-service';
+import { MyEventStatus } from '@/services/event-types';
+import { getMyEvents, getApiErrorMessage } from '@/services/host-event-service';
 import HostEventCard, { HostEvent, EventStatus } from '../components/host/event-list/HostEventCard';
 import StatusChip, { ChipFilter } from '../components/host/event-list/StatusChip';
 import SkeletonCard from '../components/host/event-list/SkeletonCard';

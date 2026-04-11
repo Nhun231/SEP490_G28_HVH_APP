@@ -12,18 +12,14 @@ import PickerField from '../../components/host/create-event/PickerField';
 import EventDayCard, { EventDay, DayErrorField } from '../../components/host/create-event/EventDayCard';
 import {
     ActivityDomain,
-    getAllActivityDomains,
-    saveDraftEvent,
-    submitEvent,
     EventCreateRequest,
     EventSession,
     SessionUpdateAction,
     UpdateImage,
-    getApiErrorMessage,
-    getApiErrorRawText,
-    resolveSupabaseUrl,
-    getEventDetailByHost,
-} from '@/services/event-service';
+} from '@/services/event-types';
+import { getAllActivityDomains } from '@/services/public-event-service';
+import { saveDraftEvent, submitEvent, getEventDetailByHost } from '@/services/host-event-service';
+import { getApiErrorMessage, getApiErrorRawText, resolveSupabaseUrl } from '@/services/api-helpers';
 import { getFileExtension, getMimeType, uploadImageToSupabase } from '@/services/upload-service';
 import servedTargetsData from '../../../assets/served_targets/doi_tuong_phuc_vu.json';
 import servedPlacesData from '../../../assets/served_places/dia_diem_phuc_vu.json';

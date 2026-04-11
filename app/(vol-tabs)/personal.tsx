@@ -17,7 +17,7 @@ const SERVICES = [
     { icon: 'calendar-outline', label: 'Hoạt động\nđã đăng ký', color: '#F97316', bg: '#FFF3EB' },
     { icon: 'checkmark-circle-outline', label: 'Hoạt động\nđã điểm danh', color: '#14B8A6', bg: '#E6FAF8' },
     { icon: 'share-social-outline', label: 'Khoảnh\nkhắc của tôi', color: '#8B5CF6', bg: '#F3EEFF' },
-    { icon: 'card-outline', label: 'Dụng thẻ\ncộng tác', color: '#3B82F6', bg: '#EBF2FF' },
+    { icon: 'card-outline', label: 'Thẻ thông tin\ncủa tôi', color: '#3B82F6', bg: '#EBF2FF' },
     { icon: 'chatbubble-outline', label: 'Đánh giá\ncủa tôi', color: '#A855F7', bg: '#F5F0FF' },
     { icon: 'lock-closed-outline', label: 'Đổi mật\nkhẩu', color: '#8B5CF6', bg: '#F3EEFF' },
 ] as const
