@@ -13,15 +13,9 @@ import BottomSheetPicker, { OptionItem } from '../../components/host/create-even
 import MapLocationPicker, { LocationData } from '../../components/host/create-event/MapLocationPicker';
 import PickerField from '../../components/host/create-event/PickerField';
 import EventDayCard, { EventDay, DayErrorField } from '../../components/host/create-event/EventDayCard';
-import {
-    EventUpdateRequest,
-    SessionUpdateAction,
-    getApiErrorMessage,
-    getApiErrorRawText,
-    resolveSupabaseUrl,
-    getEventDetailByHost,
-    updateEvent,
-} from '@/services/event-service';
+import { getEventDetailByHost, updateEvent } from '@/services/host-event-service';
+import { getApiErrorMessage, getApiErrorRawText, resolveSupabaseUrl } from '@/services/api-helpers'
+import { EventUpdateRequest, SessionUpdateAction } from '@/services/event-types'
 import { getFileExtension, getMimeType, uploadImageToSupabase } from '@/services/upload-service';
 import servedPlacesData from '../../../assets/served_places/dia_diem_phuc_vu.json';
 import wardsData from '../../../assets/wards/phuong_xa_moi_ha_noi.json';

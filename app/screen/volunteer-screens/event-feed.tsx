@@ -1,4 +1,5 @@
-import { EventSimpleResponse, getEventFeeds } from '@/services/event-service';
+import { EventSimpleResponse } from '@/services/event-types';
+import { getEventFeeds } from '@/services/public-event-service';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';

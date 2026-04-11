@@ -1,4 +1,4 @@
-import { EventSessionDetailsResponse } from '@/services/event-service'
+import { EventSessionDetailsResponse } from '@/services/event-types'
 import { Ionicons } from '@expo/vector-icons'
 import React from 'react'
 import { StyleSheet, Text, View } from 'react-native'

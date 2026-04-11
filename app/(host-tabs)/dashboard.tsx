@@ -4,7 +4,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useFocusEffect } from 'expo-router';
 import Svg, { Path } from 'react-native-svg';
-import { getMyEvents, MyEventStatus, MyEventsResponse } from '@/services/event-service';
+import { MyEventStatus, MyEventsResponse } from '@/services/event-types';
+import { getMyEvents } from '@/services/host-event-service';
 
 const { width: W } = Dimensions.get('window');
 

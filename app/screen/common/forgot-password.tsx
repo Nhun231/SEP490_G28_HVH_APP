@@ -14,7 +14,13 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { Ionicons } from '@expo/vector-icons'
 import { useRouter } from 'expo-router'
-import baseAxios from '@/lib/baseAxios'
+import axios from 'axios'
+
+// Plain axios with NO auth interceptors — for public (unauthenticated) endpoints
+const publicAxios = axios.create({
+    baseURL: process.env.EXPO_PUBLIC_API_URL || 'https://api.hvh.okne.site',
+    headers: { 'Content-Type': 'application/json' },
+})
 
 // ─── types ────────────────────────────────────────────────────────────
 type Step = 'email' | 'otp' | 'done'
@@ -26,7 +32,7 @@ type Step = 'email' | 'otp' | 'done'
  * POST /api/v1/email-otp/verify-forgot-password?email=...
  */
 const requestForgotPasswordOtp = async (email: string): Promise<void> => {
-    await baseAxios.post('/api/v1/email-otp/verify-forgot-password', null, {
+    await publicAxios.post('/api/v1/email-otp/verify-forgot-password', null, {
         params: { email },
     })
 }
@@ -36,7 +42,7 @@ const requestForgotPasswordOtp = async (email: string): Promise<void> => {
  * PUT /api/v1/auth/forgot-password
  */
 const verifyOtpAndReset = async (email: string, otp: string): Promise<void> => {
-    await baseAxios.put('/api/v1/auth/forgot-password', { email, otp })
+    await publicAxios.put('/api/v1/auth/forgot-password', { email, otp })
 }
 
 // ─── component ───────────────────────────────────────────────────────

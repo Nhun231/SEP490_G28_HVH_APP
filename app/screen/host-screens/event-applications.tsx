@@ -6,12 +6,11 @@ import { useRouter, useLocalSearchParams, Stack } from 'expo-router';
 import EventListHeader, { MasterTabConfig } from '../../components/host/event-list/EventListHeader';
 import VolunteerCard, { VolunteerApplication } from '../../components/host/verify-vol-to-event/VolunteerCard';
 import {
-    getRegisteredParticipants,
     RegisteredParticipant,
-    getActualParticipants,
     ActualParticipant,
-    getApiErrorMessage,
-} from '@/services/event-service';
+} from '@/services/event-types';
+import { getRegisteredParticipants, getActualParticipants } from '@/services/host-event-service';
+import { getApiErrorMessage } from '@/services/api-helpers';
 
 type AppTab = 'PENDING' | 'APPROVED';
 

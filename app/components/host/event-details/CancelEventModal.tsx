@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Modal, TextInput, KeyboardAvoidingView, Platform, ScrollView, ActivityIndicator, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { cancelEvent, getApiErrorMessage } from '@/services/event-service';
+import { cancelEvent } from '@/services/host-event-service';
+import { getApiErrorMessage } from '@/services/api-helpers';
 
 export interface CancelEventModalProps {
     visible: boolean;

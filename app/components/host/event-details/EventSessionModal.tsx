@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Modal, KeyboardAvoidingView, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { EventSessionDetailsResponse } from '@/services/event-service';
+import { EventSessionDetailsResponse } from '@/services/event-types';
 
 function parseIsoDateTime(iso: string): { date: string; time: string } {
     const [datePart, timePart] = iso.split('T');

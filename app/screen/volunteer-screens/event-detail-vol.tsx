@@ -21,13 +21,12 @@ import { router, useLocalSearchParams } from 'expo-router';
 import {
     EventDetailsResponse,
     EventSessionResponse,
-    getEventDetails,
-    saveEventForVolunteer,
-    applyEventSession,
     SERVED_TARGET_LABELS,
     SERVING_PLACE_LABELS,
-    getApiErrorMessage,
-} from '@/services/event-service';
+} from '@/services/event-types';
+import { getEventDetails } from '@/services/public-event-service';
+import { saveEventForVolunteer, applyEventSession } from '@/services/vol-event-service';
+import { getApiErrorMessage } from '@/services/api-helpers';
 import { useAuth } from '@/context/AuthContext';
 import ImageViewerModal from '../../components/volunteer/even-details/ImageViewerModal';
 import EventSessionCard from '../../components/volunteer/even-details/EventSessionCard';
