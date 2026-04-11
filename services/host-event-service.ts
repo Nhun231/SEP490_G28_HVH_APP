@@ -14,6 +14,8 @@ import type {
     MyEventsParams,
     MyEventsResponse,
     RegisteredParticipantsResponse,
+    EventUpdateRequest,
+    EventUpdateResponse,
 } from './event-types'
 
 const API_BASE = process.env.EXPO_PUBLIC_API_URL || 'https://api.hvh.homes'
@@ -133,4 +135,25 @@ export const rejectVolunteerApplication = async (
 export const cancelEvent = async (eventId: string, reason: string): Promise<void> => {
     const endpoint = `${API_BASE}/api/v1/host/events/${eventId}/cancel`
     await baseAxios.put(endpoint, { reason })
+}
+
+/**
+ * Delete an event (host only — only EDITING status is deletable).
+ * DELETE /api/v1/host/events/{eventId}
+ */
+export const deleteEvent = async (eventId: string): Promise<void> => {
+    const endpoint = `${API_BASE}/api/v1/host/events/${eventId}`
+    await baseAxios.delete(endpoint)
+}
+
+/**
+ * Update a recruiting event (host only).
+ * PUT /api/v1/host/events/{eventId}/update
+ */
+export const updateEvent = async (eventId: string, body: EventUpdateRequest): Promise<EventUpdateResponse> => {
+    const endpoint = `${API_BASE}/api/v1/host/events/${eventId}/update`
+    console.log('[UpdateEvent] Request body:', JSON.stringify(body, null, 2))
+    const response = await baseAxios.put<EventUpdateResponse>(endpoint, body)
+    console.log('[UpdateEvent] Response:', response.data)
+    return response.data
 }

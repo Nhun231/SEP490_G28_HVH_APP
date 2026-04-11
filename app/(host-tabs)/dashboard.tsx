@@ -75,7 +75,7 @@ const QUICK_ACTIONS = [
     },
     {
         key: 'volunteers',
-        label: 'Danh sách\nTNV',
+        label: 'Sự kiện đang diễn ra',
         icon: 'people' as const,
         color: '#00BCD4',
         onPress: async (router: ReturnType<typeof useRouter>) => {
@@ -84,7 +84,7 @@ const QUICK_ACTIONS = [
                 if (res.content && res.content.length > 0) {
                     const eventId = res.content[0].id;
                     router.push({
-                        pathname: '/screen/host-screens/event-detail-host',
+                        pathname: '/screen/host-screens/event-detail-host' as any,
                         params: { id: eventId, openSessionModal: 'true' }
                     });
                 } else {

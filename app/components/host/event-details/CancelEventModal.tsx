@@ -7,7 +7,6 @@ import { getApiErrorMessage } from '@/services/api-helpers';
 export interface CancelEventModalProps {
     visible: boolean;
     eventId: string;
-    eventName: string;
     onCancel: () => void;
     onConfirmed: () => void;
 }
@@ -17,7 +16,6 @@ const MAX_CHARS = 300;
 const CancelEventModal: React.FC<CancelEventModalProps> = ({
     visible,
     eventId,
-    eventName,
     onCancel,
     onConfirmed,
 }) => {
@@ -69,7 +67,7 @@ const CancelEventModal: React.FC<CancelEventModalProps> = ({
                         </View>
 
                         <Text style={styles.title}>Xác nhận hủy sự kiện?</Text>
-                        <Text style={styles.description}>Hành động này không thể hoàn tác.</Text>
+                        <Text style={styles.description}>Hành động này không thể hoàn tác và sẽ khiến tổ chức của bạn bị trừ điểm.</Text>
 
                         {/* Reason input */}
                         <View style={styles.reasonWrapper}>

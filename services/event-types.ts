@@ -204,7 +204,9 @@ export interface EventCreateRequest {
     updateImages: UpdateImage[];
     description: string;
     address: string;
+    detailAddress: string;
     autoApprove: boolean;
+    servingActivity: boolean;
     activitySubDomainId: number;
     servedTarget: string;
     servingPlaceType: string;
@@ -342,3 +344,22 @@ export interface VolApplicationsParams {
 // ── Alias for backward compat (EventSessionDetailsResponse was also exported
 //    as EventSessionResponse in some imports) ──────────────────────────────────
 export type EventSessionResponse = EventSessionDetailsResponse;
+
+export interface EventUpdateRequest {
+    updateImages?: UpdateImage[];
+    description?: string;
+    autoApprove?: boolean;
+    servingPlaceType?: string;
+    address?: string;
+    detailAddress?: string;
+    recruitmentEndDate?: string;
+    eventSessions?: EventSession[];
+    checkInLocationLat?: number;
+    checkInLocationLng?: number;
+    checkInLocationAccuracyMeters?: number;
+}
+
+export interface EventUpdateResponse {
+    eventId: string;
+    uploadUrls?: Array<string>;
+}

@@ -88,7 +88,7 @@ export default function DatePickerInput({
     return (
         <View className="mb-4">
             {label && (
-                <Text className="text-gray-700 text-sm font-medium mb-2">
+                <Text className="text-gray-700 font-bold text-sm mb-2">
                     {label}
                     {required && <Text style={styles.required}> *</Text>}
                 </Text>
