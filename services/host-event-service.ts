@@ -7,6 +7,8 @@
 import baseAxios from '@/lib/baseAxios'
 import type {
     ActualParticipantsResponse,
+    AnnounceVolunteersRequest,
+    AnnounceVolunteersResponse,
     ApplicationActionResponse,
     EventCreateRequest,
     EventCreateResponse,
@@ -25,7 +27,7 @@ const API_BASE = process.env.EXPO_PUBLIC_API_URL || 'https://api.hvh.homes'
  * POST /api/v1/event/draft
  */
 export const saveDraftEvent = async (data: EventCreateRequest): Promise<EventCreateResponse> => {
-    const endpoint = `${API_BASE}/api/v1/event/draft`
+    const endpoint = `${API_BASE}/api/v1/host/events/draft`
     console.log('[HostEventService] saveDraftEvent body:', JSON.stringify(data, null, 2))
     const response = await baseAxios.post<EventCreateResponse>(endpoint, data)
     return response.data
@@ -36,7 +38,7 @@ export const saveDraftEvent = async (data: EventCreateRequest): Promise<EventCre
  * POST /api/v1/event/submit
  */
 export const submitEvent = async (data: EventCreateRequest): Promise<EventCreateResponse> => {
-    const endpoint = `${API_BASE}/api/v1/event/submit`
+    const endpoint = `${API_BASE}/api/v1/host/events/submit`
     console.log('[HostEventService] submitEvent body:', JSON.stringify(data, null, 2))
     const response = await baseAxios.post<EventCreateResponse>(endpoint, data)
     return response.data
@@ -51,6 +53,7 @@ export const getMyEvents = async (params: MyEventsParams = {}): Promise<MyEvents
     query.append('pageNumber', String(params.pageNumber ?? 0))
     query.append('pageSize', String(params.pageSize ?? 10))
     if (params.name) query.append('name', params.name)
+    if (params.status) query.append('status', params.status)
 
     const endpoint = `${API_BASE}/api/v1/host/events/my-events?${query.toString()}`
     const response = await baseAxios.get<MyEventsResponse>(endpoint)
@@ -152,8 +155,19 @@ export const deleteEvent = async (eventId: string): Promise<void> => {
  */
 export const updateEvent = async (eventId: string, body: EventUpdateRequest): Promise<EventUpdateResponse> => {
     const endpoint = `${API_BASE}/api/v1/host/events/${eventId}/update`
-    console.log('[UpdateEvent] Request body:', JSON.stringify(body, null, 2))
     const response = await baseAxios.put<EventUpdateResponse>(endpoint, body)
-    console.log('[UpdateEvent] Response:', response.data)
     return response.data
 }
+
+/**
+ * Send a push notification to all volunteers registered for an event.
+ * POST /api/v1/host/events/{eventId}/announce-volunteers
+ */
+export const announceVolunteers = async (
+    eventId: string,
+    body: AnnounceVolunteersRequest,
+): Promise<AnnounceVolunteersResponse> => {
+    const endpoint = `${API_BASE}/api/v1/host/events/${eventId}/announce-volunteers`
+    const response = await baseAxios.post<AnnounceVolunteersResponse>(endpoint, body)
+    return response.data
+}

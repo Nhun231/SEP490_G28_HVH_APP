@@ -903,6 +903,11 @@ const CreateEvent = () => {
     // handle submit event 
     const handleSubmit = async () => {
         if (!validateForm()) {
+            const missingFields = validateRequestBodyRequiredFields();
+            const missingFieldsMessage = missingFields.length
+                ? `\nThiếu: ${missingFields.join(', ')}`
+                : '';
+            Alert.alert('Thông báo', `Vui lòng điền đầy đủ thông tin cần thiết${missingFieldsMessage}`);
             return;
         }
 

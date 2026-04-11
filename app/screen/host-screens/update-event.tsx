@@ -341,10 +341,18 @@ const UpdateEvent = () => {
 
         // Image
         // New image picked (existingImageUrl cleared, new local uri chosen)
+        const hadOriginalImage = !!(prefillEvent?.imageUrls?.length);
         const hasNewImage = !existingImageUrl && !!eventImageDoc.uri;
+        const imageRemoved = hadOriginalImage && !existingImageUrl && !eventImageDoc.uri;
+
         if (hasNewImage) {
+            // User picked a new image
             const fileExtension = getFileExtension(eventImageDoc.uri!, eventImageDoc.mimeType);
             body.updateImages = [{ imageId: null, updateAction: 'ADD', fileExtension }];
+            hasChange = true;
+        } else if (imageRemoved) {
+            // User removed the existing image without replacing it
+            body.updateImages = [{ imageId: null, updateAction: 'REMOVE' }];
             hasChange = true;
         }
 
@@ -454,6 +462,82 @@ const UpdateEvent = () => {
         return Object.keys(nextErrors).length === 0 && Object.keys(nextDayErrors).length === 0;
     };
 
+    // Collect human-readable names of invalid/missing fields (mirrors validateForm logic)
+    const getMissingFields = (): string[] => {
+        const missing: string[] = [];
+
+        if (!description.trim()) {
+            setFormFieldError('description', 'Vui lòng nhập mô tả sự kiện');
+            missing.push('Mô tả sự kiện');
+        } else if (containsSpecialCharacters(description.trim())) {
+            setFormFieldError('description', 'Mô tả sự kiện không được chứa ký tự đặc biệt');
+            missing.push('Mô tả sự kiện không hợp lệ');
+        } else {
+            setFormFieldError('description');
+        }
+
+        if (!servedPlace?.value) {
+            setFormFieldError('servedPlace', 'Vui lòng chọn loại địa điểm phục vụ');
+            missing.push('Loại địa điểm phục vụ');
+        } else {
+            setFormFieldError('servedPlace');
+        }
+
+        if (!area?.label) {
+            setFormFieldError('area', 'Vui lòng chọn khu vực tổ chức');
+            missing.push('Khu vực tổ chức');
+        } else {
+            setFormFieldError('area');
+        }
+
+        const detailAddressErr = validateDetailAddress(detailAddress);
+        if (detailAddressErr) {
+            setFormFieldError('detailAddress', detailAddressErr);
+            missing.push('Địa chỉ chi tiết');
+        } else {
+            setFormFieldError('detailAddress');
+        }
+
+        if (!registrationDeadline) {
+            setFormFieldError('registrationDeadline', 'Vui lòng chọn hạn đăng ký');
+            missing.push('Hạn đăng ký');
+        } else {
+            setFormFieldError('registrationDeadline');
+        }
+
+        if (!checkInLocation) {
+            setFormFieldError('checkInLocation', 'Vui lòng chọn địa điểm điểm danh');
+            missing.push('Địa điểm điểm danh');
+        } else {
+            setFormFieldError('checkInLocation');
+        }
+
+        eventDays.forEach((day, idx) => {
+            if (!day.date) {
+                setDayFieldError(day.id, 'date', 'Vui lòng chọn ngày tổ chức');
+                missing.push(`Ngày tổ chức (Ngày ${idx + 1})`);
+            }
+            if (!day.startTime) {
+                setDayFieldError(day.id, 'startTime', 'Vui lòng chọn giờ bắt đầu');
+                missing.push(`Giờ bắt đầu (Ngày ${idx + 1})`);
+            }
+            if (!day.endTime) {
+                setDayFieldError(day.id, 'endTime', 'Vui lòng chọn giờ kết thúc');
+                missing.push(`Giờ kết thúc (Ngày ${idx + 1})`);
+            }
+            if (!day.volunteerCount.trim()) {
+                setDayFieldError(day.id, 'volunteerCount', 'Vui lòng nhập số lượng TNV cần tuyển');
+                missing.push(`Số lượng TNV (Ngày ${idx + 1})`);
+            }
+            if (!day.servedCount.trim()) {
+                setDayFieldError(day.id, 'servedCount', 'Vui lòng nhập số lượng đối tượng phục vụ');
+                missing.push(`Số lượng đối tượng phục vụ (Ngày ${idx + 1})`);
+            }
+        });
+
+        return missing;
+    };
+
     // Image handling
     const handlePickEventImage = async () => {
         try {
@@ -484,23 +568,11 @@ const UpdateEvent = () => {
         setEventImageDoc({ uri: null, fileName: null, mimeType: null });
     };
 
-    // Submit
-    const handleSubmit = async () => {
-        if (!validateForm() || isSubmitting) return;
-
-        const result = buildRequestBody();
-        if (result === 'NO_CHANGE') {
-            Alert.alert('Thông báo', 'Bạn chưa thay đổi thông tin nào. Vui lòng chỉnh sửa ít nhất một trường trước khi lưu.');
-            return;
-        }
-        if (!result) {
-            Alert.alert('Thông báo', 'Không thể tạo yêu cầu. Vui lòng kiểm tra lại thông tin.');
-            return;
-        }
-
+    // Submit — internal executor called after user confirms the alert
+    const doSubmit = async (body: EventUpdateRequest) => {
         setIsSubmitting(true);
         try {
-            const response = await updateEvent(editEventId, result);
+            const response = await updateEvent(editEventId, body);
 
             // Upload new image only when a brand-new local file was selected
             const hasNewImage = !existingImageUrl && !!eventImageDoc.uri;
@@ -522,6 +594,51 @@ const UpdateEvent = () => {
             setIsSubmitting(false);
         }
     };
+
+    // Submit — validate → diff → confirm alert → doSubmit
+    const handleSubmit = async () => {
+        if (isSubmitting) return;
+
+        // Run validation and collect missing field names for a detailed alert
+        const isValid = validateForm();
+        if (!isValid) {
+            const missing = getMissingFields();
+            const suffix = missing.length > 0 ? `\nThiếu: ${missing.join(', ')}` : '';
+            Alert.alert('Thông báo', `Vui lòng điền đầy đủ thông tin cần thiết${suffix}`);
+            return;
+        }
+
+        const result = buildRequestBody();
+        if (result === 'NO_CHANGE') {
+            Alert.alert('Thông báo', 'Bạn chưa thay đổi thông tin nào. Vui lòng chỉnh sửa ít nhất một trường trước khi lưu.');
+            return;
+        }
+        if (!result) {
+            Alert.alert('Thông báo', 'Không thể tạo yêu cầu. Vui lòng kiểm tra lại thông tin.');
+            return;
+        }
+
+        // Determine whether any CRITICAL field was changed
+        const CRITICAL_KEYS: (keyof EventUpdateRequest)[] = [
+            'address', 'detailAddress', 'recruitmentEndDate',
+            'eventSessions', 'checkInLocationLat', 'checkInLocationLng', 'checkInLocationAccuracyMeters',
+        ];
+        const hasCriticalChange = CRITICAL_KEYS.some(key => key in result);
+
+        const confirmMessage = hasCriticalChange
+            ? 'Những thay đổi bạn vừa áp dụng sẽ cần được phê duyệt lại bởi Tổ chức của bạn và Quản trị viên hệ thống. Tất cả những tình nguyện viên đã đăng ký và đã được phê duyệt cũng sẽ bị hủy bỏ, bạn có chắc chắn muốn cập nhật?'
+            : 'Những thay đổi bạn vừa áp dụng sẽ cần được phê duyệt lại bởi Tổ chức của bạn. Tất cả những tình nguyện viên đã đăng ký và đã được phê duyệt cũng sẽ bị hủy bỏ, bạn có chắc chắn muốn cập nhật?';
+
+        Alert.alert(
+            'Cảnh báo',
+            confirmMessage,
+            [
+                { text: 'Hủy', style: 'cancel' },
+                { text: 'Cập nhật', style: 'default', onPress: () => doSubmit(result) },
+            ],
+        );
+    };
+
 
     // Render
     return (
@@ -565,7 +682,6 @@ const UpdateEvent = () => {
                                 <Text style={styles.sectionBadgeText}>Thông tin trọng yếu</Text>
                             </View>
                         </View>
-                        <Text style={styles.sectionHint}>Thay đổi các mục này cần Tổ chức và Quản trị viên phê duyệt lại</Text>
 
                         {/* Location card */}
                         <View style={styles.card}>
@@ -701,7 +817,6 @@ const UpdateEvent = () => {
                                 <Text style={styles.sectionBadgeText}>Thông tin thứ yếu</Text>
                             </View>
                         </View>
-                        <Text style={styles.sectionHint}>Thay đổi các mục này chỉ cần Quản trị viên phê duyệt lại</Text>
 
                         {/* Description card */}
                         <View style={styles.card}>
@@ -796,7 +911,7 @@ const UpdateEvent = () => {
                             >
                                 {isSubmitting
                                     ? <ActivityIndicator size="small" color="#FFFFFF" />
-                                    : <Text style={styles.submitBtnText}>Lưu thay đổi</Text>
+                                    : <Text style={styles.submitBtnText}>Cập nhật</Text>
                                 }
                             </TouchableOpacity>
                         </View>
@@ -927,27 +1042,73 @@ const styles = StyleSheet.create({
         borderRadius: 12,
         alignItems: 'center',
     },
-    cancelBtnText: { color: '#374151', fontWeight: '700', fontSize: 15 },
-    submitBtn: { flex: 1, backgroundColor: '#42A4F5', paddingVertical: 14, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-    submitBtnText: { color: '#FFFFFF', fontWeight: '700', fontSize: 15 },
-    disabledBtn: { opacity: 0.6 },
-    editLoadingOverlay: {
-        position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
-        backgroundColor: 'rgba(255,255,255,0.85)',
-        alignItems: 'center', justifyContent: 'center', gap: 12, zIndex: 100,
+    cancelBtnText: {
+        color: '#374151',
+        fontWeight: '700',
+        fontSize: 15
     },
-    editLoadingText: { fontSize: 15, color: '#42A4F5', fontWeight: '600' },
-    sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 4 },
+    submitBtn: {
+        flex: 1,
+        backgroundColor: '#42A4F5',
+        paddingVertical: 14,
+        borderRadius: 12,
+        alignItems: 'center',
+        justifyContent: 'center'
+    },
+    submitBtnText: {
+        color: '#FFFFFF',
+        fontWeight: '700',
+        fontSize: 15
+    },
+    disabledBtn: {
+        opacity: 0.6
+    },
+    editLoadingOverlay: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: 'rgba(255,255,255,0.85)',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 12,
+        zIndex: 100,
+    },
+    editLoadingText: {
+        fontSize: 15,
+        color: '#42A4F5',
+        fontWeight: '600'
+    },
+    sectionHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        marginBottom: 8
+    },
     sectionBadgeCritical: {
-        flexDirection: 'row', alignItems: 'center', gap: 4,
-        backgroundColor: '#EF4444', borderRadius: 20, paddingHorizontal: 10, paddingVertical: 4,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+        backgroundColor: '#EF4444',
+        borderRadius: 20,
+        paddingHorizontal: 10,
+        paddingVertical: 4,
     },
     sectionBadgeOptional: {
-        flexDirection: 'row', alignItems: 'center', gap: 4,
-        backgroundColor: '#6B7280', borderRadius: 20, paddingHorizontal: 10, paddingVertical: 4,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+        backgroundColor: '#6B7280',
+        borderRadius: 20,
+        paddingHorizontal: 10,
+        paddingVertical: 4,
     },
-    sectionBadgeText: { color: '#FFFFFF', fontSize: 12, fontWeight: '700' },
-    sectionHint: { color: '#9CA3AF', fontSize: 11, flexShrink: 1, marginBottom: 8 },
+    sectionBadgeText: {
+        color: '#FFFFFF',
+        fontSize: 12,
+        fontWeight: '700'
+    },
 });
 
 export default UpdateEvent;
