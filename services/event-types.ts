@@ -363,3 +363,15 @@ export interface EventUpdateResponse {
     eventId: string;
     uploadUrls?: Array<string>;
 }
+
+// ── Host — Announce Volunteers ────────────────────────────────────────────────
+
+export interface AnnounceVolunteersRequest {
+    title: string;
+    body: string;
+}
+
+export interface AnnounceVolunteersResponse {
+    success: boolean;
+    message?: string;
+}

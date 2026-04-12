@@ -244,6 +244,10 @@ const EventDetailScreen = () => {
     const handleReviews = () => router.push({ pathname: '/screen/host-screens/event-rating' as any, params: { eventId: event.id } });
     const handleMoments = () => router.push({ pathname: '/screen/host-screens/event-moments' as any, params: { eventId: event.id } });
     const handleComplaint = () => console.log('Complain about points', event.id);
+    const handleAnnounce = () => router.push({
+        pathname: '/screen/host-screens/announce-volunteers' as any,
+        params: { eventId: event.id },
+    });
 
     const serviceOptions: ServiceOption[] = (() => {
         const s = event.status;
@@ -274,15 +278,16 @@ const EventDetailScreen = () => {
         if (s === 'UPCOMING') {
             return [
                 { key: 'cancel', label: 'Hủy sự kiện', icon: 'close-circle-outline', iconColor: '#EF4444', bgColor: '#FEE2E2', onPress: handleCancelEvent },
+                { key: 'announce', label: 'Gửi thông báo', icon: 'notifications-outline', iconColor: '#42A4F5', bgColor: '#DBEAFE', onPress: handleAnnounce },
+                { key: 'participants', label: 'Danh sách đăng ký', icon: 'people-outline', iconColor: '#7C3AED', bgColor: '#EDE9FE', onPress: handleParticipants },
             ];
         }
 
         if (s === 'ONGOING') {
             return [
                 { key: 'cancel', label: 'Hủy sự kiện', icon: 'close-circle-outline', iconColor: '#EF4444', bgColor: '#FEE2E2', onPress: handleCancelEvent },
-                { key: 'checkin', label: 'Tạo mã check-in', icon: 'qr-code-outline', iconColor: '#059669', bgColor: '#D1FAE5', onPress: handleCheckin },
+                { key: 'announce', label: 'Gửi thông báo', icon: 'notifications-outline', iconColor: '#42A4F5', bgColor: '#DBEAFE', onPress: handleAnnounce },
                 { key: 'participants', label: 'Danh sách đăng ký', icon: 'people-outline', iconColor: '#7C3AED', bgColor: '#EDE9FE', onPress: handleParticipants },
-
             ];
         }
 
