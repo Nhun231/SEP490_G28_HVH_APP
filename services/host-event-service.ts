@@ -170,4 +170,4 @@ export const announceVolunteers = async (
     const endpoint = `${API_BASE}/api/v1/host/events/${eventId}/announce-volunteers`
     const response = await baseAxios.post<AnnounceVolunteersResponse>(endpoint, body)
     return response.data
-}
+}

@@ -21,7 +21,6 @@ const AnnounceVolunteers = () => {
     const [content, setContent] = useState('');
     const [isSending, setIsSending] = useState(false);
 
-    const titleError = title.trim().length === 0 && title.length > 0 ? 'Vui lòng nhập tiêu đề' : '';
     const canSend = title.trim().length > 0 && content.trim().length > 0 && !isSending;
 
     const handleSend = async () => {
