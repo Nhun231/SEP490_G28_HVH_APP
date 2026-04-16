@@ -3,7 +3,7 @@ import { getVolApplications, cancelVolApplication } from '@/services/vol-event-s
 import { getApiErrorMessage } from '@/services/api-helpers';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
-import { router, useFocusEffect } from 'expo-router';
+import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import React, { useCallback, useState, useRef } from 'react';
 import {
     ActivityIndicator,
@@ -27,7 +27,7 @@ interface TabDef {
     value: StatusFilter;
 }
 
-const TABS: TabDef[] = [
+const REGISTERED_TABS: TabDef[] = [
     { label: 'Tất cả', value: null },
     { label: 'Đang chờ duyệt', value: 'PENDING' },
     { label: 'Đã được duyệt', value: 'APPROVED' },
@@ -35,14 +35,19 @@ const TABS: TabDef[] = [
     { label: 'Đã hủy', value: 'CANCELLED' },
 ];
 
+const CHECKED_IN_TABS: TabDef[] = [
+    { label: 'Đã hoàn thành', value: 'COMPLETED' },
+];
+
 const STATUS_CONFIG: Record<
     EventApplicationStatus,
     { label: string; color: string; bg: string; icon: string }
 > = {
-    PENDING:   { label: 'Chờ duyệt', color: '#D97706', bg: '#FEF3C7', icon: 'time-outline' },
-    APPROVED:  { label: 'Đã duyệt',  color: '#059669', bg: '#D1FAE5', icon: 'checkmark-circle-outline' },
-    REJECTED:  { label: 'Từ chối',   color: '#DC2626', bg: '#FEE2E2', icon: 'close-circle-outline' },
-    CANCELLED: { label: 'Đã hủy',    color: '#6B7280', bg: '#F3F4F6', icon: 'ban-outline' },
+    PENDING:   { label: 'Chờ duyệt',  color: '#D97706', bg: '#FEF3C7', icon: 'time-outline' },
+    APPROVED:  { label: 'Đã duyệt',   color: '#059669', bg: '#D1FAE5', icon: 'checkmark-circle-outline' },
+    REJECTED:  { label: 'Từ chối',    color: '#DC2626', bg: '#FEE2E2', icon: 'close-circle-outline' },
+    CANCELLED: { label: 'Đã hủy',     color: '#6B7280', bg: '#F3F4F6', icon: 'ban-outline' },
+    COMPLETED: { label: 'Đã hoàn thành', color: '#D97706', bg: '#FEF3C7', icon: 'trophy-outline' },
 };
 
 const PAGE_SIZE = 10;
@@ -117,7 +122,7 @@ function isCancellable(item: VolApplicationItem): boolean {
 }
 
 function ApplicationEventCard({ item, onPress, onCancel }: ApplicationCardProps) {
-    const cfg = STATUS_CONFIG[item.status];
+    const cfg = STATUS_CONFIG[item.status] ?? { label: item.status, color: '#6B7280', bg: '#F3F4F6', icon: 'help-circle-outline' };
     const imageUri = getFullImageUrl(item.imageUrl);
     const fullAddress = buildFullAddress(item.address, item.detailAddress);
     const hasSession = !!item.session;
@@ -304,7 +309,14 @@ const cardStyles = StyleSheet.create({
 // ─── Main Screen ──────────────────────────────────────────────────────────────
 
 const MyApplications = () => {
-    const [selectedTab, setSelectedTab] = useState<StatusFilter>(null);
+    const { mode } = useLocalSearchParams<{ mode?: string }>();
+    const isCheckedInMode = mode === 'checked-in';
+    const TABS = isCheckedInMode ? CHECKED_IN_TABS : REGISTERED_TABS;
+    const screenTitle = isCheckedInMode ? 'Hoạt động đã điểm danh' : 'Hoạt động đã đăng ký';
+
+    const [selectedTab, setSelectedTab] = useState<StatusFilter>(
+        isCheckedInMode ? 'COMPLETED' : null
+    );
     const [items, setItems] = useState<VolApplicationItem[]>([]);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
@@ -322,10 +334,16 @@ const MyApplications = () => {
                 status: status ?? undefined,
             });
 
+            // In registered mode with no status filter, exclude COMPLETED client-side
+            let content = response.content;
+            if (!isCheckedInMode && status === null) {
+                content = content.filter(item => item.status !== 'COMPLETED');
+            }
+
             if (append) {
-                setItems(prev => [...prev, ...response.content]);
+                setItems(prev => [...prev, ...content]);
             } else {
-                setItems(response.content);
+                setItems(content);
             }
             
             // Safely parse pagination info as some BE endpoints wrap pagination in `page: { ... }`
@@ -458,7 +476,7 @@ const MyApplications = () => {
                 <TouchableOpacity onPress={handleGoBack} style={styles.headerBtn}>
                     <Ionicons name="chevron-back" size={24} color="#FFFFFF" />
                 </TouchableOpacity>
-                <Text style={styles.headerTitle}>Hoạt động đã đăng ký</Text>
+                <Text style={styles.headerTitle}>{screenTitle}</Text>
                 <View style={styles.headerBtn} />
             </View>
 

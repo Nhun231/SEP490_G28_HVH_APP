@@ -171,8 +171,11 @@ export default function Personal() {
                                     activeOpacity={0.7}
                                     onPress={() => {
                                         if (idx === 0) {
-                                            // "Hoạt động đã đăng ký" → My Applications screen
+                                            // "Hoạt động đã đăng ký" → show PENDING/APPROVED/REJECTED/CANCELLED only
                                             router.push('/screen/volunteer-screens/my-applications' as any);
+                                        } else if (idx === 1) {
+                                            // "Hoạt động đã điểm danh" → show COMPLETED only
+                                            router.push({ pathname: '/screen/volunteer-screens/my-applications', params: { mode: 'checked-in' } } as any);
                                         }
                                     }}
                                 >

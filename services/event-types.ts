@@ -81,7 +81,7 @@ export interface EventSessionDetailsResponse {
     endDateTime: string;
     expectedVolAmount: number;
     expectedSerAmount: number;
-    approvedApplicationCount?: number;
+    approvedApplicationCount: number;
 }
 
 /** Public event detail (volunteer-facing, no auth required) */
@@ -303,7 +303,7 @@ export interface ApplicationActionResponse {
 
 // ── Volunteer — Application Status ───────────────────────────────────────────
 
-export type EventApplicationStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'CANCELLED';
+export type EventApplicationStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'CANCELLED' | 'COMPLETED';
 
 export interface VolApplicationSession {
     id: string;

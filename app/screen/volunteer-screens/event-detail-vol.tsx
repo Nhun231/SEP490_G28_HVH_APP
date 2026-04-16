@@ -123,11 +123,6 @@ export default function EventDetail() {
         return event.imageUrls.map(getFullImageUrl);
     }, [event]);
 
-    // total volunteers expected across sessions
-    const totalVolunteers = useMemo(() => {
-        if (!event?.eventSessions) return 0;
-        return event.eventSessions.reduce((sum, s) => sum + s.expectedVolAmount, 0);
-    }, [event]);
 
     const isRecruiting = useMemo(() => {
         if (!event?.recruitmentEndDate) return false;
@@ -377,14 +372,6 @@ export default function EventDetail() {
                     <Text style={styles.title}>{event.name}</Text>
 
                     {/* Info rows */}
-                    <View style={styles.infoRow}>
-                        <Ionicons name="people-outline" size={18} color="#6B7280" />
-                        <Text style={styles.infoText}>
-                            Số người tham gia :{' '}
-                            <Text style={styles.infoBold}>0/{totalVolunteers}</Text>
-                        </Text>
-                    </View>
-
                     <View style={styles.infoRow}>
                         <Ionicons name="calendar-outline" size={18} color="#6B7280" />
                         <Text style={styles.infoText}>

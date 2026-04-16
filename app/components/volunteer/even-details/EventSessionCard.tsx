@@ -81,13 +81,13 @@ export default function EventSessionCard({ session, index }: Props) {
                 <Text style={styles.countValue}>{session.expectedSerAmount} Người</Text>
             </View>
 
-            {/* TODO: enable when BE adds approvedApplicationCount to response
+            {/* Approved application count per session */}
             <View style={styles.row}>
                 <Ionicons name="checkmark-circle-outline" size={16} color="#6B7280" style={styles.rowIcon} />
                 <Text style={styles.rowLabel}>Số TNV đã được duyệt</Text>
-                <Text style={styles.countValue}>{session.approvedApplicationCount} Người</Text>
+                <Text style={[styles.countValue, { color: '#10B981' }]}>{session.approvedApplicationCount} Người</Text>
             </View>
-            */}
+
         </View>
     )
 }
