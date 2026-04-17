@@ -8,7 +8,7 @@ import {
 } from '@/services/organization-service';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
     ActivityIndicator,
     FlatList,
@@ -24,7 +24,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import StarRating from '@/app/components/volunteer/organization/StarRating';
 
-// ─── Org Type Filter Options ─────────────────────────────────────────────────
 
 const ORG_TYPE_OPTIONS: { label: string; value: EOrgType | null }[] = [
     { label: 'Tất cả lĩnh vực', value: null },
@@ -54,7 +53,6 @@ const HOUR_OPTIONS = [
     { label: 'Trên 10,000 giờ', value: 10000 },
 ];
 
-// ─── Generic Dropdown Sheet ───────────────────────────────────────────────────
 
 interface SheetOption<T> {
     label: string;
@@ -129,7 +127,6 @@ const sheet = StyleSheet.create({
     itemTextActive: { color: '#42A4F5', fontWeight: '600' },
 });
 
-// ─── Org Card ────────────────────────────────────────────────────────────────
 
 // Mock ratings per org (until BE adds rating)
 const MOCK_RATINGS: Record<string, { rating: number; total: number }> = {};
@@ -175,22 +172,23 @@ function OrgCard({ org, onPress }: { org: OrganizationSimpleResponse; onPress: (
             {/* Stats */}
             <View style={styles.statsRow}>
                 <View style={styles.statBox}>
-                    <Ionicons name="people-outline" size={16} color="#10B981" />
-                    <Text style={styles.statLabel}>Số thành viên</Text>
+                    <Ionicons name="calendar-outline" size={16} color="#10B981" />
+                    <Text style={styles.statLabel}>Sự kiện đã tổ chức</Text>
                     <Text style={[styles.statValue, { color: '#10B981' }]}>{org.numberOfHostedEvents.toLocaleString('vi-VN')}</Text>
                 </View>
                 <View style={styles.statDivider} />
                 <View style={styles.statBox}>
-                    <Ionicons name="time-outline" size={16} color="#42A4F5" />
-                    <Text style={styles.statLabel}>Số giờ uy tín</Text>
-                    <Text style={[styles.statValue, { color: '#42A4F5' }]}>{org.creditHour.toLocaleString('vi-VN')}</Text>
+                    <Ionicons name="ribbon-outline" size={16} color="#42A4F5" />
+                    <Text style={styles.statLabel}>Giờ uy tín</Text>
+                    <Text style={[styles.statValue, { color: '#42A4F5' }]}>
+                        {org.creditHour.toLocaleString('vi-VN')}
+                    </Text>
                 </View>
             </View>
         </TouchableOpacity>
     );
 }
 
-// ─── Main Screen ─────────────────────────────────────────────────────────────
 
 const PAGE_SIZE = 10;
 
@@ -217,6 +215,18 @@ const Benefit = () => {
 
     // committed search (only triggers on button press)
     const [committedSearch, setCommittedSearch] = useState('');
+
+    // Client-side filter: rating and hour applied instantly on the loaded list
+    const filteredOrgs = useMemo(() => {
+        let list = orgs;
+        if (selectedRating !== null) {
+            list = list.filter((o) => getMockRating(o.id).rating >= selectedRating);
+        }
+        if (selectedHour !== null) {
+            list = list.filter((o) => o.creditHour >= selectedHour);
+        }
+        return list;
+    }, [orgs, selectedRating, selectedHour]);
 
     const fetchOrgs = useCallback(async (opts: {
         page?: number;
@@ -283,7 +293,11 @@ const Benefit = () => {
 
     const handleClearFilter = () => {
         setSelectedOrgType(null);
-        applyFilters(committedSearch, null);
+        setSelectedRating(null);
+        setSelectedHour(null);
+        setSearchText('');
+        setCommittedSearch('');
+        applyFilters('', null);
     };
 
     const handleRefresh = useCallback(async () => {
@@ -304,10 +318,17 @@ const Benefit = () => {
     }, [hasMore, loadingMore, loading, refreshing, pageNumber, fetchOrgs, committedSearch, selectedOrgType]);
 
     const handleOrgPress = (org: OrganizationSimpleResponse) => {
-        router.push({ pathname: '/screen/volunteer-screens/org-detail', params: { orgId: org.id, orgName: org.name } } as any);
+        router.push({
+            pathname: '/screen/volunteer-screens/org-detail',
+            params: {
+                orgId: org.id,
+                orgName: org.name,
+                numberOfHostedEvents: String(org.numberOfHostedEvents),
+                creditHour: String(org.creditHour),
+            },
+        } as any);
     };
 
-    // ── Render ──
     return (
         <SafeAreaView style={styles.safeArea} edges={['top']}>
 
@@ -385,9 +406,21 @@ const Benefit = () => {
                     </TouchableOpacity>
                 </View>
 
+                {/* Clear all filters */}
+                {(selectedOrgType !== null || selectedRating !== null || selectedHour !== null || committedSearch !== '') && (
+                    <TouchableOpacity
+                        style={styles.clearFilterRow}
+                        onPress={handleClearFilter}
+                        activeOpacity={0.7}
+                    >
+                        <Ionicons name="close-circle" size={15} color="#EF4444" />
+                        <Text style={styles.clearFilterText}>Xóa bộ lọc</Text>
+                    </TouchableOpacity>
+                )}
+
                 {/* Result count */}
                 {!loading && !error && (
-                    <Text style={styles.resultCount}>Tìm thấy {orgs.length} tổ chức</Text>
+                    <Text style={styles.resultCount}>Tìm thấy {filteredOrgs.length} tổ chức</Text>
                 )}
 
                 {/* LIST */}
@@ -412,7 +445,7 @@ const Benefit = () => {
                     </View>
                 ) : (
                     <FlatList
-                        data={orgs}
+                        data={filteredOrgs}
                         keyExtractor={(item) => item.id}
                         renderItem={({ item }) => (
                             <OrgCard org={item} onPress={() => handleOrgPress(item)} />
@@ -476,7 +509,6 @@ const Benefit = () => {
 
 export default Benefit;
 
-// ─── Styles ──────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
     safeArea: { flex: 1, backgroundColor: '#42A4F5' },
@@ -521,6 +553,15 @@ const styles = StyleSheet.create({
     },
     filterDropText: { fontSize: 14, color: '#374151' },
     filterDropTextActive: { color: '#42A4F5', fontWeight: '600' },
+
+    /* Clear filter */
+    clearFilterRow: {
+        flexDirection: 'row', alignItems: 'center', gap: 6,
+        paddingHorizontal: 14, paddingVertical: 8,
+        backgroundColor: '#FEF2F2',
+        borderBottomWidth: 1, borderBottomColor: '#FECACA',
+    },
+    clearFilterText: { fontSize: 13, color: '#EF4444', fontWeight: '600' },
 
     /* Result count */
     resultCount: {

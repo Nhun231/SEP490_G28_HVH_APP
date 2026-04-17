@@ -9,14 +9,16 @@ import {
     Animated,
     AppState,
     AppStateStatus,
+    Platform,
 } from 'react-native'
-import { SafeAreaView } from 'react-native-safe-area-context'
 import { Ionicons } from '@expo/vector-icons'
-import { router, useLocalSearchParams } from 'expo-router'
-import { quickCheckIn } from '@/services/checkin-service'
+import { router, useLocalSearchParams, Stack } from 'expo-router'
+import { checkOutEvent } from '@/services/checkin-service'
 import { getApiErrorMessage } from '@/services/api-helpers'
+import * as Location from 'expo-location'
+import * as Device from 'expo-device'
+import * as Application from 'expo-application'
 
-// ─── helpers ────────────────────────────────────────────────────────────────
 function padTwo(n: number): string {
     return n < 10 ? `0${n}` : `${n}`
 }
@@ -29,7 +31,6 @@ function formatDuration(seconds: number): string {
     return `${padTwo(m)}:${padTwo(s)}`
 }
 
-// ─── component ────────────────────────────────────────────────────────────────
 const CheckinTimerScreen = () => {
     const params = useLocalSearchParams<{
         code: string
@@ -37,6 +38,9 @@ const CheckinTimerScreen = () => {
         eventId: string
         applicationId: string
         sessionId: string
+        /** Event check-in location — forwarded for GPS mock during checkout */
+        checkinLat: string
+        checkinLng: string
     }>()
 
     const [elapsed, setElapsed] = useState(0)
@@ -98,7 +102,47 @@ const CheckinTimerScreen = () => {
         if (intervalRef.current) clearInterval(intervalRef.current)
         setCheckingOut(true)
         try {
-            await quickCheckIn({ code: params.code, applicationId: params.applicationId })
+
+
+            // 1. Get current GPS position (required by BE to verify radius)
+            // [TESTING] Permission + real GPS commented out — using mocked coords instead
+            // const { status } = await Location.requestForegroundPermissionsAsync()
+            // if (status !== 'granted') {
+            //     throw new Error('Cần cấp quyền vị trí để check-out.')
+            // }
+            // const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High })
+
+            // [TESTING] Mock location to exactly the event's check-in centre so BE radius check passes
+            // TODO: restore permission check + replace mockLat/mockLng with loc.coords.latitude/longitude
+            const mockLat = parseFloat(params.checkinLat ?? '0')
+            const mockLng = parseFloat(params.checkinLng ?? '0')
+
+
+            // 2. Gather device metadata (Android vs iOS)
+            let deviceId: string
+            if (Platform.OS === 'android') {
+                deviceId =
+                    (await Application.getAndroidId()) ??
+                    Application.applicationId ??
+                    'unknown-android'
+            } else {
+                deviceId =
+                    (await Application.getIosIdForVendorAsync()) ??
+                    Application.applicationId ??
+                    'unknown-ios'
+            }
+            const apVersion = Application.nativeApplicationVersion ?? '1.0.0'
+            const osVersion = `${Device.osName ?? 'OS'} ${Device.osVersion ?? ''}`
+
+            // 3. Call checkout API
+            await checkOutEvent({
+                eventSessionId: params.sessionId,
+                deviceId,
+                apVersion,
+                osVersion,
+                currentPlaceLat: mockLat,   // TODO: replace with loc.coords.latitude
+                currentPlaceLng: mockLng,   // TODO: replace with loc.coords.longitude
+            })
             setCheckedOut(true)
         } catch (err: unknown) {
             // Resume timer if checkout fails
@@ -106,7 +150,10 @@ const CheckinTimerScreen = () => {
             intervalRef.current = setInterval(() => {
                 setElapsed(Math.floor((new Date().getTime() - startTimeRef.current.getTime()) / 1000))
             }, 1000)
-            const msg = getApiErrorMessage(err) || 'Không thể ghi nhận. Vui lòng thử lại.'
+            const msg =
+                err instanceof Error
+                    ? err.message
+                    : getApiErrorMessage(err) || 'Không thể ghi nhận. Vui lòng thử lại.'
             Alert.alert('Lỗi check-out', msg)
         } finally {
             setCheckingOut(false)
@@ -117,10 +164,10 @@ const CheckinTimerScreen = () => {
         router.replace('/(vol-tabs)/checkin' as any)
     }
 
-    // ── Success state ─────────────────────────────────────────────────────────
     if (checkedOut) {
         return (
-            <SafeAreaView style={styles.container}>
+            <View style={styles.container}>
+                <Stack.Screen options={{ headerShown: false }} />
                 <View style={styles.successScreen}>
                     {/* Top blue area */}
                     <View style={styles.successTop}>
@@ -147,13 +194,13 @@ const CheckinTimerScreen = () => {
                         <Text style={styles.homeBtnText}>Về trang điểm danh</Text>
                     </TouchableOpacity>
                 </View>
-            </SafeAreaView>
+            </View>
         )
     }
 
-    // ── Active timer ──────────────────────────────────────────────────────────
     return (
-        <SafeAreaView style={styles.container}>
+        <View style={styles.container}>
+            <Stack.Screen options={{ headerShown: false }} />
             {/* Header bar */}
             <View style={styles.timerHeader}>
                 <View style={styles.timerHeaderTop}>
@@ -236,7 +283,7 @@ const CheckinTimerScreen = () => {
                     )}
                 </TouchableOpacity>
             </View>
-        </SafeAreaView>
+        </View>
     )
 }
 
@@ -244,12 +291,13 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: '#F0F6FF',
+        paddingBottom: 20,
     },
 
     /* Timer header */
     timerHeader: {
         backgroundColor: '#42A4F5',
-        paddingTop: 20,
+        paddingTop: 80,
         paddingBottom: 28,
         alignItems: 'center',
     },

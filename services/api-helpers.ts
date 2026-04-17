@@ -9,7 +9,6 @@ import type { ApiErrorMoreInfo, ApiErrorResponse } from './event-types'
 
 const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL
 
-// ── Internal helpers ──────────────────────────────────────────────────────────
 
 const isRecord = (value: unknown): value is Record<string, unknown> => {
     return typeof value === 'object' && value !== null
@@ -33,7 +32,6 @@ const normalizeApiErrorResponse = (data: unknown): ApiErrorResponse | null => {
     }
 }
 
-// ── Public helpers ────────────────────────────────────────────────────────────
 
 /**
  * Extracts an array of user-friendly error messages from an API error.

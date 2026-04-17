@@ -12,11 +12,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, Stack } from 'expo-router';
 
-// ─── Theme ────────────────────────────────────────────────────────────────────
 
 const TEAL = '#42A4F5';
 
-// ─── Types ────────────────────────────────────────────────────────────────────
 
 export interface MomentItem {
     id: string;
@@ -28,7 +26,6 @@ export interface MomentItem {
     time: string; // e.g. "10:30"
 }
 
-// ─── Mock Data ────────────────────────────────────────────────────────────────
 
 const MOCK_MOMENTS: MomentItem[] = [
     {
@@ -97,12 +94,10 @@ const MOCK_MOMENTS: MomentItem[] = [
     },
 ];
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const CARD_WIDTH = (SCREEN_WIDTH - 16 * 2 - 10) / 2; // 2 columns with 10px gap
 
-// ─── Moment Card ──────────────────────────────────────────────────────────────
 
 interface MomentCardProps {
     item: MomentItem;
@@ -128,7 +123,6 @@ const MomentCard = ({ item, onPress }: MomentCardProps) => (
     </TouchableOpacity>
 );
 
-// ─── Main Screen ──────────────────────────────────────────────────────────────
 
 const EventMomentsScreen = () => {
     const router = useRouter();
@@ -177,7 +171,6 @@ const EventMomentsScreen = () => {
     );
 };
 
-// ─── Styles ───────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: TEAL },

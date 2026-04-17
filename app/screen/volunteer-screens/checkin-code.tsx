@@ -12,7 +12,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { Ionicons } from '@expo/vector-icons'
 import { router } from 'expo-router'
-import { checkEventByCode } from '@/services/checkin-service'
+import { checkEventByCode, getCheckinEventDetails } from '@/services/checkin-service'
 import { getApiErrorMessage } from '@/services/api-helpers'
 
 const { width: SCREEN_W } = Dimensions.get('window')
@@ -61,15 +61,20 @@ const CheckinCodeScreen = () => {
         setError(null)
 
         try {
-            const result = await checkEventByCode(fullCode)
+            const codeResponse = await checkEventByCode(fullCode)
+            const details = await getCheckinEventDetails(codeResponse)
             router.replace({
-                pathname: '/screen/volunteer-screens/checkin-timer' as any,
+                pathname: '/screen/volunteer-screens/checkin-map' as any,
                 params: {
                     code: fullCode,
-                    eventName: result.eventName ?? '',
-                    eventId: result.eventId ?? '',
-                    applicationId: result.applicationId ?? '',
-                    sessionId: result.sessionId ?? '',
+                    eventId: details.eventId,
+                    eventSessionId: details.eventSessionId,
+                    name: details.name,
+                    address: details.address,
+                    detailAddress: details.detailAddress ?? '',
+                    lat: String(details.latCheckInLocation),
+                    lng: String(details.lngCheckInLocation),
+                    radiusMeters: String(details.checkInAccuracyMeters),
                 },
             })
         } catch (err: unknown) {

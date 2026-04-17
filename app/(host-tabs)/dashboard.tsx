@@ -154,9 +154,7 @@ const Dashboard = () => {
             // VOLUNTEERS stays null until a dedicated API is integrated
 
             setCounts(newCounts);
-        } catch (e) {
-            console.log('[Dashboard] fetch error:', e);
-            setError('Không thể tải dữ liệu tổng quan');
+        } catch (e) {            setError('Không thể tải dữ liệu tổng quan');
         } finally {
             setLoading(false);
             setRefreshing(false);

@@ -19,7 +19,6 @@ import EventCard from '../../components/home/EventCard';
 import AreaFilterSheet from '../../components/volunteer/event-feed/AreaFilterSheet';
 import DomainFilterSheet from '../../components/volunteer/event-feed/DomainFilterSheet';
 
-// ─── helpers ────────────────────────────────────────────────────────
 const VIETNAMESE_DAYS = ['CN', 'Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7'];
 
 function generateDates(count: number): { label: string; subLabel: string; iso: string }[] {
@@ -36,7 +35,6 @@ function generateDates(count: number): { label: string; subLabel: string; iso: s
     return result;
 }
 
-// ─── component ───────────────────────────────────────────────────────
 const EventFeed = () => {
     const [selectedDateIndex, setSelectedDateIndex] = useState<number | null>(null);
     const [searchText, setSearchText] = useState('');
@@ -47,7 +45,6 @@ const EventFeed = () => {
     const [hasMore, setHasMore] = useState(true);
     const [loadingMore, setLoadingMore] = useState(false);
 
-    // ─── filter state ────────────────────────────────────────────────
     const [areaSheetVisible, setAreaSheetVisible] = useState(false);
     const [domainSheetVisible, setDomainSheetVisible] = useState(false);
     const [selectedDistricts, setSelectedDistricts] = useState<string[]>([]);
@@ -55,7 +52,6 @@ const EventFeed = () => {
 
     const dates = useMemo(() => generateDates(7), []);
 
-    // ─── fetch events ────────────────────────────────────────────────
     // Base single-address call — returns raw API response
     const fetchSingle = useCallback(async (opts: {
         dateIso?: string;
@@ -196,7 +192,6 @@ const EventFeed = () => {
         });
     }, [searchText, selectedDateIndex, dates, selectedDistricts, selectedSubdomainIds, applyFilters]);
 
-    // ── Area filter confirm ──
     const handleAreaConfirm = async (districts: string[]) => {
         setSelectedDistricts(districts);
         setAreaSheetVisible(false);
@@ -208,7 +203,6 @@ const EventFeed = () => {
         });
     };
 
-    // ── Domain filter confirm ──
     const handleDomainConfirm = async (ids: number[]) => {
         setSelectedSubdomainIds(ids);
         setDomainSheetVisible(false);
@@ -224,7 +218,6 @@ const EventFeed = () => {
         router.push({ pathname: '/screen/volunteer-screens/event-detail-vol', params: { eventId: event.id } } as any);
     };
 
-    // ─── render ──────────────────────────────────────────────────────
     return (
         <SafeAreaView style={styles.safeArea} edges={['top']}>
             {/* ═══ HEADER ═══ */}
@@ -447,7 +440,6 @@ const EventFeed = () => {
 
 export default EventFeed;
 
-// ─── styles ──────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
     safeArea: {
         flex: 1,

@@ -53,9 +53,7 @@ export async function registerFcmToken(): Promise<string | null> {
 
   try {
     const granted = await requestNotificationPermission();
-    if (!granted) {
-      console.log('[Notification] Permission not granted, skipping token registration.');
-      return null;
+    if (!granted) {      return null;
     }
 
     const messaging = require('@react-native-firebase/messaging').default;
@@ -63,18 +61,12 @@ export async function registerFcmToken(): Promise<string | null> {
     if (!fcmToken) {
       console.warn('[Notification] Could not get FCM token.');
       return null;
-    }
-
-    console.log('[Notification] FCM Token:', fcmToken);
-
+    }
     // Send token to your backend so it can push notifications to this device
     await baseAxios.post('/notifications/register-token', {
       token: fcmToken,
       platform: Platform.OS,
-    });
-
-    console.log('[Notification] Token registered with backend.');
-    return fcmToken;
+    });    return fcmToken;
   } catch (error) {
     console.error('[Notification] Failed to register FCM token:', error);
     return null;
@@ -89,9 +81,7 @@ export function setupForegroundMessageHandler(): () => void {
   }
 
   const messaging = require('@react-native-firebase/messaging').default;
-  const unsubscribe = messaging().onMessage(async (remoteMessage: any) => {
-    console.log('[Notification] Foreground message received:', remoteMessage);
-
+  const unsubscribe = messaging().onMessage(async (remoteMessage: any) => {
     await Notifications.scheduleNotificationAsync({
       content: {
         title: remoteMessage.notification?.title ?? 'Thông báo mới',
@@ -114,7 +104,5 @@ export function setupBackgroundMessageHandler(): void {
   }
 
   const messaging = require('@react-native-firebase/messaging').default;
-  messaging().setBackgroundMessageHandler(async (remoteMessage: any) => {
-    console.log('[Notification] Background message received:', remoteMessage);
-  });
+  messaging().setBackgroundMessageHandler(async (remoteMessage: any) => {  });
 }
