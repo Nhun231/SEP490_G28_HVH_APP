@@ -185,9 +185,7 @@ const UpdateEvent = () => {
                         servedCount: String(s.expectedSerAmount),
                     })));
                 }
-            } catch (e) {
-                console.log('[UpdateEvent] Failed to load event data:', e);
-            } finally {
+            } catch (e) {            } finally {
                 if (!cancelled) setIsLoadingEditData(false);
             }
         };

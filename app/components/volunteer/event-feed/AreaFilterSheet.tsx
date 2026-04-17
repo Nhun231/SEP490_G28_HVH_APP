@@ -10,7 +10,6 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
-// ─── Hanoi districts ────────────────────────────────────────────────
 const HANOI_DISTRICTS = [
     // 12 nội thành quận
     'Quận Ba Đình',
@@ -46,7 +45,6 @@ const HANOI_DISTRICTS = [
     'Thị xã Sơn Tây',
 ];
 
-// ─── props ────────────────────────────────────────────────────────────
 interface Props {
     visible: boolean;
     initialSelected: string[];
@@ -54,7 +52,6 @@ interface Props {
     onClose: () => void;
 }
 
-// ─── component ───────────────────────────────────────────────────────
 export default function AreaFilterSheet({ visible, initialSelected, onConfirm, onClose }: Props) {
     const [selected, setSelected] = useState<string[]>(initialSelected);
 
@@ -140,7 +137,6 @@ export default function AreaFilterSheet({ visible, initialSelected, onConfirm, o
     );
 }
 
-// ─── styles ──────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
     overlay: {
         flex: 1,

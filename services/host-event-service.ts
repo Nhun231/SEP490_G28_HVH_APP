@@ -25,9 +25,7 @@ const API_BASE = process.env.EXPO_PUBLIC_API_URL || 'https://api.hvh.homes'
  * POST /api/v1/event/draft
  */
 export const saveDraftEvent = async (data: EventCreateRequest): Promise<EventCreateResponse> => {
-    const endpoint = `${API_BASE}/api/v1/event/draft`
-    console.log('[HostEventService] saveDraftEvent body:', JSON.stringify(data, null, 2))
-    const response = await baseAxios.post<EventCreateResponse>(endpoint, data)
+    const endpoint = `${API_BASE}/api/v1/event/draft`    const response = await baseAxios.post<EventCreateResponse>(endpoint, data)
     return response.data
 }
 
@@ -36,9 +34,7 @@ export const saveDraftEvent = async (data: EventCreateRequest): Promise<EventCre
  * POST /api/v1/event/submit
  */
 export const submitEvent = async (data: EventCreateRequest): Promise<EventCreateResponse> => {
-    const endpoint = `${API_BASE}/api/v1/event/submit`
-    console.log('[HostEventService] submitEvent body:', JSON.stringify(data, null, 2))
-    const response = await baseAxios.post<EventCreateResponse>(endpoint, data)
+    const endpoint = `${API_BASE}/api/v1/event/submit`    const response = await baseAxios.post<EventCreateResponse>(endpoint, data)
     return response.data
 }
 
@@ -53,9 +49,7 @@ export const getMyEvents = async (params: MyEventsParams = {}): Promise<MyEvents
     if (params.name) query.append('name', params.name)
 
     const endpoint = `${API_BASE}/api/v1/host/events/my-events?${query.toString()}`
-    const response = await baseAxios.get<MyEventsResponse>(endpoint)
-    console.log('[HostEventService] getMyEvents response:', JSON.stringify(response.data, null, 2))
-    return response.data
+    const response = await baseAxios.get<MyEventsResponse>(endpoint)    return response.data
 }
 
 /**
@@ -64,9 +58,7 @@ export const getMyEvents = async (params: MyEventsParams = {}): Promise<MyEvents
  */
 export const getEventDetailByHost = async (id: string): Promise<EventDetailResponse> => {
     const endpoint = `${API_BASE}/api/v1/host/events/event-details/${id}`
-    const response = await baseAxios.get<EventDetailResponse>(endpoint)
-    console.log('[HostEventService] getEventDetailByHost:', JSON.stringify(response.data, null, 2))
-    return response.data
+    const response = await baseAxios.get<EventDetailResponse>(endpoint)    return response.data
 }
 
 /**
@@ -81,9 +73,7 @@ export const getRegisteredParticipants = async (
     const endpoint = `${API_BASE}/api/v1/host/event-sessions/${sessionId}/registered-participants`
     const response = await baseAxios.get<RegisteredParticipantsResponse>(endpoint, {
         params: { pageNumber, pageSize },
-    })
-    console.log('[HostEventService] getRegisteredParticipants:', JSON.stringify(response.data, null, 2))
-    return response.data
+    })    return response.data
 }
 
 /**
@@ -98,9 +88,7 @@ export const getActualParticipants = async (
     const endpoint = `${API_BASE}/api/v1/host/event-sessions/${sessionId}/actual-participants`
     const response = await baseAxios.get<ActualParticipantsResponse>(endpoint, {
         params: { pageNumber, pageSize },
-    })
-    console.log('[HostEventService] getActualParticipants:', JSON.stringify(response.data, null, 2))
-    return response.data
+    })    return response.data
 }
 
 /**
@@ -151,9 +139,5 @@ export const deleteEvent = async (eventId: string): Promise<void> => {
  * PUT /api/v1/host/events/{eventId}/update
  */
 export const updateEvent = async (eventId: string, body: EventUpdateRequest): Promise<EventUpdateResponse> => {
-    const endpoint = `${API_BASE}/api/v1/host/events/${eventId}/update`
-    console.log('[UpdateEvent] Request body:', JSON.stringify(body, null, 2))
-    const response = await baseAxios.put<EventUpdateResponse>(endpoint, body)
-    console.log('[UpdateEvent] Response:', response.data)
-    return response.data
+    const endpoint = `${API_BASE}/api/v1/host/events/${eventId}/update`    const response = await baseAxios.put<EventUpdateResponse>(endpoint, body)    return response.data
 }

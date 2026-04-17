@@ -73,9 +73,7 @@ export const sendOtp = async ({ email }: SendOtpParams): Promise<void> => {
             null,
             { params: { email } }
         )
-    } catch (error) {
-        console.log('[sendOtp] error:', error)
-        if (axios.isAxiosError(error)) {
+    } catch (error) {        if (axios.isAxiosError(error)) {
             const data = error.response?.data
             const msg =
                 data?.moreInfo?.business ||
@@ -120,9 +118,7 @@ export const completeRegistration = async (
     },
     onProgress?: UploadProgressCallback
 ): Promise<void> => {
-    try {
-        console.log("Submit registration and get upload URLs")
-        // Step 1: Submit registration and get upload URLs
+    try {        // Step 1: Submit registration and get upload URLs
         const uploadUrls = await registerVolunteerAccount(registrationData)
 
         // Step 2: Upload images to Supabase using signed URLs

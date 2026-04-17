@@ -37,7 +37,6 @@ import SessionPickerSheet from '../../components/volunteer/application/SessionPi
 const { width: SCREEN_W } = Dimensions.get('window');
 const IMAGE_HEIGHT = 280;
 
-// ─── helpers ─────────────────────────────────────────────────────────
 function formatDate(iso: string): string {
     if (!iso) return '';
     const [y, m, d] = iso.split('-');
@@ -66,7 +65,6 @@ function getFullImageUrl(path: string | null | undefined): string {
 }
 
 
-// ─── component ───────────────────────────────────────────────────────
 export default function EventDetail() {
     const { eventId } = useLocalSearchParams<{ eventId: string }>();
     const { isLoggedIn } = useAuth();
@@ -79,7 +77,6 @@ export default function EventDetail() {
     const [saved, setSaved] = useState(false);
     const [saving, setSaving] = useState(false);
 
-    // ── Persist saved state per event ──
     const savedKey = eventId ? `saved_event_${eventId}` : null;
 
     useEffect(() => {
@@ -89,7 +86,6 @@ export default function EventDetail() {
         }).catch(() => { });
     }, [savedKey]);
 
-    // ── Apply flow state ──
     const [applyModalVisible, setApplyModalVisible] = useState(false);
     const [sessionPickerVisible, setSessionPickerVisible] = useState(false);
     const [selectedSession, setSelectedSession] = useState<EventSessionResponse | null>(null);
@@ -224,7 +220,6 @@ export default function EventDetail() {
         setImageViewerVisible(true);
     };
 
-    // ── Apply flow handlers ──
     const handleApplyCta = () => {
         if (!isLoggedIn) {
             Alert.alert(
@@ -278,7 +273,6 @@ export default function EventDetail() {
         }
     };
 
-    // ─── Loading / Error ─────────────────────────────────────────────
     if (loading) {
         return (
             <SafeAreaView style={styles.centered}>
@@ -300,7 +294,6 @@ export default function EventDetail() {
         );
     }
 
-    // ─── Render ──────────────────────────────────────────────────────
     return (
         <View style={styles.container}>
             <ScrollView showsVerticalScrollIndicator={false} bounces={false}>
@@ -531,7 +524,6 @@ export default function EventDetail() {
     );
 }
 
-// ─── styles ──────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
     container: {
         flex: 1,

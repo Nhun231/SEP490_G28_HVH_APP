@@ -17,19 +17,17 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import { faceCheckIn } from '@/services/checkin-service'
 import { getApiErrorMessage } from '@/services/api-helpers'
 
-// ─── Types ────────────────────────────────────────────────────────────────────
 
 type Params = {
     sessionId: string
     checkinLat: string
     checkinLng: string
+    name?: string
 }
 
-// ─── Constants ────────────────────────────────────────────────────────────────
 
 const RECORD_DURATION_SEC = 10   // seconds to auto-record
 
-// ─── CountdownArc ─────────────────────────────────────────────────────────────
 
 const ARC_R = 28
 const ARC_STROKE = 4
@@ -63,7 +61,6 @@ function CountdownArc({ total, remaining }: { total: number; remaining: number }
     )
 }
 
-// ─── Component ────────────────────────────────────────────────────────────────
 
 export default function FaceCheckinCameraScreen() {
     const params = useLocalSearchParams<Params>()
@@ -72,6 +69,8 @@ export default function FaceCheckinCameraScreen() {
 
     const [phase, setPhase] = useState<'idle' | 'recording' | 'uploading' | 'done'>('idle')
     const [countdown, setCountdown] = useState(RECORD_DURATION_SEC)
+    // Ref (not state) so changes don't trigger re-renders or stale closures
+    const cameraReadyRef = useRef(false)
 
     // Animated oval border pulse
     const pulseAnim = useRef(new Animated.Value(1)).current
@@ -92,19 +91,25 @@ export default function FaceCheckinCameraScreen() {
         pulseAnim.setValue(1)
     }, [pulseAnim])
 
-    // Auto-start when camera is ready and permission granted
-    useEffect(() => {
-        if (permission?.granted) startRecording()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [permission?.granted])
-
     const startRecording = async () => {
         try {
             setPhase('recording')
             setCountdown(RECORD_DURATION_SEC)
             startBreathe()
 
-            // Countdown timer
+            if (!cameraReadyRef.current) {
+                stopBreathe()
+                setPhase('idle')
+                return
+            }
+            await new Promise<void>(resolve => setTimeout(resolve, 600))
+
+            if (!cameraRef.current) {
+                stopBreathe()
+                setPhase('idle')
+                return
+            }
+
             let remaining = RECORD_DURATION_SEC
             const interval = setInterval(() => {
                 remaining -= 1
@@ -112,8 +117,7 @@ export default function FaceCheckinCameraScreen() {
                 if (remaining <= 0) clearInterval(interval)
             }, 1000)
 
-            // Start video recording — auto-stop after duration
-            const video = await cameraRef.current?.recordAsync({
+            const video = await cameraRef.current.recordAsync({
                 maxDuration: RECORD_DURATION_SEC,
             })
 
@@ -125,7 +129,6 @@ export default function FaceCheckinCameraScreen() {
                 return
             }
 
-            // Upload
             await uploadVideo(video.uri)
         } catch (err) {
             stopBreathe()
@@ -137,18 +140,15 @@ export default function FaceCheckinCameraScreen() {
     const uploadVideo = async (uri: string) => {
         setPhase('uploading')
         try {
-            // Build device metadata
             let deviceId: string
             if (Platform.OS === 'android') {
                 deviceId = (await Application.getAndroidId()) ?? Application.applicationId ?? 'unknown-android'
             } else {
                 deviceId = (await Application.getIosIdForVendorAsync()) ?? Application.applicationId ?? 'unknown-ios'
             }
+
             const apVersion = Application.nativeApplicationVersion ?? '1.0.0'
             const osVersion = `${Device.osName ?? 'OS'} ${Device.osVersion ?? ''}`
-
-            // [TESTING] Mock GPS to event centre
-            // TODO: replace with real GPS
             const lat = parseFloat(params.checkinLat ?? '0')
             const lng = parseFloat(params.checkinLng ?? '0')
 
@@ -162,15 +162,13 @@ export default function FaceCheckinCameraScreen() {
                 currentPlaceLng: lng,
             })
 
-            setPhase('done')
-
-            // Navigate to timer (same destination as quick check-in)
             router.replace({
                 pathname: '/screen/volunteer-screens/checkin-timer',
                 params: {
                     sessionId: params.sessionId,
                     checkinLat: params.checkinLat,
                     checkinLng: params.checkinLng,
+                    eventName: params.name ?? '',
                 },
             } as any)
         } catch (err) {
@@ -183,38 +181,7 @@ export default function FaceCheckinCameraScreen() {
         }
     }
 
-    // ── Permission gate ──────────────────────────────────────────────────────
-
-    if (!permission) {
-        return (
-            <View style={styles.fullCenter}>
-                <Text style={styles.permText}>Đang kiểm tra quyền camera...</Text>
-            </View>
-        )
-    }
-
-    if (!permission.granted) {
-        return (
-            <SafeAreaView style={styles.permScreen} edges={['top', 'bottom']}>
-                <Stack.Screen options={{ headerShown: false }} />
-                <View style={styles.fullCenter}>
-                    <Text style={styles.permTitle}>Cần quyền truy cập camera</Text>
-                    <Text style={styles.permDesc}>
-                        Ứng dụng cần camera trước để quay video xác thực khuôn mặt.
-                    </Text>
-                    <TouchableOpacity style={styles.permBtn} onPress={requestPermission}>
-                        <Text style={styles.permBtnText}>Cấp quyền</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity style={styles.permCancelBtn} onPress={() => router.back()}>
-                        <Text style={styles.permCancelText}>Quay lại</Text>
-                    </TouchableOpacity>
-                </View>
-            </SafeAreaView>
-        )
-    }
-
-    // ── Phase labels ─────────────────────────────────────────────────────────
-
+    // Derived display values (safe to compute even before permission is known)
     const phaseLabel = (() => {
         if (phase === 'recording') return `Đang ghi hình... ${countdown}s`
         if (phase === 'uploading') return 'Đang xác thực, vui lòng chờ...'
@@ -223,85 +190,109 @@ export default function FaceCheckinCameraScreen() {
     })()
 
     const ovalBorderColor = phase === 'recording' ? '#42A4F5' : '#FFFFFF'
+    const permissionGranted = permission?.granted === true
 
+    //    never changes. Permission / loading UIs are full-screen overlays.
     return (
         <View style={styles.root}>
             <Stack.Screen options={{ headerShown: false }} />
 
-            {/* ── Camera ── */}
+            {/* ── Camera — always mounted; never unmounted ── */}
             <CameraView
                 ref={cameraRef}
                 style={StyleSheet.absoluteFill}
                 facing="front"
                 mode="video"
                 videoQuality="720p"
+                onCameraReady={() => { cameraReadyRef.current = true }}
             />
 
-            {/* ── Dark overlay with oval cut-out effect ── */}
-            <View style={StyleSheet.absoluteFill} pointerEvents="none">
-                {/* Top mask */}
-                <View style={styles.maskTop} />
-
-                {/* Middle row: left mask + oval border + right mask */}
-                <View style={styles.maskMiddleRow}>
-                    <View style={styles.maskSide} />
-                    <Animated.View
-                        style={[
-                            styles.oval,
-                            { borderColor: ovalBorderColor },
-                            { transform: [{ scale: pulseAnim }] },
-                        ]}
-                    />
-                    <View style={styles.maskSide} />
+            {/* ── Checking / no-permission overlays ── */}
+            {!permission && (
+                <View style={[StyleSheet.absoluteFill, styles.fullCenter, { backgroundColor: '#000' }]}>
+                    <Text style={styles.permText}>Đang kiểm tra quyền camera...</Text>
                 </View>
+            )}
 
-                {/* Bottom mask */}
-                <View style={styles.maskBottom} />
-            </View>
-
-            {/* ── Top bar ── */}
-            <SafeAreaView style={styles.topBar} edges={['top']}>
-                <TouchableOpacity
-                    style={styles.closeBtn}
-                    onPress={() => router.back()}
-                    disabled={phase === 'uploading'}
+            {permission && !permission.granted && (
+                <SafeAreaView
+                    style={[StyleSheet.absoluteFill, styles.permScreen]}
+                    edges={['top', 'bottom']}
                 >
-                    <Text style={styles.closeBtnText}>✕ Hủy</Text>
-                </TouchableOpacity>
-                <Text style={styles.topTitle}>Xác thực khuôn mặt</Text>
-                <View style={styles.closeBtn} />
-            </SafeAreaView>
-
-            {/* ── Bottom instructions ── */}
-            <View style={styles.bottomBar}>
-                {/* Countdown arc progress */}
-                {phase === 'recording' && (
-                    <CountdownArc total={RECORD_DURATION_SEC} remaining={countdown} />
-                )}
-
-                {/* Uploading spinner */}
-                {phase === 'uploading' && (
-                    <View style={styles.uploadingDot}>
-                        <Text style={styles.uploadingIcon}>⏳</Text>
+                    <View style={styles.fullCenter}>
+                        <Text style={styles.permTitle}>Cần quyền truy cập camera</Text>
+                        <Text style={styles.permDesc}>
+                            Ứng dụng cần camera trước để quay video xác thực khuôn mặt.
+                        </Text>
+                        <TouchableOpacity style={styles.permBtn} onPress={requestPermission}>
+                            <Text style={styles.permBtnText}>Cấp quyền</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity style={styles.permCancelBtn} onPress={() => router.back()}>
+                            <Text style={styles.permCancelText}>Quay lại</Text>
+                        </TouchableOpacity>
                     </View>
-                )}
+                </SafeAreaView>
+            )}
 
-                <Text style={styles.instructionText}>{phaseLabel}</Text>
+            {/* ── Camera UI — only shown once permission is granted ── */}
+            {permissionGranted && (
+                <>
+                    {/* Dark overlay with oval cut-out effect */}
+                    <View style={StyleSheet.absoluteFill} pointerEvents="none">
+                        <View style={styles.maskTop} />
+                        <View style={styles.maskMiddleRow}>
+                            <View style={styles.maskSide} />
+                            <Animated.View
+                                style={[
+                                    styles.oval,
+                                    { borderColor: ovalBorderColor },
+                                    { transform: [{ scale: pulseAnim }] },
+                                ]}
+                            />
+                            <View style={styles.maskSide} />
+                        </View>
+                        <View style={styles.maskBottom} />
+                    </View>
 
-                {phase === 'idle' && (
-                    <TouchableOpacity style={styles.startBtn} onPress={startRecording} activeOpacity={0.85}>
-                        <Text style={styles.startBtnText}>Bắt đầu</Text>
-                    </TouchableOpacity>
-                )}
-            </View>
+                    {/* Top bar */}
+                    <SafeAreaView style={styles.topBar} edges={['top']}>
+                        <TouchableOpacity
+                            style={styles.closeBtn}
+                            onPress={() => router.back()}
+                            disabled={phase === 'uploading'}
+                        >
+                            <Text style={styles.closeBtnText}>✕ Hủy</Text>
+                        </TouchableOpacity>
+                        <Text style={styles.topTitle}>Xác thực khuôn mặt</Text>
+                        <View style={styles.closeBtn} />
+                    </SafeAreaView>
+
+                    {/* Bottom instructions */}
+                    <View style={styles.bottomBar}>
+                        {phase === 'recording' && (
+                            <CountdownArc total={RECORD_DURATION_SEC} remaining={countdown} />
+                        )}
+                        {phase === 'uploading' && (
+                            <View style={styles.uploadingDot}>
+                                <Text style={styles.uploadingIcon}>⏳</Text>
+                            </View>
+                        )}
+                        <Text style={styles.instructionText}>{phaseLabel}</Text>
+                        {phase === 'idle' && (
+                            <TouchableOpacity style={styles.startBtn} onPress={startRecording} activeOpacity={0.85}>
+                                <Text style={styles.startBtnText}>Bắt đầu</Text>
+                            </TouchableOpacity>
+                        )}
+                    </View>
+                </>
+            )}
         </View>
     )
 }
 
-// ─── Styles ──────────────────────────────────────────────────────────────────
 
-const OVAL_W = 240
-const OVAL_H = 310
+const OVAL_W = 350
+const OVAL_H = 450
 
 const styles = StyleSheet.create({
     root: { flex: 1, backgroundColor: '#000' },

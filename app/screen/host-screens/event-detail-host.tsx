@@ -105,9 +105,7 @@ const EventDetailScreen = () => {
             // Reverse-geocode check-in location in background
             reverseGeocode(data.latCheckInLocation, data.lngCheckInLocation)
                 .then(addr => setCheckinAddress(addr));
-        } catch (e) {
-            console.log('[EventDetail] fetchDetail error:', e);
-            setError(getApiErrorMessage(e) || 'Không thể tải thông tin sự kiện');
+        } catch (e) {            setError(getApiErrorMessage(e) || 'Không thể tải thông tin sự kiện');
         } finally {
             setLoading(false);
         }
@@ -243,7 +241,7 @@ const EventDetailScreen = () => {
     const handleCheckin = () => setShowCheckinCode(prev => !prev);
     const handleReviews = () => router.push({ pathname: '/screen/host-screens/event-rating' as any, params: { eventId: event.id } });
     const handleMoments = () => router.push({ pathname: '/screen/host-screens/event-moments' as any, params: { eventId: event.id } });
-    const handleComplaint = () => console.log('Complain about points', event.id);
+    const handleComplaint = () => {};
 
     const serviceOptions: ServiceOption[] = (() => {
         const s = event.status;

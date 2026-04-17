@@ -10,7 +10,6 @@ import {
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
-// ─── Types ───────────────────────────────────────────────────────────────────
 
 type Params = {
     sessionId: string
@@ -19,16 +18,15 @@ type Params = {
     name?: string
 }
 
-// ─── Data ────────────────────────────────────────────────────────────────────
 
 const TIPS = [
     'Cầm điện thoại ngang tầm mắt ở khoảng 30–40 cm',
     'Thực hiện trong môi trường có đủ ánh sáng',
     'Cần rõ mắt, miệng, không rung mờ',
     'Không đeo khẩu trang, kính râm hoặc che mặt',
+    'Nhắm và mở mắt trên 2 lần để nhận dạng chống giả mạo khuôn mặt'
 ]
 
-// ─── Component ────────────────────────────────────────────────────────────────
 
 export default function FaceCheckinGuideScreen() {
     const params = useLocalSearchParams<Params>()
@@ -40,6 +38,7 @@ export default function FaceCheckinGuideScreen() {
                 sessionId: params.sessionId,
                 checkinLat: params.checkinLat,
                 checkinLng: params.checkinLng,
+                name: params.name ?? '',
             },
         } as any)
     }
@@ -132,7 +131,6 @@ export default function FaceCheckinGuideScreen() {
     )
 }
 
-// ─── Styles ──────────────────────────────────────────────────────────────────
 
 const BLUE = '#42A4F5'
 

@@ -3,10 +3,10 @@
  */
 
 import baseAxios from '@/lib/baseAxios';
+import type { EventSimpleResponse } from './event-types';
 
 const API_BASE = process.env.EXPO_PUBLIC_API_URL || 'https://api.hvh.okne.site';
 
-// ─── Types ───────────────────────────────────────────────────────────────────
 
 export type EOrgType =
     | 'SOCIAL_FUND'
@@ -96,7 +96,21 @@ export interface GetOrgsParams {
     orgTypes?: EOrgType[];
 }
 
-// ─── API Functions ────────────────────────────────────────────────────────────
+export interface OrgEventsResponse {
+    content: EventSimpleResponse[];
+    totalPages: number;
+    totalElements: number;
+    number: number;
+    size: number;
+    last: boolean;
+}
+
+export interface GetOrgEventsParams {
+    pageNumber?: number;
+    pageSize?: number;
+    name?: string;
+}
+
 
 /**
  * GET /api/v1/organizations
@@ -121,5 +135,22 @@ export const getOrganizations = async (params: GetOrgsParams = {}): Promise<OrgL
 export const getOrganizationDetails = async (orgId: string): Promise<OrganizationDetailsResponse> => {
     const url = `/api/v1/organizations/${orgId}`;
     const res = await baseAxios.get<OrganizationDetailsResponse>(url);
+    return res.data;
+};
+
+/**
+ * GET /api/v1/events/{organizationId}/running
+ * Public endpoint — returns paginated events hosted by the given organization.
+ */
+export const getEventsByOrg = async (
+    orgId: string,
+    params: GetOrgEventsParams = {},
+): Promise<OrgEventsResponse> => {
+    const query = new URLSearchParams();
+    query.append('pageNumber', String(params.pageNumber ?? 0));
+    query.append('pageSize', String(params.pageSize ?? 10));
+    if (params.name) query.append('name', params.name);
+    const url = `/api/v1/events/${orgId}/running?${query.toString()}`;
+    const res = await baseAxios.get<OrgEventsResponse>(url);
     return res.data;
 };

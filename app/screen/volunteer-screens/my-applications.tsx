@@ -18,7 +18,6 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-// ─── Constants ───────────────────────────────────────────────────────────────
 
 type StatusFilter = EventApplicationStatus | null; // null = Tất cả
 
@@ -52,7 +51,6 @@ const STATUS_CONFIG: Record<
 
 const PAGE_SIZE = 10;
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
 
 function formatDate(iso: string): string {
     if (!iso) return '';
@@ -98,7 +96,6 @@ function getFullImageUrl(path: string | null | undefined): string {
     return `${supabaseUrl}/storage/v1/object/public/hvh-bucket/${path}`;
 }
 
-// ─── Application Event Card ───────────────────────────────────────────────────
 
 interface ApplicationCardProps {
     item: VolApplicationItem;
@@ -306,7 +303,6 @@ const cardStyles = StyleSheet.create({
     },
 });
 
-// ─── Main Screen ──────────────────────────────────────────────────────────────
 
 const MyApplications = () => {
     const { mode } = useLocalSearchParams<{ mode?: string }>();
@@ -324,7 +320,6 @@ const MyApplications = () => {
     const [currentPage, setCurrentPage] = useState(0);
     const [totalPages, setTotalPages] = useState(1);
 
-    // ─── Fetch ───────────────────────────────────────────────────────────────
 
     const fetchPage = useCallback(
         async (status: StatusFilter, page: number, append = false) => {
@@ -384,7 +379,6 @@ const MyApplications = () => {
         }, [selectedTab, fetchPage])
     );
 
-    // ─── Handlers ────────────────────────────────────────────────────────────
 
     const handleTabChange = useCallback(
         async (status: StatusFilter) => {
@@ -467,7 +461,6 @@ const MyApplications = () => {
         else router.replace('/(vol-tabs)/home');
     };
 
-    // ─── Render ───────────────────────────────────────────────────────────────
 
     return (
         <SafeAreaView style={styles.safeArea} edges={['top']}>
@@ -564,7 +557,6 @@ const MyApplications = () => {
 
 export default MyApplications;
 
-// ─── Screen Styles ───────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
     safeArea: {

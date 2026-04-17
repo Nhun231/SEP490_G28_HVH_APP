@@ -44,12 +44,8 @@ export const getVolApplications = async (
     // Empty string means "no filter" on the backend
     query.append('status', params.status ?? '')
 
-    const url = `${API_BASE}/api/v1/vol/event-applications?${query.toString()}`
-    console.log('[VolEventService] Fetching vol applications:', url)
-
-    const response = await baseAxios.get<VolApplicationsResponse>(url)
-    console.log('[VolEventService] Vol applications fetched:', response.data.content.length)
-    return response.data
+    const url = `${API_BASE}/api/v1/vol/event-applications?${query.toString()}`
+    const response = await baseAxios.get<VolApplicationsResponse>(url)    return response.data
 }
 
 /**
@@ -58,7 +54,5 @@ export const getVolApplications = async (
  * Only PENDING or APPROVED applications before the session date can be cancelled.
  */
 export const cancelVolApplication = async (applicationId: string): Promise<void> => {
-    const url = `${API_BASE}/api/v1/vol/event-applications/${applicationId}/cancel`
-    console.log('[VolEventService] Cancelling application:', applicationId)
-    await baseAxios.put(url)
+    const url = `${API_BASE}/api/v1/vol/event-applications/${applicationId}/cancel`    await baseAxios.put(url)
 }

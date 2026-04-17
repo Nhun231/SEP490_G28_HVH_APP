@@ -12,7 +12,6 @@ import {
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
-// ─── Service menu items ────────────────────────────────────────────────────────
 const SERVICES = [
     { icon: 'calendar-outline', label: 'Hoạt động\nđã đăng ký', color: '#F97316', bg: '#FFF3EB' },
     { icon: 'checkmark-circle-outline', label: 'Hoạt động\nđã điểm danh', color: '#14B8A6', bg: '#E6FAF8' },
@@ -45,7 +44,6 @@ export default function Personal() {
     }
 
 
-    // ── Guest view ─────────────────────────────────────────────────────────────
     if (!isLoggedIn) {
         return (
             <SafeAreaView style={styles.safeArea} edges={['top']}>
@@ -107,7 +105,6 @@ export default function Personal() {
         )
     }
 
-    // ── Logged-in view ─────────────────────────────────────────────────────────
     return (
         <SafeAreaView style={styles.safeArea} edges={['top']}>
             <ScrollView
@@ -243,7 +240,6 @@ const styles = StyleSheet.create({
         backgroundColor: '#F3F4F6',
     },
 
-    // ── Header (teal bg) ─────────────────────────────────────────────────────
     header: {
         backgroundColor: TEAL,
         paddingHorizontal: 16,
@@ -385,7 +381,6 @@ const styles = StyleSheet.create({
         color: '#EF4444',
     },
 
-    // ── Guest view ──────────────────────────────────────────────────────────
     guestContent: {
         flexGrow: 1,
     },

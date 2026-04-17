@@ -24,7 +24,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import StarRating from '@/app/components/volunteer/organization/StarRating';
 
-// ─── Org Type Filter Options ─────────────────────────────────────────────────
 
 const ORG_TYPE_OPTIONS: { label: string; value: EOrgType | null }[] = [
     { label: 'Tất cả lĩnh vực', value: null },
@@ -54,7 +53,6 @@ const HOUR_OPTIONS = [
     { label: 'Trên 10,000 giờ', value: 10000 },
 ];
 
-// ─── Generic Dropdown Sheet ───────────────────────────────────────────────────
 
 interface SheetOption<T> {
     label: string;
@@ -129,7 +127,6 @@ const sheet = StyleSheet.create({
     itemTextActive: { color: '#42A4F5', fontWeight: '600' },
 });
 
-// ─── Org Card ────────────────────────────────────────────────────────────────
 
 // Mock ratings per org (until BE adds rating)
 const MOCK_RATINGS: Record<string, { rating: number; total: number }> = {};
@@ -192,7 +189,6 @@ function OrgCard({ org, onPress }: { org: OrganizationSimpleResponse; onPress: (
     );
 }
 
-// ─── Main Screen ─────────────────────────────────────────────────────────────
 
 const PAGE_SIZE = 10;
 
@@ -322,10 +318,17 @@ const Benefit = () => {
     }, [hasMore, loadingMore, loading, refreshing, pageNumber, fetchOrgs, committedSearch, selectedOrgType]);
 
     const handleOrgPress = (org: OrganizationSimpleResponse) => {
-        router.push({ pathname: '/screen/volunteer-screens/org-detail', params: { orgId: org.id, orgName: org.name } } as any);
+        router.push({
+            pathname: '/screen/volunteer-screens/org-detail',
+            params: {
+                orgId: org.id,
+                orgName: org.name,
+                numberOfHostedEvents: String(org.numberOfHostedEvents),
+                creditHour: String(org.creditHour),
+            },
+        } as any);
     };
 
-    // ── Render ──
     return (
         <SafeAreaView style={styles.safeArea} edges={['top']}>
 
@@ -506,7 +509,6 @@ const Benefit = () => {
 
 export default Benefit;
 
-// ─── Styles ──────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
     safeArea: { flex: 1, backgroundColor: '#42A4F5' },

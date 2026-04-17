@@ -31,7 +31,6 @@ import * as Application from 'expo-application'
 import { quickCheckIn as quickCheckInApi } from '@/services/checkin-service'
 import { getApiErrorMessage } from '@/services/api-helpers'
 
-// ─── helpers ────────────────────────────────────────────────────────────────
 
 /** Convert meters radius to an approximate lat/lng delta for initial zoom */
 function radiusToLatDelta(radiusMeters: number): number {
@@ -39,7 +38,6 @@ function radiusToLatDelta(radiusMeters: number): number {
     return (radiusMeters / 111320) * 8
 }
 
-// ─── component ────────────────────────────────────────────────────────────────
 
 const CheckinMapScreen = () => {
     const params = useLocalSearchParams<{
@@ -61,10 +59,8 @@ const CheckinMapScreen = () => {
     const lng = parseFloat(params.lng ?? '0')
     const radiusMeters = parseFloat(params.radiusMeters ?? '200')
 
-    // ── TODO: replace mock with real expo-location call ──────────────────────
     // const userLocation = await Location.getCurrentPositionAsync({})
     const userLocation = { latitude: lat, longitude: lng }
-    // ─────────────────────────────────────────────────────────────────────────
 
     const mapRef = useRef<MapView>(null)
     const [mapReady, setMapReady] = useState(false)
@@ -291,7 +287,6 @@ const CheckinMapScreen = () => {
     )
 }
 
-// ─── styles ───────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
     container: {

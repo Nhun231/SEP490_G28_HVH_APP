@@ -3,7 +3,9 @@ import {
     ORG_TYPE_SHORT_LABELS,
     OrganizationDetailsResponse,
     getOrganizationDetails,
+    getEventsByOrg,
 } from '@/services/organization-service';
+import type { EventSimpleResponse } from '@/services/event-types';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -20,13 +22,12 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-// ─── Constants ───────────────────────────────────────────────────────────────
 
 const MOCK_RATING = 3.2;
 const { width: SCREEN_W } = Dimensions.get('window');
 const COVER_HEIGHT = 240;
+const EVENT_CARD_W = 210;
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
 
 function getFullImageUrl(path: string | null | undefined): string | null {
     if (!path) return null;
@@ -37,16 +38,169 @@ function getFullImageUrl(path: string | null | undefined): string | null {
     return `${supabaseUrl}/storage/v1/object/public/hvh-bucket/${path}`;
 }
 
+function formatDate(dateStr: string | null | undefined): string {
+    if (!dateStr) return '—';
+    try {
+        const d = new Date(dateStr);
+        if (isNaN(d.getTime())) return dateStr;
+        return d.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    } catch {
+        return dateStr;
+    }
+}
+
 import StarRating from '@/app/components/volunteer/organization/StarRating';
 
-// ─── Component ───────────────────────────────────────────────────────────────
+
+function EventCard({
+    event,
+    onPress,
+}: {
+    event: EventSimpleResponse;
+    onPress: () => void;
+}) {
+    const imgUrl = getFullImageUrl(event.imageUrl);
+    return (
+        <TouchableOpacity style={ecStyles.card} onPress={onPress} activeOpacity={0.82}>
+            {/* Thumbnail */}
+            <View style={ecStyles.imgWrap}>
+                {imgUrl ? (
+                    <Image source={imgUrl} style={ecStyles.img} contentFit="cover" transition={200} />
+                ) : (
+                    <View style={ecStyles.imgPlaceholder}>
+                        <Ionicons name="calendar-outline" size={30} color="#42A4F5" />
+                    </View>
+                )}
+                {/* Date badge */}
+                <View style={ecStyles.dateBadge}>
+                    <Ionicons name="calendar" size={10} color="#fff" />
+                    <Text style={ecStyles.dateBadgeText}>{formatDate(event.startDate)}</Text>
+                </View>
+            </View>
+
+            {/* Info */}
+            <View style={ecStyles.info}>
+                <Text style={ecStyles.name} numberOfLines={2}>{event.name}</Text>
+
+                <View style={ecStyles.metaRow}>
+                    <Ionicons name="location-outline" size={12} color="#9CA3AF" />
+                    <Text style={ecStyles.metaText} numberOfLines={1}>{event.address || '—'}</Text>
+                </View>
+
+                <View style={ecStyles.metaRow}>
+                    <Ionicons name="time-outline" size={12} color="#F59E0B" />
+                    <Text style={[ecStyles.metaText, { color: '#F59E0B' }]} numberOfLines={1}>
+                        Hạn ĐK: {formatDate(event.recruitmentEndDate)}
+                    </Text>
+                </View>
+            </View>
+        </TouchableOpacity>
+    );
+}
+
+/** Card acting as a "Xem thêm" shortcut at the end of the scroll */
+function SeeMoreCard({ count, onPress }: { count: number; onPress: () => void }) {
+    return (
+        <TouchableOpacity style={ecStyles.seeMoreCard} onPress={onPress} activeOpacity={0.8}>
+            <View style={ecStyles.seeMoreCircle}>
+                <Ionicons name="arrow-forward" size={28} color="#42A4F5" />
+            </View>
+            <Text style={ecStyles.seeMoreTitle}>Xem thêm</Text>
+            <Text style={ecStyles.seeMoreSub}>{count} sự kiện khác</Text>
+        </TouchableOpacity>
+    );
+}
+
+const ecStyles = StyleSheet.create({
+    card: {
+        width: EVENT_CARD_W,
+        backgroundColor: '#FFFFFF',
+        borderRadius: 16,
+        overflow: 'hidden',
+        marginRight: 12,
+        elevation: 3,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.09,
+        shadowRadius: 6,
+        borderWidth: 1,
+        borderColor: '#EDF2F7',
+    },
+    imgWrap: {
+        position: 'relative',
+        height: 110,
+        backgroundColor: '#E3F2FD',
+    },
+    img: { width: '100%', height: '100%' },
+    imgPlaceholder: {
+        flex: 1,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: '#E3F2FD',
+    },
+    dateBadge: {
+        position: 'absolute',
+        bottom: 8,
+        left: 8,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+        backgroundColor: 'rgba(66,164,245,0.92)',
+        paddingHorizontal: 8,
+        paddingVertical: 3,
+        borderRadius: 20,
+    },
+    dateBadgeText: { fontSize: 10, color: '#fff', fontWeight: '700' },
+
+    info: { padding: 10, gap: 6 },
+    name: { fontSize: 13, fontWeight: '700', color: '#1F2937', lineHeight: 18 },
+    metaRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+    metaText: { fontSize: 11, color: '#9CA3AF', flex: 1 },
+
+    /* See-more card */
+    seeMoreCard: {
+        width: 110,
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 8,
+        marginRight: 4,
+    },
+    seeMoreCircle: {
+        width: 56,
+        height: 56,
+        borderRadius: 28,
+        backgroundColor: '#EBF5FF',
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderWidth: 1.5,
+        borderColor: '#BFDBFE',
+    },
+    seeMoreTitle: { fontSize: 13, fontWeight: '700', color: '#42A4F5' },
+    seeMoreSub: { fontSize: 11, color: '#9CA3AF', textAlign: 'center' },
+});
+
 
 export default function OrgDetail() {
-    const { orgId } = useLocalSearchParams<{ orgId: string; orgName?: string }>();
+    const { orgId, numberOfHostedEvents, creditHour } =
+        useLocalSearchParams<{
+            orgId: string;
+            orgName?: string;
+            numberOfHostedEvents?: string;
+            creditHour?: string;
+        }>();
+
+    // Parse numeric stats passed from the org list (Expo Router params are always strings)
+    const hostedEventsCount = numberOfHostedEvents != null ? parseInt(numberOfHostedEvents, 10) : null;
+    const creditHourCount   = creditHour         != null ? parseFloat(creditHour)            : null;
+
     const [org, setOrg] = useState<OrganizationDetailsResponse | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [saved, setSaved] = useState(false);
+
+    // Events state — only needed for the 3 recent-event cards
+    const [recentEvents, setRecentEvents] = useState<EventSimpleResponse[]>([]);
+    const [eventsLoading, setEventsLoading] = useState(true);
 
     const fetchOrg = useCallback(async () => {
         if (!orgId) return;
@@ -61,11 +215,41 @@ export default function OrgDetail() {
         }
     }, [orgId]);
 
-    useEffect(() => { fetchOrg(); }, [fetchOrg]);
+    const fetchEvents = useCallback(async () => {
+        if (!orgId) return;
+        try {
+            setEventsLoading(true);
+            const data = await getEventsByOrg(orgId, { pageNumber: 0, pageSize: 3 });
+            setRecentEvents(data.content ?? []);
+        } catch {
+            setRecentEvents([]);
+        } finally {
+            setEventsLoading(false);
+        }
+    }, [orgId]);
+
+    useEffect(() => {
+        fetchOrg();
+        fetchEvents();
+    }, [fetchOrg, fetchEvents]);
 
     const handleBack = () => {
         if (router.canGoBack()) router.back();
         else router.replace('/(vol-tabs)/benefit' as any);
+    };
+
+    const handleViewAllEvents = () => {
+        router.push({
+            pathname: '/screen/volunteer-screens/org-events',
+            params: { orgId, orgName: org?.name ?? '' },
+        } as any);
+    };
+
+    const handleEventPress = (eventId: string) => {
+        router.push({
+            pathname: '/screen/volunteer-screens/event-detail-vol',
+            params: { eventId },
+        } as any);
     };
 
     const coverUrl = getFullImageUrl(org?.coverImageUrl);
@@ -74,7 +258,11 @@ export default function OrgDetail() {
         ? (ORG_TYPE_SHORT_LABELS[org.orgType as EOrgType] ?? org.orgType)
         : null;
 
-    // ── Loading ──
+    // extraCount drives the inline "Xem thêm" tail card
+    // Use the param value (authoritative count from org list) so it shows correctly
+    // even before all 3 recent-event cards have loaded.
+    const extraCount = (hostedEventsCount ?? 0) - recentEvents.length;
+
     if (loading) {
         return (
             <SafeAreaView style={styles.centered}>
@@ -84,7 +272,6 @@ export default function OrgDetail() {
         );
     }
 
-    // ── Error ──
     if (error || !org) {
         return (
             <SafeAreaView style={styles.centered}>
@@ -174,16 +361,22 @@ export default function OrgDetail() {
 
                     {/* ── STATS ── */}
                     <View style={styles.statsRow}>
+                        {/* Sự kiện đã tổ chức — from org list param */}
                         <View style={styles.statChip}>
-                            <Ionicons name="people-outline" size={20} color="#42A4F5" />
-                            <Text style={styles.statValue}>—</Text>
-                            <Text style={styles.statLabel}>Số thành viên</Text>
+                            <Ionicons name="calendar-outline" size={20} color="#10B981" />
+                            <Text style={[styles.statValue, { color: '#10B981' }]}>
+                                {hostedEventsCount != null
+                                    ? hostedEventsCount.toLocaleString('vi-VN')
+                                    : '—'}
+                            </Text>
+                            <Text style={styles.statLabel}>Sự kiện đã tổ chức</Text>
                         </View>
+                        {/* Giờ uy tín — from org list param */}
                         <View style={styles.statChip}>
-                            <Ionicons name="time-outline" size={20} color="#42A4F5" />
-                            <Text style={styles.statValue}>
-                                {org.totalHonorHours != null
-                                    ? org.totalHonorHours.toLocaleString('vi-VN')
+                            <Ionicons name="ribbon-outline" size={20} color="#42A4F5" />
+                            <Text style={[styles.statValue, { color: '#42A4F5' }]}>
+                                {creditHourCount != null
+                                    ? creditHourCount.toLocaleString('vi-VN')
                                     : '—'}
                             </Text>
                             <Text style={styles.statLabel}>Giờ uy tín</Text>
@@ -192,14 +385,47 @@ export default function OrgDetail() {
 
                     {/* ── Hoạt động gần đây ── */}
                     <View style={styles.section}>
-                        <Text style={styles.sectionTitle}>Hoạt động gần đây</Text>
-                        <View style={styles.comingSoonBox}>
-                            <Ionicons name="construct-outline" size={28} color="#42A4F5" />
-                            <Text style={styles.comingSoonTitle}>Đang phát triển</Text>
-                            <Text style={styles.comingSoonSub}>
-                                Tính năng này sẽ sớm được cập nhật.
-                            </Text>
+                        {/* Section header */}
+                        <View style={styles.sectionHeader}>
+                            <Text style={styles.sectionTitle}>Hoạt động gần đây</Text>
+                            {(hostedEventsCount ?? 0) > 0 && (
+                                <TouchableOpacity onPress={handleViewAllEvents} activeOpacity={0.7}>
+                                    <Text style={styles.seeMoreLink}>Xem thêm</Text>
+                                </TouchableOpacity>
+                            )}
                         </View>
+
+                        {eventsLoading ? (
+                            <ActivityIndicator
+                                size="small"
+                                color="#42A4F5"
+                                style={{ marginVertical: 24 }}
+                            />
+                        ) : recentEvents.length === 0 ? (
+                            <View style={styles.noEventsBox}>
+                                <Ionicons name="calendar-outline" size={30} color="#D1D5DB" />
+                                <Text style={styles.noEventsText}>Chưa có hoạt động nào</Text>
+                            </View>
+                        ) : (
+                            <ScrollView
+                                horizontal
+                                showsHorizontalScrollIndicator={false}
+                                contentContainerStyle={styles.eventsScroll}
+                                decelerationRate="fast"
+                            >
+                                {recentEvents.map(ev => (
+                                    <EventCard
+                                        key={ev.id}
+                                        event={ev}
+                                        onPress={() => handleEventPress(ev.id)}
+                                    />
+                                ))}
+                                {/* Inline "Xem thêm" card at end of scroll */}
+                                {extraCount > 0 && (
+                                    <SeeMoreCard count={extraCount} onPress={handleViewAllEvents} />
+                                )}
+                            </ScrollView>
+                        )}
                     </View>
 
                     {/* ── Giới thiệu tổ chức ── */}
@@ -225,7 +451,6 @@ export default function OrgDetail() {
     );
 }
 
-// ─── Styles ──────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: '#FFFFFF' },
@@ -320,32 +545,41 @@ const styles = StyleSheet.create({
         borderWidth: 1, borderColor: '#BBDEFB',
     },
     statValue: { fontSize: 16, fontWeight: '800', color: '#1F2937' },
-    statLabel: { fontSize: 11, color: '#9CA3AF' },
+    statLabel: { fontSize: 11, color: '#9CA3AF', textAlign: 'center' },
 
     /* ── Section ── */
     section: { marginBottom: 20 },
+    sectionHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        marginBottom: 12,
+    },
     sectionTitle: {
-        fontSize: 16, fontWeight: '700', color: '#1F2937', marginBottom: 12,
+        fontSize: 16, fontWeight: '700', color: '#1F2937',
+    },
+    seeMoreLink: {
+        fontSize: 13, fontWeight: '600', color: '#42A4F5',
     },
 
-    /* Coming soon */
-    comingSoonBox: {
+    /* Events horizontal scroll */
+    eventsScroll: {
+        paddingRight: 4,
+    },
+
+    /* No events */
+    noEventsBox: {
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 28,
         backgroundColor: '#F9FAFB',
         borderRadius: 12,
         borderWidth: 1,
         borderColor: '#E5E7EB',
-        borderStyle: 'dashed',
-        alignItems: 'center',
-        justifyContent: 'center',
-        paddingVertical: 32,
-        paddingHorizontal: 20,
         gap: 8,
     },
-    comingSoonTitle: {
-        fontSize: 14, fontWeight: '700', color: '#42A4F5',
-    },
-    comingSoonSub: {
-        fontSize: 13, color: '#9CA3AF', textAlign: 'center', lineHeight: 19,
+    noEventsText: {
+        fontSize: 13, color: '#9CA3AF',
     },
 
     /* Intro */

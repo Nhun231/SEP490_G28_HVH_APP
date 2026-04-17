@@ -19,7 +19,6 @@ import * as Location from 'expo-location'
 import * as Device from 'expo-device'
 import * as Application from 'expo-application'
 
-// ─── helpers ────────────────────────────────────────────────────────────────
 function padTwo(n: number): string {
     return n < 10 ? `0${n}` : `${n}`
 }
@@ -32,7 +31,6 @@ function formatDuration(seconds: number): string {
     return `${padTwo(m)}:${padTwo(s)}`
 }
 
-// ─── component ────────────────────────────────────────────────────────────────
 const CheckinTimerScreen = () => {
     const params = useLocalSearchParams<{
         code: string
@@ -166,7 +164,6 @@ const CheckinTimerScreen = () => {
         router.replace('/(vol-tabs)/checkin' as any)
     }
 
-    // ── Success state ─────────────────────────────────────────────────────────
     if (checkedOut) {
         return (
             <View style={styles.container}>
@@ -201,7 +198,6 @@ const CheckinTimerScreen = () => {
         )
     }
 
-    // ── Active timer ──────────────────────────────────────────────────────────
     return (
         <View style={styles.container}>
             <Stack.Screen options={{ headerShown: false }} />

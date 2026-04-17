@@ -61,9 +61,7 @@ export const getEventDetails = async (eventId: string): Promise<EventDetailsResp
  * GET /api/v1/activity-domains
  */
 export const getAllActivityDomains = async (): Promise<ActivityDomain[]> => {
-    const endpoint = `${API_BASE}/api/v1/activity-domains`
-    console.log('[PublicEventService] Fetching activity domains:', endpoint)
-
+    const endpoint = `${API_BASE}/api/v1/activity-domains`
     const firstResponse = await baseAxios.get<ActivityDomainResponse>(endpoint, {
         params: { page: 0, size: 100 },
     })

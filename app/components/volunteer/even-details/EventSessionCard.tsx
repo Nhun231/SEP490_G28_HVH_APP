@@ -3,7 +3,6 @@ import { Ionicons } from '@expo/vector-icons'
 import React from 'react'
 import { StyleSheet, Text, View } from 'react-native'
 
-// ─── helpers ─────────────────────────────────────────────────────────
 
 function extractDate(iso: string): string {
     if (!iso) return '—'
@@ -22,14 +21,12 @@ function extractTime(iso: string): string {
     return `${hh}:${mm}`
 }
 
-// ─── props ────────────────────────────────────────────────────────────
 
 interface Props {
     session: EventSessionDetailsResponse
     index: number
 }
 
-// ─── component ───────────────────────────────────────────────────────
 
 export default function EventSessionCard({ session, index }: Props) {
     return (
@@ -92,7 +89,6 @@ export default function EventSessionCard({ session, index }: Props) {
     )
 }
 
-// ─── styles ──────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
     card: {
