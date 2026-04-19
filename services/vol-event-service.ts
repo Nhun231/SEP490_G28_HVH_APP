@@ -8,6 +8,7 @@ import baseAxios from '@/lib/baseAxios'
 import type {
     VolApplicationsParams,
     VolApplicationsResponse,
+    RateEventRequest,
 } from './event-types'
 
 const API_BASE = process.env.EXPO_PUBLIC_API_URL || 'https://api.hvh.homes'
@@ -44,8 +45,9 @@ export const getVolApplications = async (
     // Empty string means "no filter" on the backend
     query.append('status', params.status ?? '')
 
-    const url = `${API_BASE}/api/v1/vol/event-applications?${query.toString()}`
-    const response = await baseAxios.get<VolApplicationsResponse>(url)    return response.data
+    const url = `${API_BASE}/api/v1/vol/event-applications?${query.toString()}`
+    const response = await baseAxios.get<VolApplicationsResponse>(url)
+    return response.data
 }
 
 /**
@@ -54,5 +56,38 @@ export const getVolApplications = async (
  * Only PENDING or APPROVED applications before the session date can be cancelled.
  */
 export const cancelVolApplication = async (applicationId: string): Promise<void> => {
-    const url = `${API_BASE}/api/v1/vol/event-applications/${applicationId}/cancel`    await baseAxios.put(url)
+    const url = `${API_BASE}/api/v1/vol/event-applications/${applicationId}/cancel`
+    await baseAxios.put(url)
+}
+
+/**
+ * Submit a 5-dimension rating for a completed event application.
+ * POST /api/v1/vol/event-ratings
+ * Requires VOL role. Only allowed within 7 days after the event end date.
+ */
+export const rateEvent = async (request: RateEventRequest): Promise<void> => {
+    const url = `${API_BASE}/api/v1/vol/event-ratings`
+    await baseAxios.post(url, request)
+}
+
+/**
+ * Register the volunteer's face biometric data.
+ * POST /api/v1/vol/volunteers/register-face-id   (multipart: file)
+ * Requires VOL role. Can only be called once — already-registered accounts will get a 409 error.
+ */
+export const registerVolunteerFace = async (photo: {
+    uri: string
+    fileName: string
+    mimeType: string
+}): Promise<void> => {
+    const url = `${API_BASE}/api/v1/vol/volunteers/register-face-id`
+    const formData = new FormData()
+    formData.append('file', {
+        uri: photo.uri,
+        name: photo.fileName,
+        type: photo.mimeType,
+    } as any)
+    await baseAxios.post(url, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+    })
 }

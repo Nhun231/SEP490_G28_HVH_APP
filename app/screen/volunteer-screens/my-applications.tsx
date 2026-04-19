@@ -101,6 +101,7 @@ interface ApplicationCardProps {
     item: VolApplicationItem;
     onPress: () => void;
     onCancel: (item: VolApplicationItem) => void;
+    onRate: (item: VolApplicationItem) => void;
 }
 
 /** Returns true if this application can still be cancelled by the volunteer */
@@ -118,7 +119,7 @@ function isCancellable(item: VolApplicationItem): boolean {
     return true;
 }
 
-function ApplicationEventCard({ item, onPress, onCancel }: ApplicationCardProps) {
+function ApplicationEventCard({ item, onPress, onCancel, onRate }: ApplicationCardProps) {
     const cfg = STATUS_CONFIG[item.status] ?? { label: item.status, color: '#6B7280', bg: '#F3F4F6', icon: 'help-circle-outline' };
     const imageUri = getFullImageUrl(item.imageUrl);
     const fullAddress = buildFullAddress(item.address, item.detailAddress);
@@ -127,6 +128,8 @@ function ApplicationEventCard({ item, onPress, onCancel }: ApplicationCardProps)
         ? formatSessionRange(item.session!.startDateTime, item.session!.endDateTime)
         : '';
     const cancellable = isCancellable(item);
+    const isCompleted = item.status === 'COMPLETED';
+    const canRate = isCompleted && !item.rated;
 
     return (
         <TouchableOpacity style={cardStyles.card} onPress={onPress} activeOpacity={0.75}>
@@ -172,7 +175,7 @@ function ApplicationEventCard({ item, onPress, onCancel }: ApplicationCardProps)
                         </View>
                     )}
 
-                    {/* Bottom row: badge + cancel button */}
+                    {/* Bottom row: badge + action button */}
                     <View style={cardStyles.cardFooter}>
                         <View style={[cardStyles.badge, { backgroundColor: cfg.bg }]}>
                             <Ionicons name={cfg.icon as any} size={13} color={cfg.color} />
@@ -188,6 +191,24 @@ function ApplicationEventCard({ item, onPress, onCancel }: ApplicationCardProps)
                                 <Ionicons name="trash-outline" size={14} color="#FFFFFF" />
                                 <Text style={cardStyles.cancelBtnText}>Hủy đơn</Text>
                             </TouchableOpacity>
+                        )}
+
+                        {canRate && (
+                            <TouchableOpacity
+                                style={cardStyles.rateBtn}
+                                onPress={() => onRate(item)}
+                                activeOpacity={0.75}
+                            >
+                                <Ionicons name="star-outline" size={14} color="#FFFFFF" />
+                                <Text style={cardStyles.rateBtnText}>Đánh giá</Text>
+                            </TouchableOpacity>
+                        )}
+
+                        {isCompleted && item.rated && (
+                            <View style={cardStyles.ratedBadge}>
+                                <Ionicons name="star" size={13} color="#F59E0B" />
+                                <Text style={cardStyles.ratedBadgeText}>Đã đánh giá</Text>
+                            </View>
                         )}
                     </View>
                 </View>
@@ -300,6 +321,39 @@ const cardStyles = StyleSheet.create({
         fontSize: 12,
         fontWeight: '700',
         color: '#FFFFFF',
+    },
+    rateBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 5,
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 20,
+        backgroundColor: '#42A4F5',
+        elevation: 2,
+        shadowColor: '#42A4F5',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.35,
+        shadowRadius: 4,
+    },
+    rateBtnText: {
+        fontSize: 12,
+        fontWeight: '700',
+        color: '#FFFFFF',
+    },
+    ratedBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+        borderRadius: 20,
+        backgroundColor: '#FEF3C7',
+    },
+    ratedBadgeText: {
+        fontSize: 12,
+        fontWeight: '600',
+        color: '#D97706',
     },
 });
 
@@ -456,6 +510,17 @@ const MyApplications = () => {
         );
     }, [selectedTab, fetchPage]);
 
+    const handleRateEvent = useCallback((item: VolApplicationItem) => {
+        router.push({
+            pathname: '/screen/volunteer-screens/rating-event',
+            params: {
+                applicationId: item.id,
+                eventName: item.name,
+                fromCheckout: 'false',
+            },
+        } as any);
+    }, []);
+
     const handleGoBack = () => {
         if (router.canGoBack()) router.back();
         else router.replace('/(vol-tabs)/home');
@@ -514,6 +579,7 @@ const MyApplications = () => {
                                 item={item}
                                 onPress={() => handleCardPress(item)}
                                 onCancel={handleCancelApplication}
+                                onRate={handleRateEvent}
                             />
                         )}
                         contentContainerStyle={styles.listContent}

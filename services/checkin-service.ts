@@ -9,6 +9,7 @@ const API_BASE = process.env.EXPO_PUBLIC_API_URL || 'https://api.hvh.homes'
 export interface CheckEventByCodeResponse {
     eventId: string
     eventSessionId: string
+    applicationId: string
 }
 
 export interface CheckinEventDetails {

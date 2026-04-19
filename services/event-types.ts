@@ -315,6 +315,17 @@ export interface VolApplicationItem {
     startDate: string;
     status: EventApplicationStatus;
     session: VolApplicationSession | null;
+    /** Whether the volunteer has already submitted a rating for this application */
+    rated?: boolean;
+}
+
+export interface RateEventRequest {
+    eventApplicationId: string;
+    organizationQualityRating: number;
+    professionalismRating: number;
+    workEnvironmentRating: number;
+    valueImpactRating: number;
+    supportConnectionRating: number;
 }
 
 export interface VolApplicationsResponse {

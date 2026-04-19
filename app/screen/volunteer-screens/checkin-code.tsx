@@ -67,6 +67,7 @@ const CheckinCodeScreen = () => {
                 pathname: '/screen/volunteer-screens/checkin-map' as any,
                 params: {
                     code: fullCode,
+                    applicationId: codeResponse.applicationId,
                     eventId: details.eventId,
                     eventSessionId: details.eventSessionId,
                     name: details.name,
