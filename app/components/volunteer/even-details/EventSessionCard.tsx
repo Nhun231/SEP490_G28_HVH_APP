@@ -3,7 +3,6 @@ import { Ionicons } from '@expo/vector-icons'
 import React from 'react'
 import { StyleSheet, Text, View } from 'react-native'
 
-// ─── helpers ─────────────────────────────────────────────────────────
 
 function extractDate(iso: string): string {
     if (!iso) return '—'
@@ -22,14 +21,12 @@ function extractTime(iso: string): string {
     return `${hh}:${mm}`
 }
 
-// ─── props ────────────────────────────────────────────────────────────
 
 interface Props {
     session: EventSessionDetailsResponse
     index: number
 }
 
-// ─── component ───────────────────────────────────────────────────────
 
 export default function EventSessionCard({ session, index }: Props) {
     return (
@@ -81,18 +78,17 @@ export default function EventSessionCard({ session, index }: Props) {
                 <Text style={styles.countValue}>{session.expectedSerAmount} Người</Text>
             </View>
 
-            {/* TODO: enable when BE adds approvedApplicationCount to response
+            {/* Approved application count per session */}
             <View style={styles.row}>
                 <Ionicons name="checkmark-circle-outline" size={16} color="#6B7280" style={styles.rowIcon} />
                 <Text style={styles.rowLabel}>Số TNV đã được duyệt</Text>
-                <Text style={styles.countValue}>{session.approvedApplicationCount} Người</Text>
+                <Text style={[styles.countValue, { color: '#10B981' }]}>{session.approvedApplicationCount} Người</Text>
             </View>
-            */}
+
         </View>
     )
 }
 
-// ─── styles ──────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
     card: {

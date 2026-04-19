@@ -1,50 +1,151 @@
-/**
- * Checkin Service — Handles check-in / check-out API calls for volunteers.
- */
-
 import baseAxios from '@/lib/baseAxios'
+import { File as FSFile } from 'expo-file-system/next'
+import { getEventDetails } from '@/services/public-event-service'
+import type { EventDetailsResponse } from '@/services/event-types'
 
 const API_BASE = process.env.EXPO_PUBLIC_API_URL || 'https://api.hvh.homes'
 
-// ── Types ────────────────────────────────────────────────────────────────────
 
 export interface CheckEventByCodeResponse {
     eventId: string
-    eventName: string
-    /** The volunteer's application ID for this event (used in quick-check-in) */
+    eventSessionId: string
     applicationId: string
-    /** The session ID the volunteer applied to */
-    sessionId?: string
+}
+
+export interface CheckinEventDetails {
+    eventId: string
+    eventSessionId: string
+    name: string
+    address: string
+    detailAddress: string | null
+    latCheckInLocation: number
+    lngCheckInLocation: number
+    checkInAccuracyMeters: number
 }
 
 export interface QuickCheckInRequest {
-    /** The 6-digit check-in code */
-    code: string
-    /** The volunteer's event application ID */
-    applicationId: string
+    eventSessionId: string
+    deviceId: string
+    apVersion: string
+    osVersion: string
+    currentPlaceLat: number
+    currentPlaceLng: number
 }
 
-// ── API functions ─────────────────────────────────────────────────────────────
+export interface CheckOutEventRequest {
+    eventSessionId: string
+    deviceId: string
+    apVersion: string
+    osVersion: string
+    currentPlaceLat: number
+    currentPlaceLng: number
+}
 
-/**
- * Verify a check-in code and return the matching event/application details.
- * GET /api/v1/vol/event-applications/check-event-check-in-code?code=XXXXXX
- */
+
+export const getCheckinEventDetails = async (
+    codeResponse: CheckEventByCodeResponse
+): Promise<CheckinEventDetails> => {
+    const details: EventDetailsResponse = await getEventDetails(codeResponse.eventId)
+    return {
+        eventId: codeResponse.eventId,
+        eventSessionId: codeResponse.eventSessionId,
+        name: details.name,
+        address: details.address,
+        detailAddress: details.detailAddress ?? null,
+        latCheckInLocation: details.latCheckInLocation,
+        lngCheckInLocation: details.lngCheckInLocation,
+        checkInAccuracyMeters: details.checkInAccuracyMeters,
+    }
+}
+
+
 export const checkEventByCode = async (code: string): Promise<CheckEventByCodeResponse> => {
     const endpoint = `${API_BASE}/api/v1/vol/event-applications/check-event-check-in-code`
-    const response = await baseAxios.get<CheckEventByCodeResponse>(endpoint, {
-        params: { code },
-    })
-    console.log('[CheckinService] checkEventByCode response:', JSON.stringify(response.data, null, 2))
+    const response = await baseAxios.post<CheckEventByCodeResponse>(endpoint, { checkInCode: code })
     return response.data
 }
 
-/**
- * Execute check-in (or check-out) for the volunteer.
- * POST /api/v1/vol/event-applications/quick-check-in
- */
 export const quickCheckIn = async (data: QuickCheckInRequest): Promise<void> => {
     const endpoint = `${API_BASE}/api/v1/vol/event-applications/quick-check-in`
-    console.log('[CheckinService] quickCheckIn request:', JSON.stringify(data, null, 2))
     await baseAxios.post(endpoint, data)
+}
+
+export const checkOutEvent = async (data: CheckOutEventRequest): Promise<void> => {
+    const endpoint = `${API_BASE}/api/v1/vol/event-applications/check-out`
+    await baseAxios.post(endpoint, data)
+}
+
+
+export interface FaceCheckInRequest {
+    uri: string
+    eventSessionId: string
+    deviceId: string
+    apVersion: string
+    osVersion: string
+    currentPlaceLat: number
+    currentPlaceLng: number
+}
+
+/** Encode an ASCII string to Uint8Array. */
+function encodeText(str: string): Uint8Array {
+    const arr = new Uint8Array(str.length)
+    for (let i = 0; i < str.length; i++) arr[i] = str.charCodeAt(i)
+    return arr
+}
+
+/** Concatenate multiple Uint8Arrays into one. */
+function concat(...parts: Uint8Array[]): Uint8Array {
+    const total = parts.reduce((n, p) => n + p.length, 0)
+    const out = new Uint8Array(total)
+    let offset = 0
+    for (const p of parts) { out.set(p, offset); offset += p.length }
+    return out
+}
+
+/**
+ * POST /api/v1/vol/event-applications/face-check-in
+ * Manually constructs multipart body so the 'request' part has Content-Type: application/json,
+ * which React Native's FormData polyfill cannot set on non-file parts.
+ */
+export const faceCheckIn = async (data: FaceCheckInRequest): Promise<void> => {
+    const endpoint = `${API_BASE}/api/v1/vol/event-applications/face-check-in`
+
+    const filename = data.uri.split('/').pop() ?? 'face_checkin.mp4'
+    const ext      = filename.split('.').pop()  ?? 'mp4'
+    const mimeType = ext === 'mov' ? 'video/quicktime' : 'video/mp4'
+
+    const requestJson = JSON.stringify({
+        eventSessionId:  data.eventSessionId,
+        deviceId:        data.deviceId,
+        apVersion:       data.apVersion,
+        osVersion:       data.osVersion,
+        currentPlaceLat: data.currentPlaceLat,
+        currentPlaceLng: data.currentPlaceLng,
+    })
+
+    const fileBytes = new Uint8Array(await new FSFile(data.uri).arrayBuffer())
+
+    const boundary = 'HVHBoundary' + Date.now()
+    const CRLF     = '\r\n'
+
+    const body = concat(
+        encodeText(`--${boundary}${CRLF}`),
+        encodeText(`Content-Disposition: form-data; name="request"${CRLF}`),
+        encodeText(`Content-Type: application/json${CRLF}`),
+        encodeText(CRLF),
+        encodeText(requestJson),
+        encodeText(CRLF),
+        encodeText(`--${boundary}${CRLF}`),
+        encodeText(`Content-Disposition: form-data; name="file"; filename="${filename}"${CRLF}`),
+        encodeText(`Content-Type: ${mimeType}${CRLF}`),
+        encodeText(CRLF),
+        fileBytes,
+        encodeText(CRLF),
+        encodeText(`--${boundary}--${CRLF}`),
+    )
+
+    await baseAxios.post(endpoint, body.buffer, {
+        headers: { 'Content-Type': `multipart/form-data; boundary=${boundary}` },
+        transformRequest: [(d: unknown) => d],
+    })
 }

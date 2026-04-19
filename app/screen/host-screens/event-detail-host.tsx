@@ -106,7 +106,6 @@ const EventDetailScreen = () => {
             reverseGeocode(data.latCheckInLocation, data.lngCheckInLocation)
                 .then(addr => setCheckinAddress(addr));
         } catch (e) {
-            console.log('[EventDetail] fetchDetail error:', e);
             setError(getApiErrorMessage(e) || 'Không thể tải thông tin sự kiện');
         } finally {
             setLoading(false);

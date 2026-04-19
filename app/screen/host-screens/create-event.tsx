@@ -435,7 +435,6 @@ const CreateEvent = () => {
                     setEventDays(loadedDays);
                 }
             } catch (e) {
-                console.log('[Edit Mode] Failed to load event data:', e);
             } finally {
                 if (!cancelled) setIsLoadingEditData(false);
             }
@@ -744,9 +743,7 @@ const CreateEvent = () => {
 
         setIsSubmitting(true);
         try {
-            console.log(`[Create Event][Draft] Request body\n${JSON.stringify(requestBody, null, 2)}`);
             const response = await saveDraftEvent(requestBody);
-            console.log('Draft saved:', response);
 
             // upload image if has uploadUrls and user select new image
             if (response.uploadUrls && response.uploadUrls.length > 0 && eventImageDoc.uri && !existingImageUrl) {
@@ -754,7 +751,6 @@ const CreateEvent = () => {
                     uri: eventImageDoc.uri,
                     mimeType: eventImageDoc.mimeType || 'image/jpeg',
                 });
-                console.log('Image uploaded successfully');
             }
 
             Alert.alert('Thông báo', 'Đã lưu bản thảo sự kiện thành công', [
@@ -763,9 +759,7 @@ const CreateEvent = () => {
         } catch (error) {
             const rawErrorText = getApiErrorRawText(error);
             if (rawErrorText) {
-                console.log(`[Event API Error][Draft]\n${rawErrorText}`);
             }
-            console.log('Failed to save draft:', error);
             const errorMessage = getApiErrorMessage(error);
             Alert.alert('Thông báo', errorMessage);
         } finally {
@@ -921,9 +915,7 @@ const CreateEvent = () => {
 
         setIsSubmitting(true);
         try {
-            console.log(`[Create Event][Submit] Request body\n${JSON.stringify(requestBody, null, 2)}`);
             const response = await submitEvent(requestBody);
-            console.log('Event submitted:', response);
 
             // upload image if has uploadUrls and user select new image
             if (response.uploadUrls && response.uploadUrls.length > 0 && eventImageDoc.uri && !existingImageUrl) {
@@ -931,7 +923,6 @@ const CreateEvent = () => {
                     uri: eventImageDoc.uri,
                     mimeType: eventImageDoc.mimeType || 'image/jpeg',
                 });
-                console.log('Image uploaded successfully');
             }
 
             Alert.alert('Thông báo', 'Đã gửi sự kiện để phê duyệt\n(Dự kiến phê duyệt trong vòng 48h, nếu muốn phê duyệt sớm nhất vui lòng liên hệ Tổ chức và Quản trị viên)', [
@@ -940,9 +931,7 @@ const CreateEvent = () => {
         } catch (error) {
             const rawErrorText = getApiErrorRawText(error);
             if (rawErrorText) {
-                console.log(`[Event API Error][Submit]\n${rawErrorText}`);
             }
-            console.log('Failed to submit event:', error);
             const errorMessage = getApiErrorMessage(error);
             Alert.alert('Thông báo', errorMessage);
         } finally {

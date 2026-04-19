@@ -12,7 +12,6 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { EventSessionDetailsResponse } from '@/services/event-types';
 
-// ─── helpers ─────────────────────────────────────────────────────────
 
 function extractDate(iso: string): string {
     if (!iso) return '—';
@@ -31,7 +30,6 @@ function extractTime(iso: string): string {
     return `${hh}:${mm}`;
 }
 
-// ─── props ────────────────────────────────────────────────────────────
 
 interface Props {
     visible: boolean;
@@ -43,7 +41,6 @@ interface Props {
     applying: boolean;
 }
 
-// ─── component ───────────────────────────────────────────────────────
 
 export default function ApplyConfirmModal({
     visible,
@@ -191,7 +188,6 @@ export default function ApplyConfirmModal({
     );
 }
 
-// ─── styles ──────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
     overlay: {

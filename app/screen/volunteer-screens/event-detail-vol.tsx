@@ -37,7 +37,6 @@ import SessionPickerSheet from '../../components/volunteer/application/SessionPi
 const { width: SCREEN_W } = Dimensions.get('window');
 const IMAGE_HEIGHT = 280;
 
-// ─── helpers ─────────────────────────────────────────────────────────
 function formatDate(iso: string): string {
     if (!iso) return '';
     const [y, m, d] = iso.split('-');
@@ -66,7 +65,6 @@ function getFullImageUrl(path: string | null | undefined): string {
 }
 
 
-// ─── component ───────────────────────────────────────────────────────
 export default function EventDetail() {
     const { eventId } = useLocalSearchParams<{ eventId: string }>();
     const { isLoggedIn } = useAuth();
@@ -79,7 +77,6 @@ export default function EventDetail() {
     const [saved, setSaved] = useState(false);
     const [saving, setSaving] = useState(false);
 
-    // ── Persist saved state per event ──
     const savedKey = eventId ? `saved_event_${eventId}` : null;
 
     useEffect(() => {
@@ -89,7 +86,6 @@ export default function EventDetail() {
         }).catch(() => { });
     }, [savedKey]);
 
-    // ── Apply flow state ──
     const [applyModalVisible, setApplyModalVisible] = useState(false);
     const [sessionPickerVisible, setSessionPickerVisible] = useState(false);
     const [selectedSession, setSelectedSession] = useState<EventSessionResponse | null>(null);
@@ -123,11 +119,6 @@ export default function EventDetail() {
         return event.imageUrls.map(getFullImageUrl);
     }, [event]);
 
-    // total volunteers expected across sessions
-    const totalVolunteers = useMemo(() => {
-        if (!event?.eventSessions) return 0;
-        return event.eventSessions.reduce((sum, s) => sum + s.expectedVolAmount, 0);
-    }, [event]);
 
     const isRecruiting = useMemo(() => {
         if (!event?.recruitmentEndDate) return false;
@@ -229,7 +220,6 @@ export default function EventDetail() {
         setImageViewerVisible(true);
     };
 
-    // ── Apply flow handlers ──
     const handleApplyCta = () => {
         if (!isLoggedIn) {
             Alert.alert(
@@ -276,14 +266,32 @@ export default function EventDetail() {
                 [{ text: 'Tuyệt vời', style: 'default' }]
             );
         } catch (err: unknown) {
-            const msg = getApiErrorMessage(err) || 'Không thể đăng ký. Vui lòng thử lại sau.';
-            Alert.alert('Đăng ký thất bại', msg, [{ text: 'Đóng', style: 'cancel' }]);
+            // Detect face-not-registered error (BE code 1013)
+            const isFaceNotRegistered =
+                (err as any)?.response?.data?.code === 1013
+            if (isFaceNotRegistered) {
+                setApplyModalVisible(false);
+                Alert.alert(
+                    'Chưa đăng ký khuôn mặt',
+                    'Bạn cần đăng ký dữ liệu khuôn mặt trước khi tham gia hoạt động. Bạn có muốn đăng ký ngay bây giờ không?',
+                    [
+                        { text: 'Để sau', style: 'cancel' },
+                        {
+                            text: 'Đăng ký ngay',
+                            onPress: () =>
+                                router.push('/screen/volunteer-screens/register-face' as any),
+                        },
+                    ]
+                );
+            } else {
+                const msg = getApiErrorMessage(err) || 'Không thể đăng ký. Vui lòng thử lại sau.';
+                Alert.alert('Đăng ký thất bại', msg, [{ text: 'Đóng', style: 'cancel' }]);
+            }
         } finally {
             setApplying(false);
         }
     };
 
-    // ─── Loading / Error ─────────────────────────────────────────────
     if (loading) {
         return (
             <SafeAreaView style={styles.centered}>
@@ -305,7 +313,6 @@ export default function EventDetail() {
         );
     }
 
-    // ─── Render ──────────────────────────────────────────────────────
     return (
         <View style={styles.container}>
             <ScrollView showsVerticalScrollIndicator={false} bounces={false}>
@@ -377,14 +384,6 @@ export default function EventDetail() {
                     <Text style={styles.title}>{event.name}</Text>
 
                     {/* Info rows */}
-                    <View style={styles.infoRow}>
-                        <Ionicons name="people-outline" size={18} color="#6B7280" />
-                        <Text style={styles.infoText}>
-                            Số người tham gia :{' '}
-                            <Text style={styles.infoBold}>0/{totalVolunteers}</Text>
-                        </Text>
-                    </View>
-
                     <View style={styles.infoRow}>
                         <Ionicons name="calendar-outline" size={18} color="#6B7280" />
                         <Text style={styles.infoText}>
@@ -544,7 +543,6 @@ export default function EventDetail() {
     );
 }
 
-// ─── styles ──────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
     container: {
         flex: 1,

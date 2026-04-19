@@ -12,11 +12,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams, Stack } from 'expo-router';
 
-// ─── Theme ────────────────────────────────────────────────────────────────────
 
 const TEAL = '#42A4F5';
 
-// ─── Types ────────────────────────────────────────────────────────────────────
 
 interface MomentDetail {
     id: string;
@@ -30,7 +28,6 @@ interface MomentDetail {
     eventCategory: string; // e.g. "sự kiện tình nguyện"
 }
 
-// ─── Mock Data ────────────────────────────────────────────────────────────────
 
 const MOCK_DETAIL: MomentDetail = {
     id: 'm1',
@@ -45,7 +42,6 @@ const MOCK_DETAIL: MomentDetail = {
     eventCategory: 'sự kiện tình nguyện',
 };
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -55,7 +51,6 @@ function daysAgoLabel(days: number): string {
     return `${days} ngày trước`;
 }
 
-// ─── Main Screen ──────────────────────────────────────────────────────────────
 
 const EventMomentDetailScreen = () => {
     const router = useRouter();
@@ -155,7 +150,6 @@ const EventMomentDetailScreen = () => {
     );
 };
 
-// ─── Styles ───────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: TEAL },

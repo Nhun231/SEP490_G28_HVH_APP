@@ -11,7 +11,6 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { EventSessionDetailsResponse } from '@/services/event-types';
 
-// ─── helpers ─────────────────────────────────────────────────────────
 
 function extractDate(iso: string): string {
     if (!iso) return '—';
@@ -32,7 +31,6 @@ function extractTime(iso: string): string {
     return `${hh}:${mm}`;
 }
 
-// ─── props ────────────────────────────────────────────────────────────
 
 interface Props {
     visible: boolean;
@@ -41,7 +39,6 @@ interface Props {
     onClose: () => void;
 }
 
-// ─── component ───────────────────────────────────────────────────────
 
 export default function SessionPickerSheet({ visible, sessions, onSelect, onClose }: Props) {
     return (
@@ -107,7 +104,6 @@ export default function SessionPickerSheet({ visible, sessions, onSelect, onClos
     );
 }
 
-// ─── styles ──────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
     overlay: {

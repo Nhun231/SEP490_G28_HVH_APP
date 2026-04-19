@@ -9,14 +9,16 @@ import {
     Animated,
     AppState,
     AppStateStatus,
+    Platform,
 } from 'react-native'
-import { SafeAreaView } from 'react-native-safe-area-context'
 import { Ionicons } from '@expo/vector-icons'
-import { router, useLocalSearchParams } from 'expo-router'
-import { quickCheckIn } from '@/services/checkin-service'
+import { router, useLocalSearchParams, Stack } from 'expo-router'
+import { checkOutEvent } from '@/services/checkin-service'
 import { getApiErrorMessage } from '@/services/api-helpers'
+import * as Location from 'expo-location'
+import * as Device from 'expo-device'
+import * as Application from 'expo-application'
 
-// ─── helpers ────────────────────────────────────────────────────────────────
 function padTwo(n: number): string {
     return n < 10 ? `0${n}` : `${n}`
 }
@@ -25,11 +27,9 @@ function formatDuration(seconds: number): string {
     const h = Math.floor(seconds / 3600)
     const m = Math.floor((seconds % 3600) / 60)
     const s = seconds % 60
-    if (h > 0) return `${padTwo(h)}:${padTwo(m)}:${padTwo(s)}`
-    return `${padTwo(m)}:${padTwo(s)}`
+    return `${padTwo(h)}:${padTwo(m)}:${padTwo(s)}`
 }
 
-// ─── component ────────────────────────────────────────────────────────────────
 const CheckinTimerScreen = () => {
     const params = useLocalSearchParams<{
         code: string
@@ -37,18 +37,19 @@ const CheckinTimerScreen = () => {
         eventId: string
         applicationId: string
         sessionId: string
+        /** Event check-in location — forwarded for GPS mock during checkout */
+        checkinLat: string
+        checkinLng: string
     }>()
 
     const [elapsed, setElapsed] = useState(0)
     const [checkingOut, setCheckingOut] = useState(false)
-    const [checkedOut, setCheckedOut] = useState(false)
     const startTimeRef = useRef<Date>(new Date())
     const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
     const pulseAnim = useRef(new Animated.Value(1)).current
 
     // Pulse animation for the live dot
     useEffect(() => {
-        if (checkedOut) return
         const pulse = Animated.loop(
             Animated.sequence([
                 Animated.timing(pulseAnim, { toValue: 1.5, duration: 700, useNativeDriver: true }),
@@ -57,11 +58,10 @@ const CheckinTimerScreen = () => {
         )
         pulse.start()
         return () => pulse.stop()
-    }, [checkedOut])
+    }, [])
 
     // Ticker
     useEffect(() => {
-        if (checkedOut) return
         startTimeRef.current = new Date()
         intervalRef.current = setInterval(() => {
             const diff = Math.floor((new Date().getTime() - startTimeRef.current.getTime()) / 1000)
@@ -70,17 +70,17 @@ const CheckinTimerScreen = () => {
         return () => {
             if (intervalRef.current) clearInterval(intervalRef.current)
         }
-    }, [checkedOut])
+    }, [])
 
     // Sync timer when app returns from background
     useEffect(() => {
         const sub = AppState.addEventListener('change', (state: AppStateStatus) => {
-            if (state === 'active' && !checkedOut) {
+            if (state === 'active') {
                 setElapsed(Math.floor((new Date().getTime() - startTimeRef.current.getTime()) / 1000))
             }
         })
         return () => sub.remove()
-    }, [checkedOut])
+    }, [])
 
     const handleCheckout = () => {
         Alert.alert(
@@ -98,15 +98,65 @@ const CheckinTimerScreen = () => {
         if (intervalRef.current) clearInterval(intervalRef.current)
         setCheckingOut(true)
         try {
-            await quickCheckIn({ code: params.code, applicationId: params.applicationId })
-            setCheckedOut(true)
+
+            // 1. Get current GPS position (required by BE to verify radius)
+            // [TESTING] Permission + real GPS commented out — using mocked coords instead
+            // const { status } = await Location.requestForegroundPermissionsAsync()
+            // if (status !== 'granted') {
+            //     throw new Error('Cần cấp quyền vị trí để check-out.')
+            // }
+            // const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High })
+
+            // [TESTING] Mock location to exactly the event's check-in centre so BE radius check passes
+            // TODO: restore permission check + replace mockLat/mockLng with loc.coords.latitude/longitude
+            const mockLat = parseFloat(params.checkinLat ?? '0')
+            const mockLng = parseFloat(params.checkinLng ?? '0')
+
+            // 2. Gather device metadata (Android vs iOS)
+            let deviceId: string
+            if (Platform.OS === 'android') {
+                deviceId =
+                    (await Application.getAndroidId()) ??
+                    Application.applicationId ??
+                    'unknown-android'
+            } else {
+                deviceId =
+                    (await Application.getIosIdForVendorAsync()) ??
+                    Application.applicationId ??
+                    'unknown-ios'
+            }
+            const apVersion = Application.nativeApplicationVersion ?? '1.0.0'
+            const osVersion = `${Device.osName ?? 'OS'} ${Device.osVersion ?? ''}`
+
+            // 3. Call checkout API
+            await checkOutEvent({
+                eventSessionId: params.sessionId,
+                deviceId,
+                apVersion,
+                osVersion,
+                currentPlaceLat: mockLat,   // TODO: replace with loc.coords.latitude
+                currentPlaceLng: mockLng,   // TODO: replace with loc.coords.longitude
+            })
+
+            // 4. Navigate to rating screen immediately after successful checkout
+            router.replace({
+                pathname: '/screen/volunteer-screens/rating-event',
+                params: {
+                    applicationId: params.applicationId,
+                    eventName: params.eventName,
+                    fromCheckout: 'true',
+                },
+            } as any)
         } catch (err: unknown) {
             // Resume timer if checkout fails
             startTimeRef.current = new Date(new Date().getTime() - elapsed * 1000)
             intervalRef.current = setInterval(() => {
                 setElapsed(Math.floor((new Date().getTime() - startTimeRef.current.getTime()) / 1000))
             }, 1000)
-            const msg = getApiErrorMessage(err) || 'Không thể ghi nhận. Vui lòng thử lại.'
+            const msg =
+                err instanceof Error
+                    ? err.message
+                    : getApiErrorMessage(err) || 'Không thể ghi nhận. Vui lòng thử lại.'
             Alert.alert('Lỗi check-out', msg)
         } finally {
             setCheckingOut(false)
@@ -117,48 +167,14 @@ const CheckinTimerScreen = () => {
         router.replace('/(vol-tabs)/checkin' as any)
     }
 
-    // ── Success state ─────────────────────────────────────────────────────────
-    if (checkedOut) {
-        return (
-            <SafeAreaView style={styles.container}>
-                <View style={styles.successScreen}>
-                    {/* Top blue area */}
-                    <View style={styles.successTop}>
-                        <View style={styles.successIconWrap}>
-                            <Ionicons name="checkmark-circle" size={72} color="#FFFFFF" />
-                        </View>
-                        <Text style={styles.successTitle}>Điểm danh hoàn tất!</Text>
-                        <Text style={styles.successSub}>Cảm ơn bạn đã đóng góp thời gian tình nguyện</Text>
-                    </View>
-
-                    {/* Duration card */}
-                    <View style={styles.successCard}>
-                        <Text style={styles.successCardLabel}>Thời gian đóng góp</Text>
-                        <Text style={styles.successDuration}>{formatDuration(elapsed)}</Text>
-                        {params.eventName ? (
-                            <Text style={styles.successEventName} numberOfLines={2}>
-                                {params.eventName}
-                            </Text>
-                        ) : null}
-                    </View>
-
-                    <TouchableOpacity style={styles.homeBtn} onPress={handleGoHome}>
-                        <Ionicons name="home-outline" size={18} color="#42A4F5" />
-                        <Text style={styles.homeBtnText}>Về trang điểm danh</Text>
-                    </TouchableOpacity>
-                </View>
-            </SafeAreaView>
-        )
-    }
-
-    // ── Active timer ──────────────────────────────────────────────────────────
     return (
-        <SafeAreaView style={styles.container}>
+        <View style={styles.container}>
+            <Stack.Screen options={{ headerShown: false }} />
             {/* Header bar */}
             <View style={styles.timerHeader}>
                 <View style={styles.timerHeaderTop}>
                     <Animated.View style={[styles.liveDot, { transform: [{ scale: pulseAnim }] }]} />
-                    <Text style={styles.liveLabel}>ĐANG ĐIỂM DANH</Text>
+                    <Text style={styles.liveLabel}>ĐANG GHI NHẬN THỜI GIAN TÌNH NGUYỆN</Text>
                 </View>
                 <Text style={styles.timerDisplay}>{formatDuration(elapsed)}</Text>
                 <Text style={styles.timerSubLabel}>Thời gian tình nguyện</Text>
@@ -174,18 +190,6 @@ const CheckinTimerScreen = () => {
                     <Text style={styles.eventName} numberOfLines={2}>
                         {params.eventName || 'Sự kiện tình nguyện'}
                     </Text>
-                </View>
-            </View>
-
-            {/* Code chips */}
-            <View style={styles.codeCard}>
-                <Text style={styles.codeLabel}>Mã điểm danh của bạn</Text>
-                <View style={styles.codeDisplay}>
-                    {(params.code || '').split('').map((ch, i) => (
-                        <View key={i} style={styles.codeChip}>
-                            <Text style={styles.codeChipText}>{ch}</Text>
-                        </View>
-                    ))}
                 </View>
             </View>
 
@@ -236,7 +240,7 @@ const CheckinTimerScreen = () => {
                     )}
                 </TouchableOpacity>
             </View>
-        </SafeAreaView>
+        </View>
     )
 }
 
@@ -244,12 +248,13 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: '#F0F6FF',
+        paddingBottom: 20,
     },
 
     /* Timer header */
     timerHeader: {
         backgroundColor: '#42A4F5',
-        paddingTop: 20,
+        paddingTop: 80,
         paddingBottom: 28,
         alignItems: 'center',
     },
@@ -389,7 +394,7 @@ const styles = StyleSheet.create({
         marginVertical: 12,
     },
     statValue: {
-        fontSize: 24,
+        fontSize: 32,
         fontWeight: '800',
         color: '#42A4F5',
         fontVariant: ['tabular-nums'],

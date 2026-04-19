@@ -22,10 +22,8 @@ const publicAxios = axios.create({
     headers: { 'Content-Type': 'application/json' },
 })
 
-// ─── types ────────────────────────────────────────────────────────────
 type Step = 'email' | 'otp' | 'done'
 
-// ─── API helpers ──────────────────────────────────────────────────────
 
 /**
  * Step 1 — Request a 6-digit OTP sent to the user's email.
@@ -45,7 +43,6 @@ const verifyOtpAndReset = async (email: string, otp: string): Promise<void> => {
     await publicAxios.put('/api/v1/auth/forgot-password', { email, otp })
 }
 
-// ─── component ───────────────────────────────────────────────────────
 export default function ForgotPassword() {
     const router = useRouter()
 
@@ -61,7 +58,6 @@ export default function ForgotPassword() {
     // Cooldown resend
     const [resendCooldown, setResendCooldown] = useState(0)
 
-    // ── start countdown ───────────────────────────────────────────────
     const startCooldown = (seconds = 60) => {
         setResendCooldown(seconds)
         const timer = setInterval(() => {
@@ -75,7 +71,6 @@ export default function ForgotPassword() {
         }, 1000)
     }
 
-    // ── step 1: send OTP ─────────────────────────────────────────────
     const handleSendOtp = async () => {
         const trimmed = email.trim()
         if (!trimmed) {
@@ -99,7 +94,6 @@ export default function ForgotPassword() {
         }
     }
 
-    // ── step 2: resend OTP ───────────────────────────────────────────
     const handleResendOtp = async () => {
         if (resendCooldown > 0) return
         setLoading(true)
@@ -119,7 +113,6 @@ export default function ForgotPassword() {
         }
     }
 
-    // ── step 2: verify OTP ───────────────────────────────────────────
     const handleVerifyOtp = async () => {
         if (otp.trim().length !== 6) {
             Alert.alert('Mã OTP không hợp lệ', 'Vui lòng nhập đúng 6 chữ số.')
@@ -141,7 +134,6 @@ export default function ForgotPassword() {
         }
     }
 
-    // ── step meta ─────────────────────────────────────────────────────
     const stepMeta = {
         email: {
             icon: 'mail-outline' as const,
@@ -170,7 +162,6 @@ export default function ForgotPassword() {
     const meta = stepMeta[step]
     const currentIndex = stepIndex[step]
 
-    // ── render ────────────────────────────────────────────────────────
     return (
         <SafeAreaView style={styles.safe}>
             <KeyboardAvoidingView
@@ -360,7 +351,6 @@ export default function ForgotPassword() {
     )
 }
 
-// ─── styles ──────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
     safe: {
         flex: 1,

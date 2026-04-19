@@ -35,7 +35,7 @@ export default function MenuIcons() {
 
             {/* BUTTON 2: SEARCH ORGANIZATION */}
             {/* Change logic onPress later */}
-            <TouchableOpacity onPress={() => console.log('2')} activeOpacity={0.85}>
+            <TouchableOpacity onPress={() => {}} activeOpacity={0.85}>
                 <View style={styles.buttonContainer}>
                     <LinearGradient
                         colors={['#66BB6A', '#43A047']}
@@ -53,7 +53,7 @@ export default function MenuIcons() {
 
             {/* BUTTON 3: CERTIFICATE */}
             {/* Change logic onPress later */}
-            <TouchableOpacity onPress={() => console.log('3')} activeOpacity={0.85}>
+            <TouchableOpacity onPress={() => {}} activeOpacity={0.85}>
                 <View style={styles.buttonContainer}>
                     <LinearGradient
                         colors={['#FFA726', '#FB8C00']}
@@ -71,7 +71,7 @@ export default function MenuIcons() {
 
             {/* BUTTON 4: CERTIFICATE */}
             {/* Change logic onPress later */}
-            <TouchableOpacity onPress={() => console.log('4')} activeOpacity={0.85}>
+            <TouchableOpacity onPress={() => {}} activeOpacity={0.85}>
                 <View style={styles.buttonContainer}>
                     <LinearGradient
                         colors={['#FFD54F', '#FFB300']}
@@ -89,7 +89,7 @@ export default function MenuIcons() {
 
             {/* BUTTON 5: VOLUNTEER MOMENTS */}
             {/* Change logic onPress later */}
-            <TouchableOpacity onPress={() => console.log('5')} activeOpacity={0.85}>
+            <TouchableOpacity onPress={() => {}} activeOpacity={0.85}>
                 <View style={[styles.buttonContainer, { marginRight: 0 }]}>
                     <LinearGradient
                         colors={['#F06292', '#E91E63']}

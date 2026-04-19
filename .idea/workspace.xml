@@ -6,26 +6,6 @@
   <component name="ChangeListManager">
     <list default="true" id="75668f23-b4c0-497d-81ac-fa2ee3afdab7" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/(host-tabs)/dashboard.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/(host-tabs)/dashboard.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/(host-tabs)/events.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/(host-tabs)/events.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/components/CancelEventModal.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/components/CancelEventModal.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/components/host/event-details/EventSessionModal.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/components/host/event-details/EventSessionModal.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/components/host/event-list/HostEventCard.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/components/host/event-list/HostEventCard.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/components/host/event-list/StatusChip.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/components/host/event-list/StatusChip.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/components/host/verify-vol-to-event/ApproveRejectModal.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/components/host/verify-vol-to-event/ApproveRejectModal.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/components/volunteer/application/ApplyConfirmModal.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/components/volunteer/application/ApplyConfirmModal.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/components/volunteer/application/SessionPickerSheet.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/components/volunteer/application/SessionPickerSheet.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/components/volunteer/even-details/EventSessionCard.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/components/volunteer/even-details/EventSessionCard.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/components/volunteer/event-feed/DomainFilterSheet.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/components/volunteer/event-feed/DomainFilterSheet.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/screen/host-screens/create-event.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/screen/host-screens/create-event.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/screen/host-screens/event-applications.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/screen/host-screens/event-applications.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/screen/host-screens/event-detail-host.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/screen/host-screens/event-detail-host.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/screen/volunteer-screens/checkin-code.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/screen/volunteer-screens/checkin-code.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/screen/volunteer-screens/checkin-timer.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/screen/volunteer-screens/checkin-timer.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/screen/volunteer-screens/event-detail-vol.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/screen/volunteer-screens/event-detail-vol.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/screen/volunteer-screens/event-feed.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/screen/volunteer-screens/event-feed.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/screen/volunteer-screens/my-applications.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/screen/volunteer-screens/my-applications.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/services/event-service.ts" beforeDir="false" afterPath="$PROJECT_DIR$/services/event-service.ts" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -35,7 +15,7 @@
   <component name="Git.Settings">
     <option name="RECENT_BRANCH_BY_REPOSITORY">
       <map>
-        <entry key="$PROJECT_DIR$" value="dev" />
+        <entry key="$PROJECT_DIR$" value="main" />
       </map>
     </option>
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
@@ -137,6 +117,8 @@
       <workItem from="1775531477225" duration="570000" />
       <workItem from="1775735710658" duration="8805000" />
       <workItem from="1775829084754" duration="1969000" />
+      <workItem from="1775986011122" duration="1916000" />
+      <workItem from="1776441319759" duration="1035000" />
     </task>
     <servers />
   </component>

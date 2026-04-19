@@ -12,13 +12,11 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter, Stack } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 
-// ─── Theme ────────────────────────────────────────────────────────────────────
 
 const TEAL = '#42A4F5';
 const ORANGE_START = '#F7941D';
 const ORANGE_END = '#F9C74F';
 
-// ─── Mock Data ────────────────────────────────────────────────────────────────
 
 interface RatingData {
     averageRating: number;
@@ -46,7 +44,6 @@ const MOCK: RatingData = {
     momentsShared: 45,
 };
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const CHART_MAX_WIDTH = SCREEN_WIDTH - 32 - 16 * 2 - 60; // chart bar area width
@@ -66,7 +63,6 @@ function StarRow({ count }: { count: number }) {
     );
 }
 
-// ─── Bar Chart (custom, no library) ──────────────────────────────────────────
 
 const BAR_HEIGHT = 22;
 const CHART_INNER_WIDTH = SCREEN_WIDTH - 80; // available for bars inside the card
@@ -113,7 +109,6 @@ function BarChart({ distribution }: { distribution: RatingData['distribution'] }
     );
 }
 
-// ─── Rating breakdown bar (per star) ─────────────────────────────────────────
 
 function RatingBar({ stars, count, total }: { stars: number; count: number; total: number }) {
     const pct = total > 0 ? count / total : 0;
@@ -129,7 +124,6 @@ function RatingBar({ stars, count, total }: { stars: number; count: number; tota
     );
 }
 
-// ─── Summary row ──────────────────────────────────────────────────────────────
 
 function SummaryRow({
     label,
@@ -148,7 +142,6 @@ function SummaryRow({
     );
 }
 
-// ─── Main Screen ──────────────────────────────────────────────────────────────
 
 const EventRatingScreen = () => {
     const router = useRouter();
@@ -253,7 +246,6 @@ const EventRatingScreen = () => {
     );
 };
 
-// ─── Styles ───────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: TEAL },

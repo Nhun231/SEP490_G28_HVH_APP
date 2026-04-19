@@ -13,7 +13,6 @@ import { Ionicons } from '@expo/vector-icons';
 import { ActivityDomain } from '@/services/event-types';
 import { getAllActivityDomains } from '@/services/public-event-service';
 
-// ─── helpers ────────────────────────────────────────────────────────
 // Collapse duplicate domain names into one entry, merging their subdomains
 function mergeByName(domains: ActivityDomain[]): ActivityDomain[] {
     const map = new Map<string, ActivityDomain>();
@@ -30,7 +29,6 @@ function mergeByName(domains: ActivityDomain[]): ActivityDomain[] {
     return Array.from(map.values());
 }
 
-// ─── props ────────────────────────────────────────────────────────────
 interface Props {
     visible: boolean;
     initialSelectedIds: number[];
@@ -38,7 +36,6 @@ interface Props {
     onClose: () => void;
 }
 
-// ─── component ───────────────────────────────────────────────────────
 export default function DomainFilterSheet({ visible, initialSelectedIds, onConfirm, onClose }: Props) {
     const [domains, setDomains] = useState<ActivityDomain[]>([]);
     const [loadingDomains, setLoadingDomains] = useState(false);
@@ -197,7 +194,6 @@ export default function DomainFilterSheet({ visible, initialSelectedIds, onConfi
     );
 }
 
-// ─── styles ──────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
     overlay: {
         flex: 1,
