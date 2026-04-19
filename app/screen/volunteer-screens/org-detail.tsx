@@ -196,7 +196,6 @@ export default function OrgDetail() {
     const [org, setOrg] = useState<OrganizationDetailsResponse | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const [saved, setSaved] = useState(false);
 
     // Events state — only needed for the 3 recent-event cards
     const [recentEvents, setRecentEvents] = useState<EventSimpleResponse[]>([]);
@@ -301,17 +300,10 @@ export default function OrgDetail() {
                         <View style={styles.coverPlaceholder} />
                     )}
 
-                    {/* Back + Save overlay */}
+                    {/* Back button overlay */}
                     <View style={styles.headerOverlay}>
                         <TouchableOpacity style={styles.circleBtn} onPress={handleBack}>
                             <Ionicons name="arrow-back" size={22} color="#1F2937" />
-                        </TouchableOpacity>
-                        <TouchableOpacity style={styles.circleBtn} onPress={() => setSaved(v => !v)}>
-                            <Ionicons
-                                name={saved ? 'heart' : 'heart-outline'}
-                                size={22}
-                                color={saved ? '#EF4444' : '#1F2937'}
-                            />
                         </TouchableOpacity>
                     </View>
                 </View>
@@ -479,7 +471,7 @@ const styles = StyleSheet.create({
         left: 0,
         right: 0,
         flexDirection: 'row',
-        justifyContent: 'space-between',
+        justifyContent: 'flex-start',
         paddingHorizontal: 16,
     },
     circleBtn: {

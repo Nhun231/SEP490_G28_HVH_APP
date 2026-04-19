@@ -266,8 +266,27 @@ export default function EventDetail() {
                 [{ text: 'Tuyệt vời', style: 'default' }]
             );
         } catch (err: unknown) {
-            const msg = getApiErrorMessage(err) || 'Không thể đăng ký. Vui lòng thử lại sau.';
-            Alert.alert('Đăng ký thất bại', msg, [{ text: 'Đóng', style: 'cancel' }]);
+            // Detect face-not-registered error (BE code 1013)
+            const isFaceNotRegistered =
+                (err as any)?.response?.data?.code === 1013
+            if (isFaceNotRegistered) {
+                setApplyModalVisible(false);
+                Alert.alert(
+                    'Chưa đăng ký khuôn mặt',
+                    'Bạn cần đăng ký dữ liệu khuôn mặt trước khi tham gia hoạt động. Bạn có muốn đăng ký ngay bây giờ không?',
+                    [
+                        { text: 'Để sau', style: 'cancel' },
+                        {
+                            text: 'Đăng ký ngay',
+                            onPress: () =>
+                                router.push('/screen/volunteer-screens/register-face' as any),
+                        },
+                    ]
+                );
+            } else {
+                const msg = getApiErrorMessage(err) || 'Không thể đăng ký. Vui lòng thử lại sau.';
+                Alert.alert('Đăng ký thất bại', msg, [{ text: 'Đóng', style: 'cancel' }]);
+            }
         } finally {
             setApplying(false);
         }

@@ -37,6 +37,8 @@ export default function RootLayout() {
           <Stack.Screen name="screen/volunteer-screens/org-events" options={{ headerShown: false }} />
           <Stack.Screen name="screen/volunteer-screens/checkin-code" options={{ headerShown: false }} />
           <Stack.Screen name="screen/volunteer-screens/checkin-timer" options={{ headerShown: false }} />
+          <Stack.Screen name="screen/volunteer-screens/rating-event" options={{ headerShown: false }} />
+          <Stack.Screen name="screen/volunteer-screens/register-face" options={{ headerShown: false }} />
           {/* Host screens */}
           <Stack.Screen name="screen/host-screens/event-detail-host" options={{ headerShown: false }} />
           <Stack.Screen name="screen/host-screens/create-event" options={{ headerShown: false }} />

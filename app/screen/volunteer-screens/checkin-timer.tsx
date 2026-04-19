@@ -27,8 +27,7 @@ function formatDuration(seconds: number): string {
     const h = Math.floor(seconds / 3600)
     const m = Math.floor((seconds % 3600) / 60)
     const s = seconds % 60
-    if (h > 0) return `${padTwo(h)}:${padTwo(m)}:${padTwo(s)}`
-    return `${padTwo(m)}:${padTwo(s)}`
+    return `${padTwo(h)}:${padTwo(m)}:${padTwo(s)}`
 }
 
 const CheckinTimerScreen = () => {
@@ -45,14 +44,12 @@ const CheckinTimerScreen = () => {
 
     const [elapsed, setElapsed] = useState(0)
     const [checkingOut, setCheckingOut] = useState(false)
-    const [checkedOut, setCheckedOut] = useState(false)
     const startTimeRef = useRef<Date>(new Date())
     const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
     const pulseAnim = useRef(new Animated.Value(1)).current
 
     // Pulse animation for the live dot
     useEffect(() => {
-        if (checkedOut) return
         const pulse = Animated.loop(
             Animated.sequence([
                 Animated.timing(pulseAnim, { toValue: 1.5, duration: 700, useNativeDriver: true }),
@@ -61,11 +58,10 @@ const CheckinTimerScreen = () => {
         )
         pulse.start()
         return () => pulse.stop()
-    }, [checkedOut])
+    }, [])
 
     // Ticker
     useEffect(() => {
-        if (checkedOut) return
         startTimeRef.current = new Date()
         intervalRef.current = setInterval(() => {
             const diff = Math.floor((new Date().getTime() - startTimeRef.current.getTime()) / 1000)
@@ -74,17 +70,17 @@ const CheckinTimerScreen = () => {
         return () => {
             if (intervalRef.current) clearInterval(intervalRef.current)
         }
-    }, [checkedOut])
+    }, [])
 
     // Sync timer when app returns from background
     useEffect(() => {
         const sub = AppState.addEventListener('change', (state: AppStateStatus) => {
-            if (state === 'active' && !checkedOut) {
+            if (state === 'active') {
                 setElapsed(Math.floor((new Date().getTime() - startTimeRef.current.getTime()) / 1000))
             }
         })
         return () => sub.remove()
-    }, [checkedOut])
+    }, [])
 
     const handleCheckout = () => {
         Alert.alert(
@@ -103,7 +99,6 @@ const CheckinTimerScreen = () => {
         setCheckingOut(true)
         try {
 
-
             // 1. Get current GPS position (required by BE to verify radius)
             // [TESTING] Permission + real GPS commented out — using mocked coords instead
             // const { status } = await Location.requestForegroundPermissionsAsync()
@@ -116,7 +111,6 @@ const CheckinTimerScreen = () => {
             // TODO: restore permission check + replace mockLat/mockLng with loc.coords.latitude/longitude
             const mockLat = parseFloat(params.checkinLat ?? '0')
             const mockLng = parseFloat(params.checkinLng ?? '0')
-
 
             // 2. Gather device metadata (Android vs iOS)
             let deviceId: string
@@ -143,7 +137,16 @@ const CheckinTimerScreen = () => {
                 currentPlaceLat: mockLat,   // TODO: replace with loc.coords.latitude
                 currentPlaceLng: mockLng,   // TODO: replace with loc.coords.longitude
             })
-            setCheckedOut(true)
+
+            // 4. Navigate to rating screen immediately after successful checkout
+            router.replace({
+                pathname: '/screen/volunteer-screens/rating-event',
+                params: {
+                    applicationId: params.applicationId,
+                    eventName: params.eventName,
+                    fromCheckout: 'true',
+                },
+            } as any)
         } catch (err: unknown) {
             // Resume timer if checkout fails
             startTimeRef.current = new Date(new Date().getTime() - elapsed * 1000)
@@ -164,40 +167,6 @@ const CheckinTimerScreen = () => {
         router.replace('/(vol-tabs)/checkin' as any)
     }
 
-    if (checkedOut) {
-        return (
-            <View style={styles.container}>
-                <Stack.Screen options={{ headerShown: false }} />
-                <View style={styles.successScreen}>
-                    {/* Top blue area */}
-                    <View style={styles.successTop}>
-                        <View style={styles.successIconWrap}>
-                            <Ionicons name="checkmark-circle" size={72} color="#FFFFFF" />
-                        </View>
-                        <Text style={styles.successTitle}>Điểm danh hoàn tất!</Text>
-                        <Text style={styles.successSub}>Cảm ơn bạn đã đóng góp thời gian tình nguyện</Text>
-                    </View>
-
-                    {/* Duration card */}
-                    <View style={styles.successCard}>
-                        <Text style={styles.successCardLabel}>Thời gian đóng góp</Text>
-                        <Text style={styles.successDuration}>{formatDuration(elapsed)}</Text>
-                        {params.eventName ? (
-                            <Text style={styles.successEventName} numberOfLines={2}>
-                                {params.eventName}
-                            </Text>
-                        ) : null}
-                    </View>
-
-                    <TouchableOpacity style={styles.homeBtn} onPress={handleGoHome}>
-                        <Ionicons name="home-outline" size={18} color="#42A4F5" />
-                        <Text style={styles.homeBtnText}>Về trang điểm danh</Text>
-                    </TouchableOpacity>
-                </View>
-            </View>
-        )
-    }
-
     return (
         <View style={styles.container}>
             <Stack.Screen options={{ headerShown: false }} />
@@ -205,7 +174,7 @@ const CheckinTimerScreen = () => {
             <View style={styles.timerHeader}>
                 <View style={styles.timerHeaderTop}>
                     <Animated.View style={[styles.liveDot, { transform: [{ scale: pulseAnim }] }]} />
-                    <Text style={styles.liveLabel}>ĐANG ĐIỂM DANH</Text>
+                    <Text style={styles.liveLabel}>ĐANG GHI NHẬN THỜI GIAN TÌNH NGUYỆN</Text>
                 </View>
                 <Text style={styles.timerDisplay}>{formatDuration(elapsed)}</Text>
                 <Text style={styles.timerSubLabel}>Thời gian tình nguyện</Text>
@@ -221,18 +190,6 @@ const CheckinTimerScreen = () => {
                     <Text style={styles.eventName} numberOfLines={2}>
                         {params.eventName || 'Sự kiện tình nguyện'}
                     </Text>
-                </View>
-            </View>
-
-            {/* Code chips */}
-            <View style={styles.codeCard}>
-                <Text style={styles.codeLabel}>Mã điểm danh của bạn</Text>
-                <View style={styles.codeDisplay}>
-                    {(params.code || '').split('').map((ch, i) => (
-                        <View key={i} style={styles.codeChip}>
-                            <Text style={styles.codeChipText}>{ch}</Text>
-                        </View>
-                    ))}
                 </View>
             </View>
 
@@ -437,7 +394,7 @@ const styles = StyleSheet.create({
         marginVertical: 12,
     },
     statValue: {
-        fontSize: 24,
+        fontSize: 32,
         fontWeight: '800',
         color: '#42A4F5',
         fontVariant: ['tabular-nums'],

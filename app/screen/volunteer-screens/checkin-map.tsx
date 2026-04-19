@@ -1,13 +1,6 @@
 /**
  * checkin-map.tsx
  * Map confirmation screen shown after validating the 6-digit check-in code.
- * Shows:
- *  - Map with a circle for the allowed check-in zone (r = checkInAccuracyMeters)
- *  - Orange marker = user's current location  (TODO: real GPS — mocked as zone centre for now)
- *  - Green marker  = check-in zone centre
- *  - Event name & address below the map
- *  - "Điểm danh nhanh" button → navigates to the timer / quick-check-in screen
- *  - "Quét khuôn mặt"  button → placeholder (TODO: face-scan flow)
  */
 
 import React, { useEffect, useRef, useState } from 'react'
@@ -42,6 +35,7 @@ function radiusToLatDelta(radiusMeters: number): number {
 const CheckinMapScreen = () => {
     const params = useLocalSearchParams<{
         code: string
+        applicationId: string
         eventId: string
         eventSessionId: string
         name: string
@@ -126,9 +120,9 @@ const CheckinMapScreen = () => {
                 pathname: '/screen/volunteer-screens/checkin-timer' as any,
                 params: {
                     code: params.code,
+                    applicationId: params.applicationId ?? '',
                     eventName: params.name ?? '',
                     eventId: params.eventId ?? '',
-                    applicationId: '',
                     sessionId: params.eventSessionId ?? '',
                     // Pass event check-in coords for GPS mock during checkout
                     checkinLat: String(lat),
@@ -154,22 +148,34 @@ const CheckinMapScreen = () => {
         } as any)
     }
 
+    const radiusLabel = radiusMeters >= 1000
+        ? `${(radiusMeters / 1000).toFixed(1)} km`
+        : `${Math.round(radiusMeters)} m`
+
     return (
-        <SafeAreaView style={styles.container} edges={['top']}>
+        <SafeAreaView style={styles.safeArea} edges={['top']}>
             <Stack.Screen options={{ headerShown: false }} />
-            {/* ── Header ────────────────────────────────────────────────── */}
+
+            {/* ── Header ─────────────────────────────────────────────────── */}
             <View style={styles.header}>
                 <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
-                    <Ionicons name="arrow-back" size={20} color="#1F2937" />
+                    <Ionicons name="arrow-back" size={22} color="#FFFFFF" />
                 </TouchableOpacity>
-                <Text style={styles.headerTitle}>Điểm danh</Text>
-                <View style={styles.headerRight}>
-                    <Ionicons name="menu" size={22} color="#1F2937" />
-                </View>
+                <Text style={styles.headerTitle}>Xác nhận điểm danh</Text>
+                <View style={{ width: 36 }} />
             </View>
 
-            <ScrollView style={{ flex: 1 }} contentContainerStyle={{ flexGrow: 1 }} bounces={false}>
-                {/* ── Map ───────────────────────────────────────────────── */}
+            {/* ── Instruction line ────────────────────────────────────────── */}
+            <View style={styles.instructionBanner}>
+                <Ionicons name="location-outline" size={15} color="#42A4F5" />
+                <Text style={styles.instructionText}>
+                    Xác nhận vị trí của bạn trong vùng điểm danh và chọn phương thức
+                </Text>
+            </View>
+
+            <ScrollView style={styles.scroll} contentContainerStyle={{ flexGrow: 1 }} bounces={false}>
+
+                {/* ── Map ────────────────────────────────────────────────── */}
                 <View style={styles.mapContainer}>
                     <MapView
                         ref={mapRef}
@@ -184,19 +190,19 @@ const CheckinMapScreen = () => {
                         <Circle
                             center={{ latitude: lat, longitude: lng }}
                             radius={radiusMeters}
-                            fillColor="rgba(249,115,22,0.18)"
-                            strokeColor="rgba(249,115,22,0.5)"
+                            fillColor="rgba(66,164,245,0.15)"
+                            strokeColor="rgba(66,164,245,0.55)"
                             strokeWidth={2}
                         />
 
-                        {/* Check-in zone centre marker (green pin) */}
+                        {/* Check-in zone centre marker (blue pin) */}
                         <Marker
                             coordinate={{ latitude: lat, longitude: lng }}
                             title="Địa điểm điểm danh"
                             anchor={{ x: 0.5, y: 1 }}
                         >
-                            <View style={styles.greenMarker}>
-                                <Ionicons name="location" size={28} color="#16A34A" />
+                            <View style={styles.blueMarker}>
+                                <Ionicons name="location" size={30} color="#42A4F5" />
                             </View>
                         </Marker>
 
@@ -219,13 +225,20 @@ const CheckinMapScreen = () => {
                     )}
                 </View>
 
-                {/* ── Event info ────────────────────────────────────────── */}
+                {/* ── Event info card ─────────────────────────────────────── */}
                 <View style={styles.infoCard}>
-                    <Text style={styles.eventName} numberOfLines={2}>
-                        {params.name || 'Hoạt động tình nguyện'}
-                    </Text>
+                    {/* Event name */}
+                    <View style={styles.eventRow}>
+                        <View style={styles.eventIconWrap}>
+                            <Ionicons name="calendar" size={20} color="#42A4F5" />
+                        </View>
+                        <Text style={styles.eventName} numberOfLines={2}>
+                            {params.name || 'Hoạt động tình nguyện'}
+                        </Text>
+                    </View>
 
-                    <View style={styles.addressRow}>
+                    {/* Address */}
+                    <View style={styles.infoRow}>
                         <Ionicons name="location-outline" size={14} color="#6B7280" />
                         <View style={styles.addressTexts}>
                             <Text style={styles.addressMain} numberOfLines={1}>
@@ -239,36 +252,44 @@ const CheckinMapScreen = () => {
                         </View>
                     </View>
 
-                    {/* Zone info */}
-                    <View style={styles.zoneRow}>
-                        <Ionicons name="radio-button-on-outline" size={14} color="#F97316" />
+                    {/* Zone radius chip */}
+                    <View style={styles.zoneChip}>
+                        <Ionicons name="radio-button-on-outline" size={13} color="#42A4F5" />
                         <Text style={styles.zoneText}>
                             Vùng điểm danh:{' '}
-                            <Text style={styles.zoneValue}>
-                                {radiusMeters >= 1000
-                                    ? `${(radiusMeters / 1000).toFixed(1)} km`
-                                    : `${Math.round(radiusMeters)} m`}
-                            </Text>
+                            <Text style={styles.zoneValue}>{radiusLabel}</Text>
                         </Text>
                     </View>
                 </View>
 
-                {/* ── Action buttons ────────────────────────────────────── */}
-                <View style={styles.actionsRow}>
+                {/* ── Legend ─────────────────────────────────────────────── */}
+                <View style={styles.legendCard}>
+                    <View style={styles.legendItem}>
+                        <View style={styles.legendDotBlue} />
+                        <Text style={styles.legendText}>Trung tâm điểm danh</Text>
+                    </View>
+                    <View style={styles.legendItem}>
+                        <View style={styles.legendDotOrange} />
+                        <Text style={styles.legendText}>Vị trí của bạn</Text>
+                    </View>
+                </View>
+
+                {/* ── Action buttons ──────────────────────────────────────── */}
+                <View style={styles.actionsContainer}>
                     {/* Điểm danh nhanh */}
                     <TouchableOpacity
-                        style={[styles.quickBtn, checkingIn && styles.quickBtnDisabled]}
+                        style={[styles.quickBtn, checkingIn && styles.btnDisabled]}
                         onPress={handleQuickCheckin}
                         activeOpacity={0.8}
                         disabled={checkingIn}
                     >
                         {checkingIn ? (
-                            <ActivityIndicator size="small" color="#4B5563" />
+                            <ActivityIndicator size="small" color="#42A4F5" />
                         ) : (
-                            <Ionicons name="time-outline" size={20} color="#4B5563" />
+                            <Ionicons name="time-outline" size={20} color="#42A4F5" />
                         )}
                         <Text style={styles.quickBtnText}>
-                            {checkingIn ? 'Đang điểm danh...' : 'Điểm danh\nnhanh'}
+                            {checkingIn ? 'Đang điểm danh...' : 'Điểm danh nhanh'}
                         </Text>
                     </TouchableOpacity>
 
@@ -282,6 +303,8 @@ const CheckinMapScreen = () => {
                         <Text style={styles.faceBtnText}>Quét khuôn mặt</Text>
                     </TouchableOpacity>
                 </View>
+
+                <View style={{ height: 24 }} />
             </ScrollView>
         </SafeAreaView>
     )
@@ -289,9 +312,9 @@ const CheckinMapScreen = () => {
 
 
 const styles = StyleSheet.create({
-    container: {
+    safeArea: {
         flex: 1,
-        backgroundColor: '#FFFFFF',
+        backgroundColor: '#42A4F5',
     },
 
     /* Header */
@@ -301,30 +324,62 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         paddingHorizontal: 16,
         paddingVertical: 12,
-        backgroundColor: '#FFFFFF',
-        borderBottomWidth: 1,
-        borderBottomColor: '#F3F4F6',
+        backgroundColor: '#42A4F5',
     },
     backBtn: {
         width: 36,
         height: 36,
+        borderRadius: 18,
         alignItems: 'center',
         justifyContent: 'center',
+        backgroundColor: 'rgba(255,255,255,0.25)',
     },
     headerTitle: {
         fontSize: 17,
         fontWeight: '700',
-        color: '#1F2937',
+        color: '#FFFFFF',
     },
-    headerRight: {
-        width: 36,
-        alignItems: 'flex-end',
+
+    /* Instruction line */
+    instructionBanner: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        marginHorizontal: 16,
+        marginTop: 12,
+        marginBottom: 4,
+        backgroundColor: '#FFFFFF',
+        paddingVertical: 10,
+        paddingHorizontal: 14,
+        borderRadius: 10,
+        borderWidth: 1,
+        borderColor: '#E3F2FD',
+    },
+    instructionText: {
+        fontSize: 13,
+        color: '#42A4F5',
+        fontWeight: '500',
+        flex: 1,
+    },
+
+    /* Scroll */
+    scroll: {
+        flex: 1,
+        backgroundColor: '#F0F6FF',
     },
 
     /* Map */
     mapContainer: {
-        height: 380,
-        backgroundColor: '#E5E7EB',
+        height: 340,
+        marginHorizontal: 16,
+        borderRadius: 16,
+        overflow: 'hidden',
+        elevation: 3,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 6,
+        backgroundColor: '#E3F2FD',
     },
     map: {
         ...StyleSheet.absoluteFillObject,
@@ -333,11 +388,11 @@ const styles = StyleSheet.create({
         ...StyleSheet.absoluteFillObject,
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: '#F3F4F6',
+        backgroundColor: '#E3F2FD',
     },
 
     /* Markers */
-    greenMarker: {
+    blueMarker: {
         alignItems: 'center',
         justifyContent: 'center',
     },
@@ -360,23 +415,46 @@ const styles = StyleSheet.create({
 
     /* Event info card */
     infoCard: {
-        paddingHorizontal: 20,
-        paddingVertical: 16,
-        borderBottomWidth: 1,
-        borderBottomColor: '#F3F4F6',
+        marginHorizontal: 16,
+        marginTop: 14,
         backgroundColor: '#FFFFFF',
+        borderRadius: 16,
+        padding: 16,
+        elevation: 2,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.07,
+        shadowRadius: 4,
+        borderWidth: 1,
+        borderColor: '#E3F2FD',
+        gap: 10,
+    },
+    eventRow: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        gap: 10,
+    },
+    eventIconWrap: {
+        width: 36,
+        height: 36,
+        borderRadius: 10,
+        backgroundColor: '#E3F2FD',
+        alignItems: 'center',
+        justifyContent: 'center',
+        flexShrink: 0,
+        marginTop: 1,
     },
     eventName: {
-        fontSize: 18,
+        flex: 1,
+        fontSize: 15,
         fontWeight: '700',
         color: '#1F2937',
-        marginBottom: 10,
+        lineHeight: 22,
     },
-    addressRow: {
+    infoRow: {
         flexDirection: 'row',
         alignItems: 'flex-start',
         gap: 6,
-        marginBottom: 6,
     },
     addressTexts: { flex: 1 },
     addressMain: {
@@ -390,28 +468,69 @@ const styles = StyleSheet.create({
         lineHeight: 18,
         marginTop: 2,
     },
-    zoneRow: {
+    zoneChip: {
         flexDirection: 'row',
         alignItems: 'center',
         gap: 6,
-        marginTop: 4,
+        alignSelf: 'flex-start',
+        backgroundColor: '#E3F2FD',
+        paddingHorizontal: 10,
+        paddingVertical: 5,
+        borderRadius: 20,
     },
     zoneText: {
         fontSize: 12,
-        color: '#6B7280',
+        color: '#42A4F5',
+        fontWeight: '500',
     },
     zoneValue: {
         fontWeight: '700',
-        color: '#F97316',
+        color: '#42A4F5',
+    },
+
+    /* Legend */
+    legendCard: {
+        flexDirection: 'row',
+        gap: 20,
+        marginHorizontal: 16,
+        marginTop: 10,
+        backgroundColor: '#FFFFFF',
+        borderRadius: 12,
+        paddingHorizontal: 16,
+        paddingVertical: 10,
+        borderWidth: 1,
+        borderColor: '#E3F2FD',
+        elevation: 1,
+    },
+    legendItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+    },
+    legendDotBlue: {
+        width: 12,
+        height: 12,
+        borderRadius: 6,
+        backgroundColor: '#42A4F5',
+    },
+    legendDotOrange: {
+        width: 12,
+        height: 12,
+        borderRadius: 6,
+        backgroundColor: '#F97316',
+    },
+    legendText: {
+        fontSize: 12,
+        color: '#4B5563',
+        fontWeight: '500',
     },
 
     /* Action buttons */
-    actionsRow: {
+    actionsContainer: {
         flexDirection: 'row',
         gap: 12,
-        paddingHorizontal: 20,
-        paddingVertical: 18,
-        backgroundColor: '#FFFFFF',
+        marginHorizontal: 16,
+        marginTop: 14,
     },
     quickBtn: {
         flex: 1,
@@ -420,30 +539,39 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         gap: 8,
         borderWidth: 1.5,
-        borderColor: '#D1D5DB',
-        borderRadius: 12,
-        paddingVertical: 14,
+        borderColor: '#42A4F5',
+        borderRadius: 14,
+        paddingVertical: 16,
         backgroundColor: '#FFFFFF',
+        elevation: 2,
+        shadowColor: '#42A4F5',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.15,
+        shadowRadius: 4,
     },
-    quickBtnDisabled: {
+    btnDisabled: {
         opacity: 0.6,
     },
     quickBtnText: {
         fontSize: 13,
-        fontWeight: '600',
-        color: '#374151',
+        fontWeight: '700',
+        color: '#42A4F5',
         textAlign: 'center',
-        lineHeight: 18,
     },
     faceBtn: {
-        flex: 2,
+        flex: 1,
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
         gap: 8,
-        borderRadius: 12,
-        paddingVertical: 14,
-        backgroundColor: '#22C55E',
+        borderRadius: 14,
+        paddingVertical: 16,
+        backgroundColor: '#42A4F5',
+        elevation: 4,
+        shadowColor: '#42A4F5',
+        shadowOffset: { width: 0, height: 3 },
+        shadowOpacity: 0.35,
+        shadowRadius: 6,
     },
     faceBtnText: {
         fontSize: 13,
