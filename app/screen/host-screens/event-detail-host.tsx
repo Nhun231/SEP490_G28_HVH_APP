@@ -13,6 +13,7 @@ import InfoRow from '@/app/components/host/event-details/InfoRow';
 import ServiceGrid, { ServiceOption } from '@/app/components/host/event-details/ServiceGrid';
 import EventSessionModal from '@/app/components/host/event-details/EventSessionModal';
 import CancelEventModal from '@/app/components/host/event-details/CancelEventModal';
+import SingleImageViewer from '@/app/components/host/event-details/SingleImageViewer';
 
 const DEFAULT_IMAGE = 'https://images.unsplash.com/photo-1559027615-cd4628902d4a?w=800&h=400&fit=crop';
 
@@ -80,6 +81,8 @@ const EventDetailScreen = () => {
     const [showCheckinCode, setShowCheckinCode] = useState(false);
     const [sessionModalVisible, setSessionModalVisible] = useState(false);
     const [cancelModalVisible, setCancelModalVisible] = useState(false);
+    const [imageViewerVisible, setImageViewerVisible] = useState(false);
+    const [imageViewerUrl, setImageViewerUrl] = useState('');
 
     // API state
     const [event, setEvent] = useState<EventDetailResponse | null>(null);
@@ -314,9 +317,6 @@ const EventDetailScreen = () => {
                         <Ionicons name="arrow-back" size={22} color="#FFFFFF" />
                     </TouchableOpacity>
                     <Text style={styles.headerTitle}>Chi tiết sự kiện</Text>
-                    <TouchableOpacity style={styles.bellBtn} activeOpacity={0.7}>
-                        <Ionicons name="notifications-outline" size={22} color="#FFFFFF" />
-                    </TouchableOpacity>
                 </View>
 
                 {/* ── Note warning banner (hiển thị ngay dưới header khi có lỗi) ── */}
@@ -343,21 +343,35 @@ const EventDetailScreen = () => {
                     {/* Title card (with event image on top) */}
                     <View style={styles.titleCard}>
                         {/* Event image */}
-                        <ScrollView
-                            horizontal
-                            pagingEnabled
-                            showsHorizontalScrollIndicator={false}
-                            style={styles.bannerScroll}
-                        >
-                            {(event.imageUrls.length > 0 ? event.imageUrls : [DEFAULT_IMAGE]).map((uri, idx) => (
-                                <Image
-                                    key={idx}
-                                    source={{ uri: resolveSupabaseUrl(uri) || DEFAULT_IMAGE }}
-                                    style={styles.bannerImage}
-                                    resizeMode="cover"
-                                />
-                            ))}
-                        </ScrollView>
+                        {(() => {
+                            const resolvedUrls = (event.imageUrls.length > 0 ? event.imageUrls : [DEFAULT_IMAGE])
+                                .map(uri => resolveSupabaseUrl(uri) || DEFAULT_IMAGE);
+                            return (
+                                <ScrollView
+                                    horizontal
+                                    pagingEnabled
+                                    showsHorizontalScrollIndicator={false}
+                                    style={styles.bannerScroll}
+                                >
+                                    {resolvedUrls.map((url, idx) => (
+                                        <TouchableOpacity
+                                            key={idx}
+                                            activeOpacity={0.9}
+                                            onPress={() => {
+                                                setImageViewerUrl(url);
+                                                setImageViewerVisible(true);
+                                            }}
+                                        >
+                                            <Image
+                                                source={{ uri: url }}
+                                                style={styles.bannerImage}
+                                                resizeMode="cover"
+                                            />
+                                        </TouchableOpacity>
+                                    ))}
+                                </ScrollView>
+                            );
+                        })()}
 
                         {/* Name & status */}
                         <View style={styles.titleCardBody}>
@@ -523,6 +537,12 @@ const EventDetailScreen = () => {
                     setCancelModalVisible(false);
                     fetchDetail();
                 }}
+            />
+
+            <SingleImageViewer
+                visible={imageViewerVisible}
+                imageUrl={imageViewerUrl}
+                onClose={() => setImageViewerVisible(false)}
             />
         </>
     );
