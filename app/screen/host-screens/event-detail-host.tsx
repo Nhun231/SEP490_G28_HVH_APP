@@ -260,9 +260,7 @@ const EventDetailScreen = () => {
         }
 
         if (s === 'SUBMITTED') {
-            return [
-                { key: 'edit', label: 'Chỉnh sửa', icon: 'create-outline', iconColor: '#3B82F6', bgColor: '#DBEAFE', onPress: handleEdit },
-            ];
+            return [];
         }
 
         if (s === 'APPROVED_BY_MNG') return [];

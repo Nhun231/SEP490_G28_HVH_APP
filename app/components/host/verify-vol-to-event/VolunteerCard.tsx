@@ -10,6 +10,7 @@ export interface VolunteerApplication {
     email?: string | null;
     phone?: string | null;
     checkInTime?: string | null;
+    checkOutTime?: string | null;
     avatarUrl?: string | null;
     creditScore: number;
     honorScore: number;
@@ -22,6 +23,7 @@ interface VolunteerCardProps {
     item: VolunteerApplication;
     onApprove: (item: VolunteerApplication) => void;
     onReject: (item: VolunteerApplication, reason?: string) => void;
+    onReview?: (item: VolunteerApplication) => void;
     eventStatus?: string;
     sessionStartTime?: string | null;
 }
@@ -55,7 +57,7 @@ const formatCheckInTime = (isoString: string): string => {
     return `${h} giờ ${m > 0 ? m + ' phút' : ''}`;
 };
 
-const VolunteerCard: React.FC<VolunteerCardProps> = ({ item, onApprove, onReject, eventStatus, sessionStartTime }) => {
+const VolunteerCard: React.FC<VolunteerCardProps> = ({ item, onApprove, onReject, onReview, eventStatus, sessionStartTime }) => {
     const [modalVisible, setModalVisible] = useState(false);
     const [pendingAction, setPendingAction] = useState<ModalAction>('approve');
 
@@ -82,7 +84,18 @@ const VolunteerCard: React.FC<VolunteerCardProps> = ({ item, onApprove, onReject
 
     return (
         <>
-            <View style={styles.card}>
+            <TouchableOpacity
+                style={styles.card}
+                activeOpacity={item.status === 'APPROVED' && !!onReview ? 0.75 : 1}
+                onPress={item.status === 'APPROVED' && onReview ? () => onReview(item) : undefined}
+            >
+                {/* Review badge for APPROVED */}
+                {item.status === 'APPROVED' && !!onReview && (
+                    <View style={styles.reviewBadge}>
+                        <Ionicons name="star-outline" size={11} color="#42A4F5" />
+                        <Text style={styles.reviewBadgeText}>Đánh giá</Text>
+                    </View>
+                )}
                 <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 12 }}>
                     {/* Avatar */}
                     <View style={[styles.avatar, { backgroundColor: '#42A4F5' }]}>
@@ -121,8 +134,8 @@ const VolunteerCard: React.FC<VolunteerCardProps> = ({ item, onApprove, onReject
                             </View>
                         )}
 
-                        {/* Attendance badge — only for ONGOING events */}
-                        {item.status === 'APPROVED' && eventStatus === 'ONGOING' && (() => {
+                        {/* Attendance badge — for ONGOING, ENDED, COMPLETED events */}
+                        {item.status === 'APPROVED' && ['ONGOING', 'ENDED', 'COMPLETED'].includes(eventStatus ?? '') && (() => {
                             const checkedIn = !!item.checkInTime &&
                                 (!sessionStartTime ||
                                     new Date(item.checkInTime) >= new Date(sessionStartTime));
@@ -170,7 +183,7 @@ const VolunteerCard: React.FC<VolunteerCardProps> = ({ item, onApprove, onReject
                         </TouchableOpacity>
                     </View>
                 )}
-            </View>
+            </TouchableOpacity>
 
             <ApproveRejectModal
                 visible={modalVisible}
@@ -303,5 +316,21 @@ const styles = StyleSheet.create({
     attendanceBadgeText: {
         fontSize: 12,
         fontWeight: '700',
+    },
+    reviewBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        alignSelf: 'flex-end',
+        gap: 3,
+        backgroundColor: '#EFF6FF',
+        borderRadius: 20,
+        paddingHorizontal: 8,
+        paddingVertical: 3,
+        marginBottom: 6,
+    },
+    reviewBadgeText: {
+        fontSize: 11,
+        fontWeight: '700',
+        color: '#42A4F5',
     },
 });

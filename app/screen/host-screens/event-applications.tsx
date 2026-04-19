@@ -21,6 +21,24 @@ const MASTER_TABS: MasterTabConfig<AppTab>[] = [
 
 const PAGE_SIZE = 10;
 
+// ─── DEV MOCK: xóa khi có data thật ─────────────────────────────────────────
+const MOCK_APPROVED_VOLUNTEER: VolunteerApplication = {
+    id: 'mock-application-id-001',
+    name: 'Nguyễn Văn Test',
+    nickName: 'TestVol',
+    email: 'testvolunteer@example.com',
+    phone: '0912345678',
+    avatarUrl: null,
+    creditScore: 12,
+    honorScore: 8,
+    address: 'Hà Nội',
+    createdAt: new Date().toISOString(),
+    status: 'APPROVED',
+    checkInTime: '2026-06-05T07:25:00+07:00',
+    checkOutTime: '2026-06-05T09:15:00+07:00',
+};
+// ────────────────────────────────────────────────────────────────────────────
+
 // Map pending API participant → VolunteerApplication
 function fromPending(p: RegisteredParticipant): VolunteerApplication {
     return {
@@ -46,6 +64,7 @@ function fromApproved(p: ActualParticipant): VolunteerApplication {
         email: p.email,
         phone: p.phone,
         checkInTime: p.checkInTime,
+        checkOutTime: p.checkOutTime,
         avatarUrl: p.avatarUrl ?? null,
         creditScore: p.creditScore,
         honorScore: p.honorScore,
@@ -63,9 +82,9 @@ const EventApplicationsScreen = () => {
     const eventStatus = params.eventStatus || '';
     const sessionStartTime = params.sessionStartTime || null;
 
-    // Master tab state — default to APPROVED for ONGOING events
+    // Master tab state — default to APPROVED for ONGOING / ENDED / COMPLETED events
     const [masterTab, setMasterTab] = useState<AppTab>(
-        eventStatus === 'ONGOING' ? 'APPROVED' : 'PENDING'
+        ['ONGOING', 'ENDED', 'COMPLETED'].includes(eventStatus) ? 'APPROVED' : 'PENDING'
     );
 
     // Search state
@@ -109,21 +128,28 @@ const EventApplicationsScreen = () => {
     }, [sessionId]);
 
     // Fetch approved participants (page-based — hasMore derived from totalPages)
-    const fetchApproved = useCallback(async (page: number, replace: boolean) => {
-        if (!sessionId) return;
-        try {
-            const res = await getActualParticipants(sessionId, page, PAGE_SIZE);
-            const mapped = res.content.map(fromApproved);
-            if (replace) {
-                setApprovedList(mapped);
-            } else {
-                setApprovedList(prev => [...prev, ...mapped]);
-            }
-            setApprovedHasMore(res.page.number + 1 < res.page.totalPages);
-            approvedPageRef.current = page;
-        } catch (err) {
-            console.error('[EventApplications] fetchApproved error:', getApiErrorMessage(err));
-        }
+    const fetchApproved = useCallback(async (_page: number, _replace: boolean) => {
+        // ─── DEV MOCK: xóa block này khi có data thật ───────────────────────
+        setApprovedList([MOCK_APPROVED_VOLUNTEER]);
+        setApprovedHasMore(false);
+        // ────────────────────────────────────────────────────────────────────
+
+        // ─── PRODUCTION (bỏ comment khi có data thật, xóa block mock trên) ─
+        // if (!sessionId) return;
+        // try {
+        //     const res = await getActualParticipants(sessionId, page, PAGE_SIZE);
+        //     const mapped = res.content.map(fromApproved);
+        //     if (replace) {
+        //         setApprovedList(mapped);
+        //     } else {
+        //         setApprovedList(prev => [...prev, ...mapped]);
+        //     }
+        //     setApprovedHasMore(res.page.number + 1 < res.page.totalPages);
+        //     approvedPageRef.current = page;
+        // } catch (err) {
+        //     console.error('[EventApplications] fetchApproved error:', getApiErrorMessage(err));
+        // }
+        // ────────────────────────────────────────────────────────────────────
     }, [sessionId]);
 
     // Initial load — both tabs in parallel
@@ -225,6 +251,20 @@ const EventApplicationsScreen = () => {
         }
     }, [fetchPending, fetchApproved]);
 
+    // Navigate to review screen for approved volunteers
+    const handleReview = useCallback((item: VolunteerApplication) => {
+        router.push({
+            pathname: '/screen/host-screens/review-volunteers' as any,
+            params: {
+                applicationId: item.id,
+                volunteerName: item.name,
+                volunteerAvatar: item.avatarUrl ?? '',
+                volunteerEmail: item.email ?? '',
+                volunteerPhone: item.phone ?? '',
+            },
+        });
+    }, [router]);
+
     // Derived values for active tab
     const isPending = masterTab === 'PENDING';
     const currentList = isPending ? pendingList : approvedList;
@@ -320,6 +360,18 @@ const EventApplicationsScreen = () => {
                                     item={item}
                                     onApprove={handleRemoveFromList}
                                     onReject={handleRemoveFromList}
+                                    onReview={
+                                        // Only reviewable when:
+                                        // 1. Tab is APPROVED
+                                        // 2. Event is ENDED
+                                        // 3. Volunteer has checked in AND checked out
+                                        masterTab === 'APPROVED' &&
+                                            eventStatus === 'ENDED' &&
+                                            !!item.checkInTime &&
+                                            !!item.checkOutTime
+                                            ? handleReview
+                                            : undefined
+                                    }
                                     eventStatus={eventStatus}
                                     sessionStartTime={sessionStartTime}
                                 />

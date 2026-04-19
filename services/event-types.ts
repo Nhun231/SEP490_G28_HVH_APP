@@ -374,4 +374,22 @@ export interface AnnounceVolunteersRequest {
 export interface AnnounceVolunteersResponse {
     success: boolean;
     message?: string;
-}
+}
+
+// ── Host — Volunteer Review ───────────────────────────────────────────────────
+
+export interface VolunteerReviewRequest {
+    eventApplicationId: string;
+    professionalAttitudeRating: number;
+    responsibilityPunctualityRating: number;
+    workEffectivenessRating: number;
+    teamworkCommunicationRating: number;
+    adaptabilityProblemSolvingRating: number;
+    comment?: string;
+}
+
+export interface VolunteerReviewResponse {
+    success: boolean;
+    message?: string;
+}
+

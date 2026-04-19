@@ -934,7 +934,7 @@ const CreateEvent = () => {
                 console.log('Image uploaded successfully');
             }
 
-            Alert.alert('Thông báo', 'Đã gửi sự kiện để phê duyệt', [
+            Alert.alert('Thông báo', 'Đã gửi sự kiện để phê duyệt\n(Dự kiến phê duyệt trong vòng 48h, nếu muốn phê duyệt sớm nhất vui lòng liên hệ Tổ chức và Quản trị viên)', [
                 { text: 'OK', onPress: () => router.replace('/(host-tabs)/events') },
             ]);
         } catch (error) {
@@ -1002,11 +1002,16 @@ const CreateEvent = () => {
                                         style={styles.textInput}
                                         placeholder="Ví dụ: Làm sạch môi trường + Hoàn Kiếm"
                                         placeholderTextColor="#9CA3AF"
+                                        maxLength={200}
                                         value={eventName}
                                         onBlur={() => {
                                             const normalizedValue = eventName.trim();
                                             if (!normalizedValue) {
                                                 setFormFieldError('eventName', 'Vui lòng nhập tên sự kiện');
+                                                return;
+                                            }
+                                            if (normalizedValue.length > 200) {
+                                                setFormFieldError('eventName', 'Tên sự kiện không được vượt quá 200 ký tự');
                                                 return;
                                             }
                                             if (containsSpecialCharacters(normalizedValue)) {
@@ -1022,6 +1027,10 @@ const CreateEvent = () => {
                                                 setFormFieldError('eventName', formErrors.eventName);
                                                 return;
                                             }
+                                            if (normalizedValue.length > 200) {
+                                                setFormFieldError('eventName', 'Tên sự kiện không được vượt quá 200 ký tự');
+                                                return;
+                                            }
                                             setFormFieldError(
                                                 'eventName',
                                                 containsSpecialCharacters(normalizedValue)
@@ -1031,8 +1040,8 @@ const CreateEvent = () => {
                                         }}
                                     />
                                 </View>
-                                <Text style={styles.fieldHint}>
-                                    Định dạng: Nội dung + Địa điểm (không quá 30 ký tự)
+                                <Text style={[styles.fieldHint, eventName.length >= 200 && { color: '#EF4444' }]}>
+                                    {eventName.length}/200 ký tự
                                 </Text>
                                 {formErrors.eventName && (
                                     <Text style={styles.errorText}>{formErrors.eventName}</Text>
