@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { ScrollView, View, Text, TouchableOpacity, TextInput, StyleSheet, KeyboardAvoidingView, Platform, Alert, ActivityIndicator } from 'react-native';
+import { ScrollView, View, Text, TouchableOpacity, TextInput, StyleSheet, KeyboardAvoidingView, Platform, Alert, ActivityIndicator, Modal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
@@ -10,13 +10,7 @@ import BottomSheetPicker, { OptionItem } from '../../components/host/create-even
 import MapLocationPicker, { LocationData } from '../../components/host/create-event/MapLocationPicker';
 import PickerField from '../../components/host/create-event/PickerField';
 import EventDayCard, { EventDay, DayErrorField } from '../../components/host/create-event/EventDayCard';
-import {
-    ActivityDomain,
-    EventCreateRequest,
-    EventSession,
-    SessionUpdateAction,
-    UpdateImage,
-} from '@/services/event-types';
+import { ActivityDomain, EventCreateRequest, EventSession, SessionUpdateAction, UpdateImage } from '@/services/event-types';
 import { getAllActivityDomains } from '@/services/public-event-service';
 import { saveDraftEvent, submitEvent, getEventDetailByHost } from '@/services/host-event-service';
 import { getApiErrorMessage, getApiErrorRawText, resolveSupabaseUrl } from '@/services/api-helpers';
@@ -134,6 +128,7 @@ const CreateEvent = () => {
     const [showPlacePicker, setShowPlacePicker] = useState(false);
     const [showAreaPicker, setShowAreaPicker] = useState(false);
     const [showMapPicker, setShowMapPicker] = useState(false);
+    const [showServingHint, setShowServingHint] = useState(false);
 
     // keep activity domains in cache
     const [activityDomains, setActivityDomains] = useState<ActivityDomain[]>(cachedActivityDomains);
@@ -148,11 +143,10 @@ const CreateEvent = () => {
         return new Date(now.getFullYear(), now.getMonth(), now.getDate());
     }, []);
 
-    // Transform wards data to OptionItem format
-    const wardOptions: OptionItem[] = wardsData.danh_sach_phuong_xa_moi.map(ward => ({
-        id: ward.stt,
-        label: ward.ten_moi
-    }));
+    // Transform wards data to OptionItem format — sorted A-Z (Vietnamese locale)
+    const wardOptions: OptionItem[] = wardsData.danh_sach_phuong_xa_moi
+        .map(ward => ({ id: ward.stt, label: ward.ten_moi }))
+        .sort((a, b) => a.label.localeCompare(b.label, 'vi', { sensitivity: 'base' }));
 
     // convert activityDomains to servedField options for the picker
     const servedFieldOptions = useMemo<OptionItem[]>(() => {
@@ -1111,7 +1105,17 @@ const CreateEvent = () => {
 
                             {/* Is Serving Event Flag */}
                             <View style={styles.fieldWrapper}>
-                                <Text style={styles.fieldLabel}>Sự kiện có tính chất phục vụ</Text>
+                                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                                    <Text style={[styles.fieldLabel, { marginBottom: 0 }]}>Sự kiện có tính chất phục vụ</Text>
+                                    <TouchableOpacity
+                                        onPress={() => setShowServingHint(true)}
+                                        style={{ flexDirection: 'row', alignItems: 'center', gap: 3, backgroundColor: '#E0F2FE', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 }}
+                                        activeOpacity={0.7}
+                                    >
+                                        <Ionicons name="information-circle-outline" size={14} color="#0284C7" />
+                                        <Text style={{ fontSize: 12, color: '#0284C7', fontWeight: '600' }}>Chú thích</Text>
+                                    </TouchableOpacity>
+                                </View>
                                 <View style={styles.toggleRow}>
                                     <TouchableOpacity
                                         onPress={() => setIsServingEvent(false)}
@@ -1130,9 +1134,40 @@ const CreateEvent = () => {
                                         </Text>
                                     </TouchableOpacity>
                                 </View>
-                                <Text style={styles.fieldHint}>
-                                    Chọn "Có phục vụ" nếu sự kiện cung cấp dịch vụ trực tiếp cho đối tượng thụ hưởng
-                                </Text>
+
+                                {/* Serving hint modal */}
+                                <Modal
+                                    visible={showServingHint}
+                                    transparent
+                                    animationType="fade"
+                                    onRequestClose={() => setShowServingHint(false)}
+                                >
+                                    <TouchableOpacity
+                                        style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', alignItems: 'center', justifyContent: 'center', padding: 32 }}
+                                        activeOpacity={1}
+                                        onPress={() => setShowServingHint(false)}
+                                    >
+                                        <View style={{ backgroundColor: '#FFF', borderRadius: 16, padding: 20, width: '100%' }}>
+                                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                                                <Ionicons name="information-circle" size={20} color="#0284C7" />
+                                                <Text style={{ fontSize: 15, fontWeight: '700', color: '#1E293B' }}>Tính chất phục vụ là gì?</Text>
+                                            </View>
+                                            <Text style={{ fontSize: 13, color: '#374151', lineHeight: 20, marginBottom: 8 }}>
+                                                <Text style={{ fontWeight: '700' }}>Có phục vụ</Text>: Sự kiện trực tiếp tạo ra giá trị cho đối tượng thụ hưởng (ví dụ: khám bệnh miễn phí, dạy học, phát cơm từ thiện).
+                                            </Text>
+                                            <Text style={{ fontSize: 13, color: '#374151', lineHeight: 20, marginBottom: 16 }}>
+                                                <Text style={{ fontWeight: '700' }}>Không phục vụ</Text>: Sự kiện mang tính hỗ trợ, chuẩn bị hoặc các hoạt động đặc thù không có đối tượng thụ hưởng trực tiếp tại chỗ (ví dụ: hiến máu).
+                                            </Text>
+                                            <TouchableOpacity
+                                                onPress={() => setShowServingHint(false)}
+                                                style={{ backgroundColor: '#42A4F5', borderRadius: 10, paddingVertical: 10, alignItems: 'center' }}
+                                                activeOpacity={0.8}
+                                            >
+                                                <Text style={{ color: '#FFF', fontWeight: '700', fontSize: 14 }}>Đã hiểu</Text>
+                                            </TouchableOpacity>
+                                        </View>
+                                    </TouchableOpacity>
+                                </Modal>
                             </View>
 
                             {/* Serving Target */}

@@ -81,6 +81,7 @@ export interface EventSessionDetailsResponse {
     endDateTime: string;
     expectedVolAmount: number;
     expectedSerAmount: number;
+    checkInCode?: string;
     approvedApplicationCount?: number;
 }
 

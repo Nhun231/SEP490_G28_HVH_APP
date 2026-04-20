@@ -194,6 +194,7 @@ const EventDetailScreen = () => {
         endTime: parseIsoDateTime(s.endDateTime).time,
         volunteerCount: s.expectedVolAmount,
         servedCount: s.expectedSerAmount,
+        checkInCode: s.checkInCode ?? null,
     }));
 
     const uniqueDates = [...new Set(sessions.map(s => s.date))];
@@ -443,6 +444,17 @@ const EventDetailScreen = () => {
                                             </Text>
                                         </View>
                                     </View>
+
+                                    {/* Check-in code — only when available */}
+                                    {!!session.checkInCode && (
+                                        <View style={styles.sessionCheckInRow}>
+                                            <Ionicons name="key-outline" size={13} color="#42A4F5" />
+                                            <Text style={styles.sessionCheckInLabel}>Mã check-in:</Text>
+                                            <View style={styles.sessionCheckInBadge}>
+                                                <Text style={styles.sessionCheckInCode}>{session.checkInCode}</Text>
+                                            </View>
+                                        </View>
+                                    )}
                                 </View>
                             </View>
                         ))}
@@ -786,6 +798,31 @@ const styles = StyleSheet.create({
     sessionStatValue: {
         fontSize: 16,
         fontWeight: '800',
+    },
+    sessionCheckInRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 5,
+        marginTop: 8,
+    },
+    sessionCheckInLabel: {
+        fontSize: 12,
+        color: '#42A4F5',
+        fontWeight: '600',
+    },
+    sessionCheckInBadge: {
+        backgroundColor: '#E3F2FD',
+        borderRadius: 6,
+        paddingHorizontal: 8,
+        paddingVertical: 2,
+        borderWidth: 1,
+        borderColor: '#BBDEFB',
+    },
+    sessionCheckInCode: {
+        fontSize: 13,
+        fontWeight: '800',
+        color: '#1565C0',
+        letterSpacing: 1.5,
     },
 
     // Check-in card
