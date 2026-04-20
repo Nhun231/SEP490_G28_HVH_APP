@@ -9,7 +9,7 @@ import { useRouter, useLocalSearchParams, Stack } from 'expo-router';
 import { announceVolunteers } from '@/services/host-event-service';
 import { getApiErrorMessage } from '@/services/api-helpers';
 
-const MAX_TITLE = 100;
+const MAX_TITLE = 200;
 const MAX_CONTENT = 1000;
 
 const AnnounceVolunteers = () => {
