@@ -76,6 +76,7 @@ const CheckinCodeScreen = () => {
                     lat: String(details.latCheckInLocation),
                     lng: String(details.lngCheckInLocation),
                     radiusMeters: String(details.checkInAccuracyMeters),
+                    sessionEndTime: details.sessionEndTime ?? '',
                 },
             })
         } catch (err: unknown) {

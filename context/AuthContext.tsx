@@ -1,5 +1,6 @@
 import baseAxios from '@/lib/baseAxios'
 import { supabase } from '@/lib/supabase'
+import { registerFcmToken } from '@/services/notification-service'
 import { Session } from '@supabase/supabase-js'
 import React, { createContext, useContext, useEffect, useRef, useState } from 'react'
 import { Alert } from 'react-native'
@@ -49,6 +50,12 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             setSession(session)
             if (event === 'PASSWORD_RECOVERY') {
                 setIsPasswordRecovery(true)
+            }
+            // Register FCM token after login so auth header is available
+            if (event === 'SIGNED_IN') {
+                registerFcmToken().catch(err =>
+                    console.warn('[Notification] Post-login FCM token registration failed:', err)
+                )
             }
         })
 

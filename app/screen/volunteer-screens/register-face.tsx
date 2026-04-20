@@ -101,7 +101,7 @@ export default function RegisterFaceScreen() {
                 mimeType: photo.mimeType ?? 'image/jpeg',
             })
             Alert.alert(
-                'Đăng ký thành công! 🎉',
+                'Đăng ký thành công!',
                 'Dữ liệu khuôn mặt của bạn đã được đăng ký. Bạn có thể đăng ký tham gia hoạt động ngay bây giờ.',
                 [{ text: 'Tuyệt vời', onPress: () => router.back() }]
             )
@@ -230,35 +230,6 @@ export default function RegisterFaceScreen() {
                                 <Text style={styles.guidelineText}>{g.text}</Text>
                             </View>
                         ))}
-                    </View>
-                </View>
-
-                {/* ── Example good / bad ── */}
-                <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>Ví dụ về ảnh</Text>
-                    <View style={styles.exampleRow}>
-                        <View style={styles.exampleItem}>
-                            <View style={[styles.exampleBox, styles.exampleGood]}>
-                                <Ionicons name="person" size={48} color="#10B981" />
-                                <View style={styles.exampleBadge}>
-                                    <Ionicons name="checkmark-circle" size={18} color="#10B981" />
-                                </View>
-                            </View>
-                            <Text style={styles.exampleLabel}>✅ Đúng</Text>
-                            <Text style={styles.exampleSub}>Mặt rõ, nhìn thẳng,{'\n'}đủ sáng</Text>
-                        </View>
-
-                        <View style={styles.exampleItem}>
-                            <View style={[styles.exampleBox, styles.exampleBad]}>
-                                <MaterialCommunityIcons name="glasses" size={32} color="#EF4444" />
-                                <Ionicons name="person" size={40} color="#EF4444" style={{ opacity: 0.5 }} />
-                                <View style={[styles.exampleBadge, styles.exampleBadgeBad]}>
-                                    <Ionicons name="close-circle" size={18} color="#EF4444" />
-                                </View>
-                            </View>
-                            <Text style={[styles.exampleLabel, { color: '#EF4444' }]}>❌ Sai</Text>
-                            <Text style={styles.exampleSub}>Đeo kính, góc nghiêng,{'\n'}thiếu sáng</Text>
-                        </View>
                     </View>
                 </View>
 
@@ -523,56 +494,6 @@ const styles = StyleSheet.create({
         fontSize: 13,
         color: '#374151',
         lineHeight: 18,
-    },
-
-    /* Examples */
-    exampleRow: {
-        flexDirection: 'row',
-        gap: 12,
-    },
-    exampleItem: {
-        flex: 1,
-        alignItems: 'center',
-        gap: 6,
-    },
-    exampleBox: {
-        width: '100%',
-        aspectRatio: 1,
-        borderRadius: 14,
-        alignItems: 'center',
-        justifyContent: 'center',
-        position: 'relative',
-    },
-    exampleGood: {
-        backgroundColor: '#D1FAE5',
-        borderWidth: 2,
-        borderColor: '#10B981',
-    },
-    exampleBad: {
-        backgroundColor: '#FEE2E2',
-        borderWidth: 2,
-        borderColor: '#EF4444',
-    },
-    exampleBadge: {
-        position: 'absolute',
-        top: 6,
-        right: 6,
-        backgroundColor: '#FFFFFF',
-        borderRadius: 10,
-    },
-    exampleBadgeBad: {
-        // inherits position from exampleBadge
-    },
-    exampleLabel: {
-        fontSize: 13,
-        fontWeight: '700',
-        color: '#10B981',
-    },
-    exampleSub: {
-        fontSize: 11,
-        color: '#6B7280',
-        textAlign: 'center',
-        lineHeight: 16,
     },
 
     /* CTA */

@@ -37,6 +37,7 @@ const CheckinTimerScreen = () => {
         eventId: string
         applicationId: string
         sessionId: string
+        sessionEndTime: string
         /** Event check-in location — forwarded for GPS mock during checkout */
         checkinLat: string
         checkinLng: string
@@ -221,6 +222,23 @@ const CheckinTimerScreen = () => {
                     Thời gian đang được theo dõi. Bấm "Check-out" khi bạn hoàn thành tình nguyện.
                 </Text>
             </View>
+
+            {/* End-time warning */}
+            {!!params.sessionEndTime && (
+                <View style={styles.warningBox}>
+                    <Ionicons name="warning-outline" size={16} color="#D97706" />
+                    <Text style={styles.warningText}>
+                        Phiên sự kiện kết thúc lúc{' '}
+                        <Text style={styles.warningHighlight}>
+                            {new Date(params.sessionEndTime).toLocaleString('vi-VN', {
+                                day: '2-digit', month: '2-digit', year: 'numeric',
+                                hour: '2-digit', minute: '2-digit',
+                            })}
+                        </Text>
+                        . Vui lòng check-out trước thời điểm trên.
+                    </Text>
+                </View>
+            )}
 
             {/* Checkout button */}
             <View style={styles.checkoutContainer}>
@@ -424,7 +442,30 @@ const styles = StyleSheet.create({
         lineHeight: 18,
     },
 
-    /* Checkout */
+    /* End-time warning */
+    warningBox: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        gap: 8,
+        marginHorizontal: 16,
+        marginTop: 8,
+        backgroundColor: '#FFFBEB',
+        borderRadius: 10,
+        padding: 12,
+        borderWidth: 1,
+        borderColor: '#FDE68A',
+    },
+    warningText: {
+        fontSize: 12,
+        color: '#92400E',
+        flex: 1,
+        lineHeight: 18,
+    },
+    warningHighlight: {
+        fontWeight: '700',
+        color: '#B45309',
+    },
+
     checkoutContainer: {
         paddingHorizontal: 16,
         paddingBottom: 8,

@@ -1,5 +1,5 @@
 import AuthProvider from "@/context/AuthContext";
-import { setupBackgroundMessageHandler, setupForegroundMessageHandler, registerFcmToken } from "@/services/notification-service";
+import { setupBackgroundMessageHandler, setupForegroundMessageHandler } from "@/services/notification-service";
 import { Stack } from "expo-router";
 import { useEffect } from "react";
 import { StatusBar } from "react-native";
@@ -11,9 +11,6 @@ setupBackgroundMessageHandler();
 
 export default function RootLayout() {
   useEffect(() => {
-    // Request permission + get FCM token + register with backend
-    registerFcmToken();
-
     // Listen for foreground messages and show them as banners
     const unsubscribe = setupForegroundMessageHandler();
     return () => unsubscribe();
