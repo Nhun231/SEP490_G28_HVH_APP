@@ -21,6 +21,7 @@ export interface CheckinEventDetails {
     latCheckInLocation: number
     lngCheckInLocation: number
     checkInAccuracyMeters: number
+    sessionEndTime: string | null
 }
 
 export interface QuickCheckInRequest {
@@ -46,6 +47,9 @@ export const getCheckinEventDetails = async (
     codeResponse: CheckEventByCodeResponse
 ): Promise<CheckinEventDetails> => {
     const details: EventDetailsResponse = await getEventDetails(codeResponse.eventId)
+    const matchingSession = details.eventSessions?.find(
+        s => s.id === codeResponse.eventSessionId
+    ) ?? null
     return {
         eventId: codeResponse.eventId,
         eventSessionId: codeResponse.eventSessionId,
@@ -55,6 +59,7 @@ export const getCheckinEventDetails = async (
         latCheckInLocation: details.latCheckInLocation,
         lngCheckInLocation: details.lngCheckInLocation,
         checkInAccuracyMeters: details.checkInAccuracyMeters,
+        sessionEndTime: matchingSession?.endDateTime ?? null,
     }
 }
 

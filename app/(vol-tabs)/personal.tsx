@@ -15,6 +15,7 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 const SERVICES = [
     { icon: 'calendar-outline', label: 'Hoạt động\nđã đăng ký', color: '#F97316', bg: '#FFF3EB' },
     { icon: 'checkmark-circle-outline', label: 'Hoạt động\nđã điểm danh', color: '#14B8A6', bg: '#E6FAF8' },
+    { icon: 'bookmark-outline', label: 'Sự kiện\nđã lưu', color: '#42A4F5', bg: '#EBF5FF' },
     { icon: 'share-social-outline', label: 'Khoảnh\nkhắc của tôi', color: '#8B5CF6', bg: '#F3EEFF' },
     { icon: 'card-outline', label: 'Thẻ thông tin\ncủa tôi', color: '#3B82F6', bg: '#EBF2FF' },
     { icon: 'chatbubble-outline', label: 'Đánh giá\ncủa tôi', color: '#A855F7', bg: '#F5F0FF' },
@@ -168,11 +169,14 @@ export default function Personal() {
                                     activeOpacity={0.7}
                                     onPress={() => {
                                         if (idx === 0) {
-                                            // "Hoạt động đã đăng ký" → show PENDING/APPROVED/REJECTED/CANCELLED only
+                                            // "Hoạt động đã đăng ký"
                                             router.push('/screen/volunteer-screens/my-applications' as any);
                                         } else if (idx === 1) {
-                                            // "Hoạt động đã điểm danh" → show COMPLETED only
+                                            // "Hoạt động đã điểm danh"
                                             router.push({ pathname: '/screen/volunteer-screens/my-applications', params: { mode: 'checked-in' } } as any);
+                                        } else if (idx === 2) {
+                                            // "Sự kiện đã lưu"
+                                            router.push('/screen/volunteer-screens/saved-events' as any);
                                         }
                                     }}
                                 >

@@ -394,3 +394,20 @@ export interface VolunteerReviewResponse {
     message?: string;
 }
 
+// ── Volunteer — Saved Events ──────────────────────────────────────────────────
+
+export interface SavedEventsParams {
+    pageNumber?: number;
+    pageSize?: number;
+    name?: string;
+}
+
+export interface SavedEventsResponse {
+    content: EventSimpleResponse[];
+    page: {
+        size: number;
+        number: number;
+        totalElements: number;
+        totalPages: number;
+    };
+}

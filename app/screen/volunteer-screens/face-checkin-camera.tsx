@@ -1,8 +1,10 @@
+import { getApiErrorMessage } from '@/services/api-helpers'
+import { faceCheckIn } from '@/services/checkin-service'
 import * as Application from 'expo-application'
 import { CameraView, useCameraPermissions } from 'expo-camera'
 import * as Device from 'expo-device'
 import { router, Stack, useLocalSearchParams } from 'expo-router'
-import React, { useCallback, useEffect, useRef, useState } from 'react'
+import React, { useCallback, useRef, useState } from 'react'
 import {
     Alert,
     Animated,
@@ -12,14 +14,14 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native'
-import Svg, { Circle } from 'react-native-svg'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import { faceCheckIn } from '@/services/checkin-service'
-import { getApiErrorMessage } from '@/services/api-helpers'
+import Svg, { Circle } from 'react-native-svg'
 
 
 type Params = {
+    applicationId: string
     sessionId: string
+    sessionEndTime: string
     checkinLat: string
     checkinLng: string
     name?: string
@@ -165,7 +167,9 @@ export default function FaceCheckinCameraScreen() {
             router.replace({
                 pathname: '/screen/volunteer-screens/checkin-timer',
                 params: {
+                    applicationId: params.applicationId ?? '',
                     sessionId: params.sessionId,
+                    sessionEndTime: params.sessionEndTime ?? '',
                     checkinLat: params.checkinLat,
                     checkinLng: params.checkinLng,
                     eventName: params.name ?? '',
@@ -272,11 +276,11 @@ export default function FaceCheckinCameraScreen() {
                         {phase === 'recording' && (
                             <CountdownArc total={RECORD_DURATION_SEC} remaining={countdown} />
                         )}
-                        {phase === 'uploading' && (
-                            <View style={styles.uploadingDot}>
-                                <Text style={styles.uploadingIcon}>⏳</Text>
-                            </View>
-                        )}
+                        {/* {phase === 'uploading' && (
+                            // <View style={styles.uploadingDot}>
+                            //     <Text style={styles.uploadingIcon}>⏳</Text>
+                            // </View>
+                        )} */}
                         <Text style={styles.instructionText}>{phaseLabel}</Text>
                         {phase === 'idle' && (
                             <TouchableOpacity style={styles.startBtn} onPress={startRecording} activeOpacity={0.85}>

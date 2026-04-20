@@ -41,12 +41,10 @@ const CheckinMapScreen = () => {
         name: string
         address: string
         detailAddress: string
-        /** Latitude of check-in zone centre */
         lat: string
-        /** Longitude of check-in zone centre */
         lng: string
-        /** Allowed radius in metres */
         radiusMeters: string
+        sessionEndTime: string
     }>()
 
     const lat = parseFloat(params.lat ?? '0')
@@ -124,6 +122,7 @@ const CheckinMapScreen = () => {
                     eventName: params.name ?? '',
                     eventId: params.eventId ?? '',
                     sessionId: params.eventSessionId ?? '',
+                    sessionEndTime: params.sessionEndTime ?? '',
                     // Pass event check-in coords for GPS mock during checkout
                     checkinLat: String(lat),
                     checkinLng: String(lng),
@@ -141,9 +140,11 @@ const CheckinMapScreen = () => {
         router.push({
             pathname: '/screen/volunteer-screens/face-checkin-guide',
             params: {
+                applicationId: params.applicationId ?? '',
                 sessionId: params.eventSessionId,
-                checkinLat: String(lat),  // [TESTING] mocked to zone centre
-                checkinLng: String(lng),  // TODO: replace with real GPS
+                sessionEndTime: params.sessionEndTime ?? '',
+                checkinLat: String(lat),
+                checkinLng: String(lng),
             },
         } as any)
     }

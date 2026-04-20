@@ -1,5 +1,6 @@
 import * as Notifications from 'expo-notifications';
 import { Platform, NativeModules } from 'react-native';
+import * as Application from 'expo-application';
 import baseAxios from '@/lib/baseAxios';
 
 //config for notification
@@ -61,12 +62,23 @@ export async function registerFcmToken(): Promise<string | null> {
     if (!fcmToken) {
       console.warn('[Notification] Could not get FCM token.');
       return null;
-    }
+    }
+
+    // Resolve a stable device identifier to satisfy BE @NotBlank @Size(min=20)
+    let deviceId: string
+    if (Platform.OS === 'android') {
+      deviceId = (await Application.getAndroidId()) ?? Application.applicationId ?? 'unknown-android'
+    } else {
+      deviceId = (await Application.getIosIdForVendorAsync()) ?? Application.applicationId ?? 'unknown-ios'
+    }
+
     // Send token to your backend so it can push notifications to this device
-    await baseAxios.post('/notifications/register-token', {
+    await baseAxios.post('/api/v1/notifications/register-token', {
       token: fcmToken,
-      platform: Platform.OS,
-    });    return fcmToken;
+      platform: Platform.OS.toUpperCase(),
+      deviceId,
+    });
+    return fcmToken;
   } catch (error) {
     console.error('[Notification] Failed to register FCM token:', error);
     return null;

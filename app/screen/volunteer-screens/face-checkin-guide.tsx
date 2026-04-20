@@ -12,7 +12,9 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 
 
 type Params = {
+    applicationId: string
     sessionId: string
+    sessionEndTime: string
     checkinLat: string
     checkinLng: string
     name?: string
@@ -35,7 +37,9 @@ export default function FaceCheckinGuideScreen() {
         router.push({
             pathname: '/screen/volunteer-screens/face-checkin-camera',
             params: {
+                applicationId: params.applicationId ?? '',
                 sessionId: params.sessionId,
+                sessionEndTime: params.sessionEndTime ?? '',
                 checkinLat: params.checkinLat,
                 checkinLng: params.checkinLng,
                 name: params.name ?? '',

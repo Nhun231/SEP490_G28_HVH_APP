@@ -5,10 +5,14 @@
  */
 
 import baseAxios from '@/lib/baseAxios'
+import { Platform } from 'react-native'
+import * as Application from 'expo-application'
 import type {
     VolApplicationsParams,
     VolApplicationsResponse,
     RateEventRequest,
+    SavedEventsParams,
+    SavedEventsResponse,
 } from './event-types'
 
 const API_BASE = process.env.EXPO_PUBLIC_API_URL || 'https://api.hvh.homes'
@@ -72,7 +76,7 @@ export const rateEvent = async (request: RateEventRequest): Promise<void> => {
 
 /**
  * Register the volunteer's face biometric data.
- * POST /api/v1/vol/volunteers/register-face-id   (multipart: file)
+ * POST /api/v1/vol/volunteers/register-face-id
  * Requires VOL role. Can only be called once — already-registered accounts will get a 409 error.
  */
 export const registerVolunteerFace = async (photo: {
@@ -81,7 +85,16 @@ export const registerVolunteerFace = async (photo: {
     mimeType: string
 }): Promise<void> => {
     const url = `${API_BASE}/api/v1/vol/volunteers/register-face-id`
+
+    let deviceId: string
+    if (Platform.OS === 'android') {
+        deviceId = (await Application.getAndroidId()) ?? Application.applicationId ?? 'unknown-android'
+    } else {
+        deviceId = (await Application.getIosIdForVendorAsync()) ?? Application.applicationId ?? 'unknown-ios'
+    }
+
     const formData = new FormData()
+    formData.append('deviceId', deviceId)
     formData.append('file', {
         uri: photo.uri,
         name: photo.fileName,
@@ -90,4 +103,22 @@ export const registerVolunteerFace = async (photo: {
     await baseAxios.post(url, formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
     })
+}
+
+/**
+ * Fetch the current volunteer's saved events, with optional name search.
+ * GET /api/v1/vol/events/saved-events
+ * Requires VOL role.
+ */
+export const getSavedEvents = async (
+    params: SavedEventsParams = {}
+): Promise<SavedEventsResponse> => {
+    const query = new URLSearchParams()
+    query.append('pageNumber', String(params.pageNumber ?? 0))
+    query.append('pageSize', String(params.pageSize ?? 10))
+    if (params.name) query.append('name', params.name)
+
+    const url = `${API_BASE}/api/v1/vol/events/saved-events?${query.toString()}`
+    const response = await baseAxios.get<SavedEventsResponse>(url)
+    return response.data
 }
