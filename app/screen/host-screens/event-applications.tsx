@@ -21,24 +21,6 @@ const MASTER_TABS: MasterTabConfig<AppTab>[] = [
 
 const PAGE_SIZE = 10;
 
-// ─── DEV MOCK: xóa khi có data thật ─────────────────────────────────────────
-const MOCK_APPROVED_VOLUNTEER: VolunteerApplication = {
-    id: 'mock-application-id-001',
-    name: 'Nguyễn Văn Test',
-    nickName: 'TestVol',
-    email: 'testvolunteer@example.com',
-    phone: '0912345678',
-    avatarUrl: null,
-    creditScore: 12,
-    honorScore: 8,
-    address: 'Hà Nội',
-    createdAt: new Date().toISOString(),
-    status: 'APPROVED',
-    checkInTime: '2026-06-05T07:25:00+07:00',
-    checkOutTime: '2026-06-05T09:15:00+07:00',
-};
-// ────────────────────────────────────────────────────────────────────────────
-
 // Map pending API participant → VolunteerApplication
 function fromPending(p: RegisteredParticipant): VolunteerApplication {
     return {
@@ -128,28 +110,21 @@ const EventApplicationsScreen = () => {
     }, [sessionId]);
 
     // Fetch approved participants (page-based — hasMore derived from totalPages)
-    const fetchApproved = useCallback(async (_page: number, _replace: boolean) => {
-        // ─── DEV MOCK: xóa block này khi có data thật ───────────────────────
-        setApprovedList([MOCK_APPROVED_VOLUNTEER]);
-        setApprovedHasMore(false);
-        // ────────────────────────────────────────────────────────────────────
-
-        // ─── PRODUCTION (bỏ comment khi có data thật, xóa block mock trên) ─
-        // if (!sessionId) return;
-        // try {
-        //     const res = await getActualParticipants(sessionId, page, PAGE_SIZE);
-        //     const mapped = res.content.map(fromApproved);
-        //     if (replace) {
-        //         setApprovedList(mapped);
-        //     } else {
-        //         setApprovedList(prev => [...prev, ...mapped]);
-        //     }
-        //     setApprovedHasMore(res.page.number + 1 < res.page.totalPages);
-        //     approvedPageRef.current = page;
-        // } catch (err) {
-        //     console.error('[EventApplications] fetchApproved error:', getApiErrorMessage(err));
-        // }
-        // ────────────────────────────────────────────────────────────────────
+    const fetchApproved = useCallback(async (page: number, replace: boolean) => {
+        if (!sessionId) return;
+        try {
+            const res = await getActualParticipants(sessionId, page, PAGE_SIZE);
+            const mapped = res.content.map(fromApproved);
+            if (replace) {
+                setApprovedList(mapped);
+            } else {
+                setApprovedList(prev => [...prev, ...mapped]);
+            }
+            setApprovedHasMore(res.page.number + 1 < res.page.totalPages);
+            approvedPageRef.current = page;
+        } catch (err) {
+            console.error('[EventApplications] fetchApproved error:', getApiErrorMessage(err));
+        }
     }, [sessionId]);
 
     // Initial load — both tabs in parallel
