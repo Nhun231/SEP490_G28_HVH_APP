@@ -25,7 +25,7 @@ export interface CheckinEventDetails {
 }
 
 export interface QuickCheckInRequest {
-    eventSessionId: string
+    applicationId: string
     deviceId: string
     apVersion: string
     osVersion: string
@@ -78,6 +78,35 @@ export const quickCheckIn = async (data: QuickCheckInRequest): Promise<void> => 
 export const checkOutEvent = async (data: CheckOutEventRequest): Promise<void> => {
     const endpoint = `${API_BASE}/api/v1/vol/event-applications/check-out`
     await baseAxios.post(endpoint, data)
+}
+
+
+export interface ActiveCheckinResponse {
+    /** ISO-8601 timestamp when the volunteer checked in */
+    checkInTime: string
+    eventSessionId: string
+    applicationId: string
+    eventId: string
+    eventName: string
+    sessionEndTime: string | null
+    /** Event check-in centre latitude (for checkout mock/GPS) */
+    latCheckInLocation: number
+    /** Event check-in centre longitude (for checkout mock/GPS) */
+    lngCheckInLocation: number
+}
+
+/**
+ * Returns the volunteer's currently active check-in session, or null if not checked in.
+ * GET /api/v1/vol/event-applications/active-check-in
+ */
+export const getActiveCheckin = async (): Promise<ActiveCheckinResponse | null> => {
+    try {
+        const endpoint = `${API_BASE}/api/v1/vol/event-applications/active-check-in`
+        const response = await baseAxios.get<ActiveCheckinResponse>(endpoint)
+        return response.data ?? null
+    } catch {
+        return null
+    }
 }
 
 

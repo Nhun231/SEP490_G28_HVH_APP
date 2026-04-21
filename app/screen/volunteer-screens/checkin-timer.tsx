@@ -32,12 +32,12 @@ function formatDuration(seconds: number): string {
 
 const CheckinTimerScreen = () => {
     const params = useLocalSearchParams<{
-        code: string
         eventName: string
-        eventId: string
         applicationId: string
         sessionId: string
         sessionEndTime: string
+        /** ISO-8601 timestamp when the volunteer checked in (from checkin log) */
+        checkinTime: string
         /** Event check-in location — forwarded for GPS mock during checkout */
         checkinLat: string
         checkinLng: string
@@ -45,7 +45,12 @@ const CheckinTimerScreen = () => {
 
     const [elapsed, setElapsed] = useState(0)
     const [checkingOut, setCheckingOut] = useState(false)
-    const startTimeRef = useRef<Date>(new Date())
+    // Resolved check-in start time: use the ISO param if available (so timer survives
+    // navigating away and coming back), otherwise fall back to "right now".
+    const resolvedCheckinTime = params.checkinTime
+        ? new Date(params.checkinTime)
+        : new Date()
+    const startTimeRef = useRef<Date>(resolvedCheckinTime)
     const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
     const pulseAnim = useRef(new Animated.Value(1)).current
 
@@ -61,12 +66,14 @@ const CheckinTimerScreen = () => {
         return () => pulse.stop()
     }, [])
 
-    // Ticker
+    // Ticker — initialise once based on the resolved check-in timestamp
     useEffect(() => {
-        startTimeRef.current = new Date()
+        // Compute initial elapsed from the real check-in time (not mount time)
+        const computeElapsed = () =>
+            Math.floor((new Date().getTime() - startTimeRef.current.getTime()) / 1000)
+        setElapsed(computeElapsed())
         intervalRef.current = setInterval(() => {
-            const diff = Math.floor((new Date().getTime() - startTimeRef.current.getTime()) / 1000)
-            setElapsed(diff)
+            setElapsed(computeElapsed())
         }, 1000)
         return () => {
             if (intervalRef.current) clearInterval(intervalRef.current)
