@@ -6,19 +6,11 @@
   <component name="ChangeListManager">
     <list default="true" id="75668f23-b4c0-497d-81ac-fa2ee3afdab7" name="Changes" comment="fix: deviceId in register face updated">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/(vol-tabs)/personal.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/(vol-tabs)/personal.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/_layout.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/_layout.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/screen/volunteer-screens/checkin-code.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/screen/volunteer-screens/checkin-code.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/(vol-tabs)/checkin.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/(vol-tabs)/checkin.tsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/app/screen/volunteer-screens/checkin-map.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/screen/volunteer-screens/checkin-map.tsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/app/screen/volunteer-screens/checkin-timer.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/screen/volunteer-screens/checkin-timer.tsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/app/screen/volunteer-screens/face-checkin-camera.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/screen/volunteer-screens/face-checkin-camera.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/screen/volunteer-screens/face-checkin-guide.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/screen/volunteer-screens/face-checkin-guide.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/screen/volunteer-screens/register-face.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/screen/volunteer-screens/register-face.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/context/AuthContext.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/context/AuthContext.tsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/services/checkin-service.ts" beforeDir="false" afterPath="$PROJECT_DIR$/services/checkin-service.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/services/event-types.ts" beforeDir="false" afterPath="$PROJECT_DIR$/services/event-types.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/services/notification-service.ts" beforeDir="false" afterPath="$PROJECT_DIR$/services/notification-service.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/services/vol-event-service.ts" beforeDir="false" afterPath="$PROJECT_DIR$/services/vol-event-service.ts" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -28,7 +20,7 @@
   <component name="Git.Settings">
     <option name="RECENT_BRANCH_BY_REPOSITORY">
       <map>
-        <entry key="$PROJECT_DIR$" value="main" />
+        <entry key="$PROJECT_DIR$" value="fix-checkin-timer-UI" />
       </map>
     </option>
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
@@ -60,7 +52,7 @@
   "keyToString": {
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "RunOnceActivity.git.unshallow": "true",
-    "git-widget-placeholder": "dev",
+    "git-widget-placeholder": "fix-checkin-timer-screen",
     "ignore.virus.scanning.warn.message": "true",
     "last_opened_file_path": "D:/Documents/9th_semester/GRADUATEEEEE/SEP490_G28_HVH_APP",
     "node.js.detected.package.eslint": "true",
@@ -135,6 +127,7 @@
       <workItem from="1775829084754" duration="1969000" />
       <workItem from="1775986011122" duration="1916000" />
       <workItem from="1776441319759" duration="1035000" />
+      <workItem from="1776768142685" duration="1723000" />
     </task>
     <servers />
   </component>

@@ -1,19 +1,62 @@
-import React from 'react'
+import React, { useCallback, useState } from 'react'
 import {
     View,
     Text,
     StyleSheet,
     TouchableOpacity,
-    Dimensions,
     ScrollView,
+    ActivityIndicator,
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { Ionicons } from '@expo/vector-icons'
-import { router } from 'expo-router'
+import { router, useFocusEffect } from 'expo-router'
+import { getActiveCheckin } from '@/services/checkin-service'
 
 const CheckinTab = () => {
+    const [checking, setChecking] = useState(true)
+
+    // Every time this tab gains focus, check if the user already has an active
+    // check-in session. If yes → redirect straight to the timer screen.
+    useFocusEffect(
+        useCallback(() => {
+            let cancelled = false
+            setChecking(true)
+            getActiveCheckin().then(session => {
+                if (cancelled) return
+                setChecking(false)
+                if (session) {
+                    router.replace({
+                        pathname: '/screen/volunteer-screens/checkin-timer' as any,
+                        params: {
+                            applicationId: session.applicationId,
+                            eventName: session.eventName,
+                            sessionId: session.eventSessionId,
+                            sessionEndTime: session.sessionEndTime ?? '',
+                            checkinLat: String(session.latCheckInLocation),
+                            checkinLng: String(session.lngCheckInLocation),
+                            // Key fix: pass the real check-in timestamp so the
+                            // timer computes elapsed from check-in, not from now
+                            checkinTime: session.checkInTime,
+                        },
+                    })
+                }
+            })
+            return () => { cancelled = true }
+        }, [])
+    )
+
     const handleStartCheckin = () => {
         router.push('/screen/volunteer-screens/checkin-code' as any)
+    }
+
+    if (checking) {
+        return (
+            <SafeAreaView style={styles.container}>
+                <View style={styles.loadingCenter}>
+                    <ActivityIndicator size="large" color="#42A4F5" />
+                </View>
+            </SafeAreaView>
+        )
     }
 
     return (
@@ -113,6 +156,11 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: '#F0F6FF',
+    },
+    loadingCenter: {
+        flex: 1,
+        alignItems: 'center',
+        justifyContent: 'center',
     },
     header: {
         paddingHorizontal: 20,

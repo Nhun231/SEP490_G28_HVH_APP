@@ -173,6 +173,7 @@ export default function FaceCheckinCameraScreen() {
                     checkinLat: params.checkinLat,
                     checkinLng: params.checkinLng,
                     eventName: params.name ?? '',
+                    checkinTime: new Date().toISOString(),
                 },
             } as any)
         } catch (err) {

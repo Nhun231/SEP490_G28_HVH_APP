@@ -105,7 +105,7 @@ const CheckinMapScreen = () => {
 
             // 3. Call quickCheckIn API to create the CheckInLog on the BE
             await quickCheckInApi({
-                eventSessionId: params.eventSessionId,
+                applicationId: params.applicationId,
                 deviceId,
                 apVersion,
                 osVersion,
@@ -126,6 +126,8 @@ const CheckinMapScreen = () => {
                     // Pass event check-in coords for GPS mock during checkout
                     checkinLat: String(lat),
                     checkinLng: String(lng),
+                    // Capture the exact check-in moment so the timer survives screen re-entries
+                    checkinTime: new Date().toISOString(),
                 },
             })
         } catch (err: unknown) {
