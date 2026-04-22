@@ -13,6 +13,7 @@ import InfoRow from '@/app/components/host/event-details/InfoRow';
 import ServiceGrid, { ServiceOption } from '@/app/components/host/event-details/ServiceGrid';
 import EventSessionModal from '@/app/components/host/event-details/EventSessionModal';
 import CancelEventModal from '@/app/components/host/event-details/CancelEventModal';
+import SingleImageViewer from '@/app/components/host/event-details/SingleImageViewer';
 
 const DEFAULT_IMAGE = 'https://images.unsplash.com/photo-1559027615-cd4628902d4a?w=800&h=400&fit=crop';
 
@@ -80,6 +81,8 @@ const EventDetailScreen = () => {
     const [showCheckinCode, setShowCheckinCode] = useState(false);
     const [sessionModalVisible, setSessionModalVisible] = useState(false);
     const [cancelModalVisible, setCancelModalVisible] = useState(false);
+    const [imageViewerVisible, setImageViewerVisible] = useState(false);
+    const [imageViewerUrl, setImageViewerUrl] = useState('');
 
     // API state
     const [event, setEvent] = useState<EventDetailResponse | null>(null);
@@ -191,6 +194,7 @@ const EventDetailScreen = () => {
         endTime: parseIsoDateTime(s.endDateTime).time,
         volunteerCount: s.expectedVolAmount,
         servedCount: s.expectedSerAmount,
+        checkInCode: s.checkInCode ?? null,
     }));
 
     const uniqueDates = [...new Set(sessions.map(s => s.date))];
@@ -259,9 +263,7 @@ const EventDetailScreen = () => {
         }
 
         if (s === 'SUBMITTED') {
-            return [
-                { key: 'edit', label: 'Chỉnh sửa', icon: 'create-outline', iconColor: '#3B82F6', bgColor: '#DBEAFE', onPress: handleEdit },
-            ];
+            return [];
         }
 
         if (s === 'APPROVED_BY_MNG') return [];
@@ -316,9 +318,6 @@ const EventDetailScreen = () => {
                         <Ionicons name="arrow-back" size={22} color="#FFFFFF" />
                     </TouchableOpacity>
                     <Text style={styles.headerTitle}>Chi tiết sự kiện</Text>
-                    <TouchableOpacity style={styles.bellBtn} activeOpacity={0.7}>
-                        <Ionicons name="notifications-outline" size={22} color="#FFFFFF" />
-                    </TouchableOpacity>
                 </View>
 
                 {/* ── Note warning banner (hiển thị ngay dưới header khi có lỗi) ── */}
@@ -345,21 +344,35 @@ const EventDetailScreen = () => {
                     {/* Title card (with event image on top) */}
                     <View style={styles.titleCard}>
                         {/* Event image */}
-                        <ScrollView
-                            horizontal
-                            pagingEnabled
-                            showsHorizontalScrollIndicator={false}
-                            style={styles.bannerScroll}
-                        >
-                            {(event.imageUrls.length > 0 ? event.imageUrls : [DEFAULT_IMAGE]).map((uri, idx) => (
-                                <Image
-                                    key={idx}
-                                    source={{ uri: resolveSupabaseUrl(uri) || DEFAULT_IMAGE }}
-                                    style={styles.bannerImage}
-                                    resizeMode="cover"
-                                />
-                            ))}
-                        </ScrollView>
+                        {(() => {
+                            const resolvedUrls = (event.imageUrls.length > 0 ? event.imageUrls : [DEFAULT_IMAGE])
+                                .map(uri => resolveSupabaseUrl(uri) || DEFAULT_IMAGE);
+                            return (
+                                <ScrollView
+                                    horizontal
+                                    pagingEnabled
+                                    showsHorizontalScrollIndicator={false}
+                                    style={styles.bannerScroll}
+                                >
+                                    {resolvedUrls.map((url, idx) => (
+                                        <TouchableOpacity
+                                            key={idx}
+                                            activeOpacity={0.9}
+                                            onPress={() => {
+                                                setImageViewerUrl(url);
+                                                setImageViewerVisible(true);
+                                            }}
+                                        >
+                                            <Image
+                                                source={{ uri: url }}
+                                                style={styles.bannerImage}
+                                                resizeMode="cover"
+                                            />
+                                        </TouchableOpacity>
+                                    ))}
+                                </ScrollView>
+                            );
+                        })()}
 
                         {/* Name & status */}
                         <View style={styles.titleCardBody}>
@@ -431,6 +444,17 @@ const EventDetailScreen = () => {
                                             </Text>
                                         </View>
                                     </View>
+
+                                    {/* Check-in code — only when available */}
+                                    {!!session.checkInCode && (
+                                        <View style={styles.sessionCheckInRow}>
+                                            <Ionicons name="key-outline" size={13} color="#42A4F5" />
+                                            <Text style={styles.sessionCheckInLabel}>Mã check-in:</Text>
+                                            <View style={styles.sessionCheckInBadge}>
+                                                <Text style={styles.sessionCheckInCode}>{session.checkInCode}</Text>
+                                            </View>
+                                        </View>
+                                    )}
                                 </View>
                             </View>
                         ))}
@@ -525,6 +549,12 @@ const EventDetailScreen = () => {
                     setCancelModalVisible(false);
                     fetchDetail();
                 }}
+            />
+
+            <SingleImageViewer
+                visible={imageViewerVisible}
+                imageUrl={imageViewerUrl}
+                onClose={() => setImageViewerVisible(false)}
             />
         </>
     );
@@ -768,6 +798,31 @@ const styles = StyleSheet.create({
     sessionStatValue: {
         fontSize: 16,
         fontWeight: '800',
+    },
+    sessionCheckInRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 5,
+        marginTop: 8,
+    },
+    sessionCheckInLabel: {
+        fontSize: 12,
+        color: '#42A4F5',
+        fontWeight: '600',
+    },
+    sessionCheckInBadge: {
+        backgroundColor: '#E3F2FD',
+        borderRadius: 6,
+        paddingHorizontal: 8,
+        paddingVertical: 2,
+        borderWidth: 1,
+        borderColor: '#BBDEFB',
+    },
+    sessionCheckInCode: {
+        fontSize: 13,
+        fontWeight: '800',
+        color: '#1565C0',
+        letterSpacing: 1.5,
     },
 
     // Check-in card

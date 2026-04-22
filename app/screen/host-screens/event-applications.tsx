@@ -46,6 +46,7 @@ function fromApproved(p: ActualParticipant): VolunteerApplication {
         email: p.email,
         phone: p.phone,
         checkInTime: p.checkInTime,
+        checkOutTime: p.checkOutTime,
         avatarUrl: p.avatarUrl ?? null,
         creditScore: p.creditScore,
         honorScore: p.honorScore,
@@ -63,9 +64,9 @@ const EventApplicationsScreen = () => {
     const eventStatus = params.eventStatus || '';
     const sessionStartTime = params.sessionStartTime || null;
 
-    // Master tab state — default to APPROVED for ONGOING events
+    // Master tab state — default to APPROVED for ONGOING / ENDED / COMPLETED events
     const [masterTab, setMasterTab] = useState<AppTab>(
-        eventStatus === 'ONGOING' ? 'APPROVED' : 'PENDING'
+        ['ONGOING', 'ENDED', 'COMPLETED'].includes(eventStatus) ? 'APPROVED' : 'PENDING'
     );
 
     // Search state
@@ -225,6 +226,20 @@ const EventApplicationsScreen = () => {
         }
     }, [fetchPending, fetchApproved]);
 
+    // Navigate to review screen for approved volunteers
+    const handleReview = useCallback((item: VolunteerApplication) => {
+        router.push({
+            pathname: '/screen/host-screens/review-volunteers' as any,
+            params: {
+                applicationId: item.id,
+                volunteerName: item.name,
+                volunteerAvatar: item.avatarUrl ?? '',
+                volunteerEmail: item.email ?? '',
+                volunteerPhone: item.phone ?? '',
+            },
+        });
+    }, [router]);
+
     // Derived values for active tab
     const isPending = masterTab === 'PENDING';
     const currentList = isPending ? pendingList : approvedList;
@@ -320,6 +335,18 @@ const EventApplicationsScreen = () => {
                                     item={item}
                                     onApprove={handleRemoveFromList}
                                     onReject={handleRemoveFromList}
+                                    onReview={
+                                        // Only reviewable when:
+                                        // 1. Tab is APPROVED
+                                        // 2. Event is ENDED
+                                        // 3. Volunteer has checked in AND checked out
+                                        masterTab === 'APPROVED' &&
+                                            eventStatus === 'ENDED' &&
+                                            !!item.checkInTime &&
+                                            !!item.checkOutTime
+                                            ? handleReview
+                                            : undefined
+                                    }
                                     eventStatus={eventStatus}
                                     sessionStartTime={sessionStartTime}
                                 />

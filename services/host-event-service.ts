@@ -18,6 +18,8 @@ import type {
     RegisteredParticipantsResponse,
     EventUpdateRequest,
     EventUpdateResponse,
+    VolunteerReviewRequest,
+    VolunteerReviewResponse,
 } from './event-types'
 
 const API_BASE = process.env.EXPO_PUBLIC_API_URL || 'https://api.hvh.homes'
@@ -169,5 +171,17 @@ export const announceVolunteers = async (
 ): Promise<AnnounceVolunteersResponse> => {
     const endpoint = `${API_BASE}/api/v1/host/events/${eventId}/announce-volunteers`
     const response = await baseAxios.post<AnnounceVolunteersResponse>(endpoint, body)
+    return response.data
+}
+
+/**
+ * Submit a host review for a volunteer.
+ * POST /api/v1/host/volunteer-reviews
+ */
+export const reviewVolunteer = async (
+    body: VolunteerReviewRequest,
+): Promise<VolunteerReviewResponse> => {
+    const endpoint = `${API_BASE}/api/v1/host/volunteer-reviews`
+    const response = await baseAxios.post<VolunteerReviewResponse>(endpoint, body)
     return response.data
 }

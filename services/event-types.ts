@@ -4,6 +4,7 @@
  * Imported by service files and UI components — no runtime logic here.
  */
 
+// ── API Error ─────────────────────────────────────────────────────────────────
 
 export interface ApiErrorMoreInfo {
     business?: string;
@@ -17,6 +18,7 @@ export interface ApiErrorResponse {
     moreInfo?: ApiErrorMoreInfo;
 }
 
+// ── Activity Domains ──────────────────────────────────────────────────────────
 
 export interface ActivitySubDomain {
     id: number;
@@ -41,6 +43,7 @@ export interface ActivityDomainResponse {
     };
 }
 
+// ── Public Event Feed ─────────────────────────────────────────────────────────
 
 export interface EventSimpleResponse {
     id: string;
@@ -69,6 +72,7 @@ export interface EventFeedParams {
     activitySubDomainIds?: number[];
 }
 
+// ── Shared Session / Detail ───────────────────────────────────────────────────
 
 /** Shared: used by both public event-detail and host event management */
 export interface EventSessionDetailsResponse {
@@ -77,7 +81,8 @@ export interface EventSessionDetailsResponse {
     endDateTime: string;
     expectedVolAmount: number;
     expectedSerAmount: number;
-    approvedApplicationCount: number;
+    checkInCode?: string;
+    approvedApplicationCount?: number;
 }
 
 /** Public event detail (volunteer-facing, no auth required) */
@@ -102,6 +107,7 @@ export interface EventDetailsResponse {
     autoApprove?: boolean;
 }
 
+// ── Vietnamese Label Maps ─────────────────────────────────────────────────────
 
 export const SERVED_TARGET_LABELS: Record<string, string> = {
     WOMEN: 'Phụ nữ',
@@ -129,6 +135,7 @@ export const SERVING_PLACE_LABELS: Record<string, string> = {
     OTHER: 'Khác',
 };
 
+// ── Host — Event Status & Basic Items ────────────────────────────────────────
 
 export type MyEventStatus =
     | 'EDITING'
@@ -172,6 +179,7 @@ export interface MyEventsParams {
     statuses?: MyEventStatus[];
 }
 
+// ── Host — Event Create / Update ──────────────────────────────────────────────
 
 export type ImageUpdateAction = 'ADD' | 'REMOVE';
 export type SessionUpdateAction = 'ADD' | 'EDIT' | 'REMOVE';
@@ -240,6 +248,7 @@ export interface EventDetailResponse {
     note?: string | null;
 }
 
+// ── Host — Participants ───────────────────────────────────────────────────────
 
 export interface RegisteredParticipant {
     applicationId: string;
@@ -293,8 +302,9 @@ export interface ApplicationActionResponse {
     message?: string;
 }
 
+// ── Volunteer — Application Status ───────────────────────────────────────────
 
-export type EventApplicationStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'CANCELLED' | 'COMPLETED';
+export type EventApplicationStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'CANCELLED';
 
 export interface VolApplicationSession {
     id: string;
@@ -315,17 +325,6 @@ export interface VolApplicationItem {
     startDate: string;
     status: EventApplicationStatus;
     session: VolApplicationSession | null;
-    /** Whether the volunteer has already submitted a rating for this application */
-    rated?: boolean;
-}
-
-export interface RateEventRequest {
-    eventApplicationId: string;
-    organizationQualityRating: number;
-    professionalismRating: number;
-    workEnvironmentRating: number;
-    valueImpactRating: number;
-    supportConnectionRating: number;
 }
 
 export interface VolApplicationsResponse {
@@ -343,6 +342,7 @@ export interface VolApplicationsParams {
     status?: EventApplicationStatus | null;
 }
 
+// ── Alias for backward compat (EventSessionDetailsResponse was also exported
 //    as EventSessionResponse in some imports) ──────────────────────────────────
 export type EventSessionResponse = EventSessionDetailsResponse;
 
@@ -376,6 +376,25 @@ export interface AnnounceVolunteersResponse {
     success: boolean;
     message?: string;
 }
+
+// ── Host — Volunteer Review ───────────────────────────────────────────────────
+
+export interface VolunteerReviewRequest {
+    eventApplicationId: string;
+    professionalAttitudeRating: number;
+    responsibilityPunctualityRating: number;
+    workEffectivenessRating: number;
+    teamworkCommunicationRating: number;
+    adaptabilityProblemSolvingRating: number;
+    comment?: string;
+}
+
+export interface VolunteerReviewResponse {
+    success: boolean;
+    message?: string;
+}
+
+// ── Volunteer — Saved Events ──────────────────────────────────────────────────
 
 export interface SavedEventsParams {
     pageNumber?: number;
