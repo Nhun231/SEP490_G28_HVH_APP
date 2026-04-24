@@ -150,8 +150,12 @@ const CreateEvent = () => {
 
     // convert activityDomains to servedField options for the picker
     const servedFieldOptions = useMemo<OptionItem[]>(() => {
+        const seenNames = new Set<string>();
         return activityDomains
             .filter((domain) => {
+                // Dedup by name (guards against duplicate API pages)
+                if (seenNames.has(domain.name)) return false;
+                seenNames.add(domain.name);
                 // Only take domains that are active and have at least one active subdomain
                 return domain.active &&
                     domain.activitySubDomainList.some((subDomain) => subDomain.active);

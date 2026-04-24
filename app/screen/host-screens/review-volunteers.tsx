@@ -1,15 +1,11 @@
 import React, { useState } from 'react';
-import {
-    View, Text, TextInput, TouchableOpacity, StyleSheet,
-    ScrollView, Alert, ActivityIndicator, Image,
-} from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Alert, ActivityIndicator, Image } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams, Stack } from 'expo-router';
 import { reviewVolunteer } from '@/services/host-event-service';
 import { getApiErrorMessage } from '@/services/api-helpers';
-
-// ── Types ──────────────────────────────────────────────────────────────────────
+import StarRow from '@/app/components/host/review-vol/StarRow';
 
 interface RatingCriterion {
     key: string;
@@ -47,38 +43,11 @@ const CRITERIA: RatingCriterion[] = [
 
 const MAX_COMMENT = 500;
 
-// ── Helper ─────────────────────────────────────────────────────────────────────
-
 const getInitials = (name: string): string => {
     const parts = name.trim().split(/\s+/);
     if (parts.length === 1) return parts[0].slice(0, 1).toUpperCase();
     return (parts[parts.length - 2][0] + parts[parts.length - 1][0]).toUpperCase();
 };
-
-// ── Star Row ───────────────────────────────────────────────────────────────────
-
-const StarRow: React.FC<{
-    value: number;
-    onChange: (v: number) => void;
-}> = ({ value, onChange }) => (
-    <View style={starStyles.row}>
-        {[1, 2, 3, 4, 5].map(star => (
-            <TouchableOpacity key={star} onPress={() => onChange(star)} activeOpacity={0.7} hitSlop={{ top: 6, bottom: 6, left: 4, right: 4 }}>
-                <Ionicons
-                    name={star <= value ? 'star' : 'star-outline'}
-                    size={34}
-                    color={star <= value ? '#F59E0B' : '#CBD5E1'}
-                />
-            </TouchableOpacity>
-        ))}
-    </View>
-);
-
-const starStyles = StyleSheet.create({
-    row: { flexDirection: 'row', gap: 6, justifyContent: 'center', marginVertical: 8 },
-});
-
-// ── Main Screen ────────────────────────────────────────────────────────────────
 
 const ReviewVolunteers = () => {
     const router = useRouter();
