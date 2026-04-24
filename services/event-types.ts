@@ -304,7 +304,7 @@ export interface ApplicationActionResponse {
 
 // ── Volunteer — Application Status ───────────────────────────────────────────
 
-export type EventApplicationStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'CANCELLED';
+export type EventApplicationStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'CANCELLED' | 'COMPLETED';
 
 export interface VolApplicationSession {
     id: string;
@@ -325,6 +325,7 @@ export interface VolApplicationItem {
     startDate: string;
     status: EventApplicationStatus;
     session: VolApplicationSession | null;
+    rated?: boolean;
 }
 
 export interface VolApplicationsResponse {
@@ -410,4 +411,37 @@ export interface SavedEventsResponse {
         totalElements: number;
         totalPages: number;
     };
+}
+
+// ── Volunteer — Event Moments ─────────────────────────────────────────────────
+
+export interface EventMomentItem {
+    volunteerId: string | null;
+    volNickName: string | null;
+    volName: string | null;
+    avatarUrl: string | null;
+    eventId: string;
+    eventName: string;
+    eventAddress: string | null;
+    eventDetailAddress: string | null;
+    eventMomentId: string;
+    momentContent: string;
+    momentPicturesUrls: string[];
+    createdAt: string; // ISO-8601
+}
+
+export interface MomentFeedResponse {
+    eventMoments: EventMomentItem[];
+    nextCursor: string | null;
+    hasMore: boolean;
+}
+
+export interface ShareMomentApiResponse {
+    momentPicturesUploadUrls: string[];
+}
+
+export interface ShareMomentParams {
+    pageNumber?: number;
+    pageSize?: number;
+    eventName?: string;
 }

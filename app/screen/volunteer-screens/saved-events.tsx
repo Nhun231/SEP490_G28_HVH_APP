@@ -3,7 +3,7 @@ import { getSavedEvents, saveEventForVolunteer } from '@/services/vol-event-serv
 import { Ionicons } from '@expo/vector-icons'
 import { Image } from 'expo-image'
 import { router, useFocusEffect } from 'expo-router'
-import React, { useCallback, useRef, useState } from 'react'
+import React, { useCallback, useState } from 'react'
 import {
     ActivityIndicator,
     Alert,
@@ -251,8 +251,6 @@ const SavedEvents = () => {
     const [currentPage, setCurrentPage] = useState(0)
     const [totalPages, setTotalPages] = useState(1)
 
-    const hasFetched = useRef(false)
-
     const fetchPage = useCallback(async (page: number, append = false) => {
         const res = await getSavedEvents({ pageNumber: page, pageSize: PAGE_SIZE })
         const content = res.content ?? []
@@ -269,9 +267,6 @@ const SavedEvents = () => {
 
     useFocusEffect(
         useCallback(() => {
-            if (hasFetched.current) return
-            hasFetched.current = true
-
             let active = true;
             (async () => {
                 setLoading(true)

@@ -247,8 +247,29 @@ const CheckinTimerScreen = () => {
                 </View>
             )}
 
-            {/* Checkout button */}
+            {/* Checkout + Share row */}
             <View style={styles.checkoutContainer}>
+                {/* Share moments button */}
+                <TouchableOpacity
+                    style={styles.shareBtn}
+                    activeOpacity={0.85}
+                    onPress={() => {
+                        router.push({
+                            pathname: '/screen/volunteer-screens/event-moments-feed',
+                            params: {
+                                eventName: params.eventName ?? '',
+                                sessionId: params.sessionId ?? '',
+                                applicationId: params.applicationId ?? '',
+                            },
+                        } as any)
+                    }}
+                >
+                    <Ionicons name="images-outline" size={20} color="#42A4F5" />
+                    <Text style={styles.shareBtnText}>Chia sẻ khoảnh khắc</Text>
+                    <Ionicons name="chevron-forward" size={16} color="#42A4F5" />
+                </TouchableOpacity>
+
+                {/* Checkout button */}
                 <TouchableOpacity
                     style={styles.checkoutBtn}
                     onPress={handleCheckout}
@@ -265,6 +286,7 @@ const CheckinTimerScreen = () => {
                     )}
                 </TouchableOpacity>
             </View>
+
         </View>
     )
 }
@@ -477,7 +499,30 @@ const styles = StyleSheet.create({
         paddingHorizontal: 16,
         paddingBottom: 8,
         marginTop: 'auto',
+        gap: 10,
     },
+    shareBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 8,
+        backgroundColor: '#FFFFFF',
+        borderRadius: 14,
+        paddingVertical: 14,
+        borderWidth: 1.5,
+        borderColor: '#42A4F5',
+        elevation: 2,
+        shadowColor: '#42A4F5',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.15,
+        shadowRadius: 4,
+    },
+    shareBtnText: {
+        fontSize: 15,
+        fontWeight: '700',
+        color: '#42A4F5',
+    },
+
     checkoutBtn: {
         flexDirection: 'row',
         alignItems: 'center',

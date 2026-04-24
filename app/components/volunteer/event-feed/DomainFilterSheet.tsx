@@ -42,8 +42,8 @@ export default function DomainFilterSheet({ visible, initialSelectedIds, onConfi
     const [activeDomainIndex, setActiveDomainIndex] = useState(0);
     const [selectedIds, setSelectedIds] = useState<number[]>(initialSelectedIds);
 
-    // Fetch domains once when mounting
     useEffect(() => {
+        if (!visible) return;
         let cancelled = false;
         const load = async () => {
             setLoadingDomains(true);
@@ -56,16 +56,11 @@ export default function DomainFilterSheet({ visible, initialSelectedIds, onConfi
                 if (!cancelled) setLoadingDomains(false);
             }
         };
+        // Reset UI state first, then load
+        setSelectedIds(initialSelectedIds);
+        setActiveDomainIndex(0);
         load();
         return () => { cancelled = true; };
-    }, []);
-
-    // Sync selections when sheet opens
-    useEffect(() => {
-        if (visible) {
-            setSelectedIds(initialSelectedIds);
-            setActiveDomainIndex(0);
-        }
     }, [visible]);
 
     const toggleSubdomain = (id: number) => {

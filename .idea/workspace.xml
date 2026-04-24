@@ -4,13 +4,14 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="75668f23-b4c0-497d-81ac-fa2ee3afdab7" name="Changes" comment="fix: deviceId in register face updated">
+    <list default="true" id="75668f23-b4c0-497d-81ac-fa2ee3afdab7" name="Changes" comment="fix: checkin timer preserved when">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/(vol-tabs)/checkin.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/(vol-tabs)/checkin.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/screen/volunteer-screens/checkin-map.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/screen/volunteer-screens/checkin-map.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/_layout.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/_layout.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/components/volunteer/event-feed/DomainFilterSheet.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/components/volunteer/event-feed/DomainFilterSheet.tsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/app/screen/volunteer-screens/checkin-timer.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/screen/volunteer-screens/checkin-timer.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/screen/volunteer-screens/face-checkin-camera.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/screen/volunteer-screens/face-checkin-camera.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/services/checkin-service.ts" beforeDir="false" afterPath="$PROJECT_DIR$/services/checkin-service.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/screen/volunteer-screens/event-feed.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/screen/volunteer-screens/event-feed.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/screen/volunteer-screens/saved-events.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/screen/volunteer-screens/saved-events.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/services/event-types.ts" beforeDir="false" afterPath="$PROJECT_DIR$/services/event-types.ts" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -20,7 +21,7 @@
   <component name="Git.Settings">
     <option name="RECENT_BRANCH_BY_REPOSITORY">
       <map>
-        <entry key="$PROJECT_DIR$" value="fix-checkin-timer-UI" />
+        <entry key="$PROJECT_DIR$" value="dev" />
       </map>
     </option>
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
@@ -52,7 +53,7 @@
   "keyToString": {
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "RunOnceActivity.git.unshallow": "true",
-    "git-widget-placeholder": "fix-checkin-timer-screen",
+    "git-widget-placeholder": "feature/uc051-share-moments",
     "ignore.virus.scanning.warn.message": "true",
     "last_opened_file_path": "D:/Documents/9th_semester/GRADUATEEEEE/SEP490_G28_HVH_APP",
     "node.js.detected.package.eslint": "true",
@@ -145,7 +146,7 @@
                   <entry key="branch">
                     <value>
                       <list>
-                        <option value="SEP490_G28_HVH_APP/dev" />
+                        <option value="dev" />
                       </list>
                     </value>
                   </entry>

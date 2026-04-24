@@ -226,9 +226,7 @@ const EventFeed = () => {
                     <Ionicons name="chevron-back" size={24} color="#FFFFFF" />
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>Tìm hoạt động</Text>
-                <TouchableOpacity onPress={handleSearch} style={styles.headerBtn}>
-                    <Ionicons name="search" size={22} color="#FFFFFF" />
-                </TouchableOpacity>
+                <View style={styles.headerBtn} />
             </View>
 
             {/* ═══ CONTENT AREA ═══ */}
