@@ -33,18 +33,24 @@ type Props = {
 const ChangePasswordModal: React.FC<Props> = ({ visible, onClose }) => {
     const [oldPassword, setOldPassword] = useState('');
     const [newPassword, setNewPassword] = useState('');
+    const [confirmPassword, setConfirmPassword] = useState('');
     const [showOld, setShowOld] = useState(false);
     const [showNew, setShowNew] = useState(false);
+    const [showConfirm, setShowConfirm] = useState(false);
     const [loading, setLoading] = useState(false);
 
     const ruleResults = useMemo(() => RULES.map(r => r.test(newPassword)), [newPassword]);
     const allRulesPassed = ruleResults.every(Boolean);
+    const passwordsMatch = confirmPassword.length > 0 && confirmPassword === newPassword;
+    const canSubmit = allRulesPassed && passwordsMatch;
 
     const reset = () => {
         setOldPassword('');
         setNewPassword('');
+        setConfirmPassword('');
         setShowOld(false);
         setShowNew(false);
+        setShowConfirm(false);
     };
 
     const handleClose = () => { reset(); onClose(); };
@@ -60,6 +66,10 @@ const ChangePasswordModal: React.FC<Props> = ({ visible, onClose }) => {
                 .map(r => `• ${r.label}`)
                 .join('\n');
             Alert.alert('Mật khẩu không hợp lệ', `Mật khẩu mới chưa đáp ứng:\n${failed}`);
+            return;
+        }
+        if (confirmPassword !== newPassword) {
+            Alert.alert('Lỗi', 'Xác nhận mật khẩu không khớp.');
             return;
         }
         if (oldPassword === newPassword) {
@@ -133,6 +143,39 @@ const ChangePasswordModal: React.FC<Props> = ({ visible, onClose }) => {
                         </TouchableOpacity>
                     </View>
 
+                    {/* Confirm new password */}
+                    <Text style={styles.label}>XÁC NHẬN MẬT KHẨU MỚI</Text>
+                    <View style={[
+                        styles.inputRow,
+                        confirmPassword.length > 0 && {
+                            borderColor: passwordsMatch ? '#22C55E' : '#EF4444',
+                        },
+                    ]}>
+                        <TextInput
+                            style={styles.input}
+                            value={confirmPassword}
+                            onChangeText={setConfirmPassword}
+                            placeholder="Nhập lại mật khẩu mới"
+                            placeholderTextColor="#CBD5E1"
+                            secureTextEntry={!showConfirm}
+                            autoCapitalize="none"
+                            autoCorrect={false}
+                            returnKeyType="done"
+                            onSubmitEditing={handleSubmit}
+                        />
+                        <TouchableOpacity onPress={() => setShowConfirm(v => !v)} style={styles.eyeBtn}>
+                            <Ionicons name={showConfirm ? 'eye-off-outline' : 'eye-outline'} size={20} color="#94A3B8" />
+                        </TouchableOpacity>
+                        {confirmPassword.length > 0 && (
+                            <Ionicons
+                                name={passwordsMatch ? 'checkmark-circle' : 'close-circle'}
+                                size={18}
+                                color={passwordsMatch ? '#22C55E' : '#EF4444'}
+                                style={{ marginRight: 6 }}
+                            />
+                        )}
+                    </View>
+
                     {/* Real-time requirement checklist */}
                     <View style={styles.hintBox}>
                         <Text style={styles.hintTitle}>Yêu cầu mật khẩu mới:</Text>
@@ -159,9 +202,9 @@ const ChangePasswordModal: React.FC<Props> = ({ visible, onClose }) => {
                             <Text style={styles.cancelText}>Hủy</Text>
                         </TouchableOpacity>
                         <TouchableOpacity
-                            style={[styles.submitBtn, !allRulesPassed && styles.submitBtnDisabled]}
+                            style={[styles.submitBtn, !canSubmit && styles.submitBtnDisabled]}
                             onPress={handleSubmit}
-                            disabled={loading}
+                            disabled={loading || !canSubmit}
                         >
                             {loading
                                 ? <ActivityIndicator size="small" color="#fff" />

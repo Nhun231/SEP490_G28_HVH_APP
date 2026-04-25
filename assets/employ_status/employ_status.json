@@ -1,0 +1,9 @@
+{
+  "employ_status": [
+    { "id": 1, "label": "Học sinh / Sinh viên", "value": "STUDENT" },
+    { "id": 2, "label": "Đang đi làm", "value": "EMPLOYED" },
+    { "id": 3, "label": "Thất nghiệp", "value": "UNEMPLOYED" },
+    { "id": 4, "label": "Đã nghỉ hưu", "value": "RETIRED" },
+    { "id": 5, "label": "Khác", "value": "OTHER" }
+  ]
+}

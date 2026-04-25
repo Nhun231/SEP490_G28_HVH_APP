@@ -1,7 +1,7 @@
 import { useAuth } from '@/context/AuthContext'
 import { Ionicons } from '@expo/vector-icons'
 import { useRouter } from 'expo-router'
-import React from 'react'
+import React, { useState } from 'react'
 import {
     Alert,
     ScrollView,
@@ -11,13 +11,15 @@ import {
     View,
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
+import ChangePasswordModal from '@/app/components/host/profile/ChangePasswordModal'
 
 const SERVICES = [
+    { icon: 'person-circle-outline', label: 'Thông tin\ncá nhân', color: '#42A4F5', bg: '#E3F2FD' },
     { icon: 'calendar-outline', label: 'Hoạt động\nđã đăng ký', color: '#F97316', bg: '#FFF3EB' },
     { icon: 'checkmark-circle-outline', label: 'Hoạt động\nđã điểm danh', color: '#14B8A6', bg: '#E6FAF8' },
     { icon: 'bookmark-outline', label: 'Sự kiện\nđã lưu', color: '#42A4F5', bg: '#EBF5FF' },
     { icon: 'share-social-outline', label: 'Khoảnh\nkhắc của tôi', color: '#8B5CF6', bg: '#F3EEFF' },
-    { icon: 'card-outline', label: 'Thẻ thông tin\ncủa tôi', color: '#3B82F6', bg: '#EBF2FF' },
+    { icon: 'card-outline', label: 'Thẻ dịch vụ công của tôi', color: '#3B82F6', bg: '#EBF2FF' },
     { icon: 'chatbubble-outline', label: 'Đánh giá\ncủa tôi', color: '#A855F7', bg: '#F5F0FF' },
     { icon: 'lock-closed-outline', label: 'Đổi mật\nkhẩu', color: '#8B5CF6', bg: '#F3EEFF' },
 ] as const
@@ -25,6 +27,7 @@ const SERVICES = [
 export default function Personal() {
     const { logout, session, isLoggedIn } = useAuth()
     const router = useRouter()
+    const [showChangePassword, setShowChangePassword] = useState(false)
 
     const handleLogout = () => {
         Alert.alert(
@@ -107,6 +110,7 @@ export default function Personal() {
     }
 
     return (
+        <>
         <SafeAreaView style={styles.safeArea} edges={['top']}>
             <ScrollView
                 style={styles.scroll}
@@ -169,14 +173,20 @@ export default function Personal() {
                                     activeOpacity={0.7}
                                     onPress={() => {
                                         if (idx === 0) {
+                                            // "Thông tin cá nhân"
+                                            router.push('/screen/volunteer-screens/vol-profile' as any);
+                                        } else if (idx === 1) {
                                             // "Hoạt động đã đăng ký"
                                             router.push('/screen/volunteer-screens/my-applications' as any);
-                                        } else if (idx === 1) {
+                                        } else if (idx === 2) {
                                             // "Hoạt động đã điểm danh"
                                             router.push({ pathname: '/screen/volunteer-screens/my-applications', params: { mode: 'checked-in' } } as any);
-                                        } else if (idx === 2) {
+                                        } else if (idx === 3) {
                                             // "Sự kiện đã lưu"
                                             router.push('/screen/volunteer-screens/saved-events' as any);
+                                        } else if (idx === 7) {
+                                            // "Đổi mật khẩu"
+                                            setShowChangePassword(true);
                                         }
                                     }}
                                 >
@@ -203,6 +213,12 @@ export default function Personal() {
                 <View style={{ height: 24 }} />
             </ScrollView>
         </SafeAreaView>
+
+        <ChangePasswordModal
+            visible={showChangePassword}
+            onClose={() => setShowChangePassword(false)}
+        />
+    </>
     )
 }
 

@@ -250,7 +250,7 @@ export default function HostPersonal() {
                     <Text style={styles.profileName}>{profile?.fullName ?? 'Host'}</Text>
                 </View>
 
-                <SectionHeader title="ĐỊNH DANH & HỆ THỐNG" />
+                <SectionHeader title="ĐỊNH DANH" />
                 <View style={styles.card}>
                     <InfoRow iconName="finger-print-outline" iconColor="#94A3B8" iconBg="#F1F5F9"
                         label="SỐ CCCD (CID)" value={profile?.cid ?? '—'} locked />
