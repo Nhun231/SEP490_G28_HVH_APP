@@ -1,6 +1,6 @@
 import baseAxios from '@/lib/baseAxios'
 import { supabase } from '@/lib/supabase'
-import { registerFcmToken } from '@/services/notification-service'
+import { registerFcmToken, unregisterFcmToken } from '@/services/notification-service'
 import { Session } from '@supabase/supabase-js'
 import React, { createContext, useContext, useEffect, useRef, useState } from 'react'
 import { Alert } from 'react-native'
@@ -37,6 +37,7 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const [isPasswordRecovery, setIsPasswordRecovery] = useState(false)
     const isRefreshing = useRef(false)
     const alertShownRef = useRef(false)
+    const fcmTokenRef = useRef<string | null>(null) // stored for unregister on logout
 
     // Load session from Supabase (it reads from AsyncStorage internally)
     useEffect(() => {
@@ -53,9 +54,11 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             }
             // Register FCM token after login so auth header is available
             if (event === 'SIGNED_IN') {
-                registerFcmToken().catch(err =>
-                    console.warn('[Notification] Post-login FCM token registration failed:', err)
-                )
+                registerFcmToken()
+                    .then(token => { fcmTokenRef.current = token })
+                    .catch(err =>
+                        console.warn('[Notification] Post-login FCM token registration failed:', err)
+                    )
             }
         })
 
@@ -137,10 +140,14 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     // Clear password recovery flag after new password is set
     const clearPasswordRecovery = () => setIsPasswordRecovery(false)
 
-    // Logout
+    // Logout: unregister FCM token first, then sign out
     const logout = async () => {
+        // Step 5: tell BE to stop sending notifications to this device
+        if (fcmTokenRef.current) {
+            await unregisterFcmToken(fcmTokenRef.current)
+            fcmTokenRef.current = null
+        }
         await supabase.auth.signOut()
-        // Supabase clears its own AsyncStorage keys; clear any extra keys here if needed
         setSession(null)
     }
 
