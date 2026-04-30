@@ -2,7 +2,7 @@ import { EventSimpleResponse } from '@/services/event-types'
 import { getSavedEvents, saveEventForVolunteer } from '@/services/vol-event-service'
 import { Ionicons } from '@expo/vector-icons'
 import { Image } from 'expo-image'
-import { router, useFocusEffect } from 'expo-router'
+import { router, useFocusEffect, Stack } from 'expo-router'
 import React, { useCallback, useState } from 'react'
 import {
     ActivityIndicator,
@@ -295,7 +295,7 @@ const SavedEvents = () => {
     const handleCardPress = useCallback((item: EventSimpleResponse) => {
         router.push({
             pathname: '/screen/volunteer-screens/event-detail-vol',
-            params: { eventId: item.id },
+            params: { eventId: item.id, fromSaved: 'true' },
         } as any)
     }, [])
 
@@ -329,6 +329,8 @@ const SavedEvents = () => {
 
     return (
         <SafeAreaView style={styles.safeArea} edges={['top']}>
+            <Stack.Screen options={{ headerShown: false }} />
+
             {/* ═══ HEADER ═══ */}
             <View style={styles.header}>
                 <TouchableOpacity onPress={handleGoBack} style={styles.headerBtn}>

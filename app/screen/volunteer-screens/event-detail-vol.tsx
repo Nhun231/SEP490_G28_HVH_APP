@@ -66,7 +66,8 @@ function getFullImageUrl(path: string | null | undefined): string {
 
 
 export default function EventDetail() {
-    const { eventId } = useLocalSearchParams<{ eventId: string }>();
+    const { eventId, fromSaved } = useLocalSearchParams<{ eventId: string; fromSaved?: string }>();
+    const isFromSaved = fromSaved === 'true';
     const { isLoggedIn } = useAuth();
     const [event, setEvent] = useState<EventDetailsResponse | null>(null);
     const [loading, setLoading] = useState(true);
@@ -74,17 +75,19 @@ export default function EventDetail() {
     const [imageIndex, setImageIndex] = useState(0);
     const [imageViewerVisible, setImageViewerVisible] = useState(false);
     const [imageViewerIndex, setImageViewerIndex] = useState(0);
-    const [saved, setSaved] = useState(false);
+    const [saved, setSaved] = useState(isFromSaved);
     const [saving, setSaving] = useState(false);
 
     const savedKey = eventId ? `saved_event_${eventId}` : null;
 
     useEffect(() => {
+        // If coming from saved-events we already know it's saved; skip AsyncStorage check
+        if (isFromSaved) return;
         if (!savedKey) return;
         AsyncStorage.getItem(savedKey).then(val => {
             if (val === 'true') setSaved(true);
         }).catch(() => { });
-    }, [savedKey]);
+    }, [savedKey, isFromSaved]);
 
     const [applyModalVisible, setApplyModalVisible] = useState(false);
     const [sessionPickerVisible, setSessionPickerVisible] = useState(false);
@@ -350,13 +353,16 @@ export default function EventDetail() {
                         <View style={styles.headerRight}>
                             <TouchableOpacity
                                 onPress={handleSaveEvent}
-                                disabled={saving}
-                                style={styles.circleBtn}
+                                disabled={saving || (isFromSaved && !saved)}
+                                style={[
+                                    styles.circleBtn,
+                                    isFromSaved && !saved && styles.circleBtnDisabled,
+                                ]}
                             >
                                 <Ionicons
                                     name={saved ? 'heart' : 'heart-outline'}
                                     size={22}
-                                    color={saved ? '#EF4444' : '#1F2937'}
+                                    color={isFromSaved && !saved ? '#D1D5DB' : saved ? '#EF4444' : '#1F2937'}
                                 />
                             </TouchableOpacity>
                         </View>
@@ -612,6 +618,10 @@ const styles = StyleSheet.create({
         shadowOffset: { width: 0, height: 1 },
         shadowOpacity: 0.15,
         shadowRadius: 2,
+    },
+    circleBtnDisabled: {
+        backgroundColor: 'rgba(200,200,200,0.6)',
+        elevation: 0,
     },
     dotsContainer: {
         position: 'absolute',

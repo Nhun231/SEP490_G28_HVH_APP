@@ -45,7 +45,7 @@ import {
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
-const MAX_IMAGES = 5   // hard limit on the backend (legal_order == 6 break)
+const MAX_IMAGES = 5   
 const MAX_CHARS = 500
 
 interface PickedImage {

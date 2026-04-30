@@ -17,7 +17,7 @@ const SERVICES = [
     { icon: 'checkmark-circle-outline', label: 'Hoạt động\nđã điểm danh', color: '#14B8A6', bg: '#E6FAF8' },
     { icon: 'bookmark-outline', label: 'Sự kiện\nđã lưu', color: '#42A4F5', bg: '#EBF5FF' },
     { icon: 'share-social-outline', label: 'Khoảnh\nkhắc của tôi', color: '#8B5CF6', bg: '#F3EEFF' },
-    { icon: 'card-outline', label: 'Thẻ thông tin\ncủa tôi', color: '#3B82F6', bg: '#EBF2FF' },
+    { icon: 'card-outline', label: 'Thông tin\ncủa tôi', color: '#3B82F6', bg: '#EBF2FF' },
     { icon: 'chatbubble-outline', label: 'Đánh giá\ncủa tôi', color: '#A855F7', bg: '#F5F0FF' },
     { icon: 'lock-closed-outline', label: 'Đổi mật\nkhẩu', color: '#8B5CF6', bg: '#F3EEFF' },
 ] as const
@@ -177,6 +177,12 @@ export default function Personal() {
                                         } else if (idx === 2) {
                                             // "Sự kiện đã lưu"
                                             router.push('/screen/volunteer-screens/saved-events' as any);
+                                        } else if (idx === 3) {
+                                            // "Khoảnh khắc của tôi"
+                                            router.push({ pathname: '/screen/volunteer-screens/event-moments-feed', params: { mode: 'my' } } as any);
+                                        } else if (idx === 4) {
+                                            // "Thông tin của tôi" → public profile card
+                                            router.push({ pathname: '/screen/volunteer-screens/vol-public-profile', params: { volunteerId: 'me' } } as any);
                                         }
                                     }}
                                 >

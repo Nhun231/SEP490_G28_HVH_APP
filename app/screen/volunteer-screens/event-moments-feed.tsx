@@ -1,29 +1,23 @@
 /**
  * event-moments-feed.tsx
  * "Vòng khoảnh khắc" — feed of all moments shared for an event session.
- *
- * Route params:
- *   eventName      — display name of the event
- *   sessionId      — UUID of the event session (forwarded to add-moment)
- *   applicationId  — UUID of the volunteer's application (forwarded to add-moment)
  */
 
 import { EventMomentItem } from '@/services/event-types'
-import { getEventMomentsFeed } from '@/services/moment-service'
+import { getEventMomentsFeed, getMyMomentsFeed } from '@/services/moment-service'
 import { Ionicons } from '@expo/vector-icons'
 import { Image } from 'expo-image'
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router'
 import React, { useCallback, useRef, useState } from 'react'
 import ImageViewerModal from '../../components/volunteer/even-details/ImageViewerModal'
 
-// The BE returns "/object/sign/..." (without /storage/v1) — must insert it
 const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL ?? ''
 function resolveStorageUrl(url: string | null | undefined): string | null {
     if (!url) return null
-    if (url.startsWith('http')) return url                             // already absolute
-    if (url.startsWith('/storage/v1')) return `${SUPABASE_URL}${url}` // has /storage/v1
-    if (url.startsWith('/object/')) return `${SUPABASE_URL}/storage/v1${url}` // missing /storage/v1
-    return `${SUPABASE_URL}${url}`                                     // fallback
+    if (url.startsWith('http')) return url                             
+    if (url.startsWith('/storage/v1')) return `${SUPABASE_URL}${url}` 
+    if (url.startsWith('/object/')) return `${SUPABASE_URL}/storage/v1${url}` 
+    return `${SUPABASE_URL}${url}`                                     
 }
 import {
     ActivityIndicator,
@@ -55,13 +49,10 @@ function displayName(item: EventMomentItem): string {
     return item.volNickName || item.volName || 'Tình nguyện viên'
 }
 
-// ─── 2-column image grid (up to 4 images, last slot shows +N overflow) ────────
 
 function ImageGrid({ urls, onPress }: { urls: string[], onPress: (index: number) => void }) {
-    console.log('[ImageGrid] received urls:', urls)
     if (urls.length === 0) return null
     const resolved = urls.map(u => resolveStorageUrl(u)).filter(Boolean) as string[]
-    console.log('[MomentFeed] picture URLs:', resolved)
     const visible = resolved.slice(0, 4)
     const overflow = resolved.length - 4
 
@@ -127,7 +118,7 @@ const gridStyles = StyleSheet.create({
 
 // ─── moment card ──────────────────────────────────────────────────────────────
 
-function MomentCard({ item }: { item: EventMomentItem }) {
+function MomentCard({ item, showEventChip = false }: { item: EventMomentItem; showEventChip?: boolean }) {
     console.log('[MomentCard] item.momentPicturesUrls:', item.momentPicturesUrls)
     const name = displayName(item)
     const words = name.trim().split(/\s+/)
@@ -152,24 +143,54 @@ function MomentCard({ item }: { item: EventMomentItem }) {
         <View style={cardStyles.card}>
             {/* Author row */}
             <View style={cardStyles.authorRow}>
-                {resolveStorageUrl(item.avatarUrl) ? (
-                    <Image
-                        source={{ uri: resolveStorageUrl(item.avatarUrl)! }}
-                        style={cardStyles.avatar}
-                        contentFit="cover"
-                    />
-                ) : (
-                    <View style={cardStyles.avatarFallback}>
-                        <Text style={cardStyles.avatarInitials}>{initials}</Text>
-                    </View>
-                )}
+                <TouchableOpacity
+                    onPress={() => {
+                        if (item.volunteerId) {
+                            router.push({
+                                pathname: '/screen/volunteer-screens/vol-public-profile',
+                                params: { volunteerId: item.volunteerId },
+                            } as any)
+                        }
+                    }}
+                    activeOpacity={0.8}
+                >
+                    {resolveStorageUrl(item.avatarUrl) ? (
+                        <Image
+                            source={{ uri: resolveStorageUrl(item.avatarUrl)! }}
+                            style={cardStyles.avatar}
+                            contentFit="cover"
+                        />
+                    ) : (
+                        <View style={cardStyles.avatarFallback}>
+                            <Text style={cardStyles.avatarInitials}>{initials}</Text>
+                        </View>
+                    )}
+                </TouchableOpacity>
                 <View style={cardStyles.authorInfo}>
                     <View style={cardStyles.nameRow}>
-                        <Text style={cardStyles.authorName}>{name}</Text>
+                        <TouchableOpacity
+                            onPress={() => {
+                                if (item.volunteerId) {
+                                    router.push({
+                                        pathname: '/screen/volunteer-screens/vol-public-profile',
+                                        params: { volunteerId: item.volunteerId },
+                                    } as any)
+                                }
+                            }}
+                            activeOpacity={0.8}
+                        >
+                            <Text style={cardStyles.authorName}>{name}</Text>
+                        </TouchableOpacity>
                         <View style={cardStyles.volBadge}>
                             <Text style={cardStyles.volBadgeText}>TNV</Text>
                         </View>
                     </View>
+                    {showEventChip && !!item.eventName && (
+                        <View style={cardStyles.eventChip}>
+                            <Ionicons name="calendar-outline" size={11} color="#42A4F5" />
+                            <Text style={cardStyles.eventChipText} numberOfLines={1}>{item.eventName}</Text>
+                        </View>
+                    )}
                     <Text style={cardStyles.timeText}>{relativeTime(item.createdAt)}</Text>
                 </View>
             </View>
@@ -190,7 +211,15 @@ function MomentCard({ item }: { item: EventMomentItem }) {
                 onClose={() => setViewerVisible(false)}
             />
 
-            {/* Location footer */}
+            {/* Event name */}
+            {!!item.eventName && (
+                <View style={cardStyles.eventNameRow}>
+                    <Ionicons name="calendar-outline" size={13} color="#42A4F5" />
+                    <Text style={cardStyles.eventNameText} numberOfLines={1}>{item.eventName}</Text>
+                </View>
+            )}
+
+            {/* Location */}
             {!!location && (
                 <View style={cardStyles.locationRow}>
                     <Ionicons name="location-outline" size={13} color="#6B7280" />
@@ -284,16 +313,66 @@ const cardStyles = StyleSheet.create({
         fontSize: 12,
         color: '#6B7280',
     },
+    eventNameRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+        marginTop: 10,
+    },
+    eventNameText: {
+        flex: 1,
+        fontSize: 12,
+        fontWeight: '600',
+        color: '#2563EB',
+    },
+    eventChip: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 3,
+        backgroundColor: '#F0F7FF',
+        borderRadius: 6,
+        paddingHorizontal: 6,
+        paddingVertical: 2,
+        alignSelf: 'flex-start',
+        marginTop: 2,
+        marginBottom: 1,
+    },
+    eventChipText: {
+        fontSize: 11,
+        color: '#2563EB',
+        fontWeight: '500',
+    },
 })
 
 // ─── screen ───────────────────────────────────────────────────────────────────
 
+/**
+ * Modes:
+ *   'event'  — moments for a specific event session (filterd by eventName); shows add-moment button
+ *   'public' — all moments from all events (public feed); no add button
+ *   'my'     — current volunteer's own moments; no add button
+ */
+type FeedMode = 'event' | 'public' | 'my'
+
 const EventMomentsFeed = () => {
-    const { eventName, sessionId, applicationId } = useLocalSearchParams<{
+    const { eventName, sessionId, applicationId, mode: modeParam } = useLocalSearchParams<{
         eventName: string
         sessionId: string
         applicationId: string
+        mode: string
     }>()
+
+    const mode: FeedMode = (modeParam as FeedMode) || 'event'
+    const showEventChip = mode === 'public' || mode === 'my'
+    const showAddBtn = mode === 'event'
+
+    // Header title and accent colour per mode
+    const headerTitle = mode === 'my'
+        ? 'Khoảnh khắc của tôi'
+        : mode === 'public'
+            ? 'Khoảnh khắc tình nguyện'
+            : 'Khoảnh khắc'
+    const accentColor = '#42A4F5'
 
     const [items, setItems] = useState<EventMomentItem[]>([])
     const [loading, setLoading] = useState(true)
@@ -303,17 +382,29 @@ const EventMomentsFeed = () => {
     const [nextPage, setNextPage] = useState(0)
 
     const fetchPage = useCallback(async (page: number, append = false) => {
-        const res = await getEventMomentsFeed({
-            pageNumber: page,
-            pageSize: PAGE_SIZE,
-            eventName: eventName || undefined,
-        })
-        const moments = res.eventMoments || []
+        let moments: EventMomentItem[] = []
+        let hasMoreResult = false
+
+        if (mode === 'my') {
+            const res = await getMyMomentsFeed({ pageNumber: page, pageSize: PAGE_SIZE })
+            moments = res.eventMoments || []
+            hasMoreResult = res.hasMore ?? false
+        } else {
+            // 'event' filters by eventName; 'public' passes no eventName
+            const res = await getEventMomentsFeed({
+                pageNumber: page,
+                pageSize: PAGE_SIZE,
+                eventName: mode === 'event' ? (eventName || undefined) : undefined,
+            })
+            moments = res.eventMoments || []
+            hasMoreResult = res.hasMore ?? false
+        }
+
         if (append) setItems(prev => [...prev, ...moments])
         else setItems(moments)
-        setHasMore(res.hasMore ?? false)
+        setHasMore(hasMoreResult)
         setNextPage(page + 1)
-    }, [eventName])
+    }, [mode, eventName])
 
     useFocusEffect(
         useCallback(() => {
@@ -353,20 +444,21 @@ const EventMomentsFeed = () => {
     }
 
     return (
-        <SafeAreaView style={styles.safeArea} edges={['top']}>
-            {/* ═══ HEADER ═══ */}
-            <View style={styles.header}>
+        <SafeAreaView style={[styles.safeArea, { backgroundColor: accentColor }]} edges={['top']}>
+            <View style={[styles.header, { backgroundColor: accentColor }]}>
                 <TouchableOpacity onPress={handleGoBack} style={styles.headerBtn}>
                     <Ionicons name="chevron-back" size={24} color="#FFFFFF" />
                 </TouchableOpacity>
-                <Text style={styles.headerTitle}>Vòng khoảnh khắc</Text>
-                {/* + button */}
-                <TouchableOpacity onPress={handleAddMoment} style={styles.addBtn} activeOpacity={0.85}>
-                    <Ionicons name="add" size={22} color="#FFFFFF" />
-                </TouchableOpacity>
+                <Text style={styles.headerTitle}>{headerTitle}</Text>
+                {showAddBtn ? (
+                    <TouchableOpacity onPress={handleAddMoment} style={styles.addBtn} activeOpacity={0.85}>
+                        <Ionicons name="add" size={22} color="#FFFFFF" />
+                    </TouchableOpacity>
+                ) : (
+                    <View style={styles.headerBtn} />
+                )}
             </View>
 
-            {/* ═══ CONTENT ═══ */}
             <View style={styles.contentArea}>
                 {loading ? (
                     <View style={styles.centerBox}>
@@ -377,7 +469,7 @@ const EventMomentsFeed = () => {
                     <FlatList
                         data={items}
                         keyExtractor={item => item.eventMomentId}
-                        renderItem={({ item }) => <MomentCard item={item} />}
+                        renderItem={({ item }) => <MomentCard item={item} showEventChip={showEventChip} />}
                         contentContainerStyle={styles.listContent}
                         showsVerticalScrollIndicator={false}
                         onEndReached={handleLoadMore}
@@ -400,18 +492,24 @@ const EventMomentsFeed = () => {
                                 <View style={styles.emptyIconWrap}>
                                     <Ionicons name="images-outline" size={52} color="#42A4F5" />
                                 </View>
-                                <Text style={styles.emptyTitle}>Hãy là người đầu tiên chia sẻ</Text>
-                                <Text style={styles.emptySubText}>
-                                    Chia sẻ khoảnh khắc tình nguyện của bạn{'\n'}để truyền cảm hứng cho cộng đồng!
+                                <Text style={styles.emptyTitle}>
+                                    {showAddBtn ? 'Hãy là người đầu tiên chia sẻ' : 'Chưa có khoảnh khắc nào'}
                                 </Text>
-                                <TouchableOpacity
-                                    style={styles.emptyAction}
-                                    onPress={handleAddMoment}
-                                    activeOpacity={0.85}
-                                >
-                                    <Ionicons name="camera-outline" size={18} color="#FFFFFF" />
-                                    <Text style={styles.emptyActionText}>Chia sẻ ngay</Text>
-                                </TouchableOpacity>
+                                <Text style={styles.emptySubText}>
+                                    {showAddBtn
+                                        ? `Chia sẻ khoảnh khắc tình nguyện của bạn\nđể truyền cảm hứng cho cộng đồng!`
+                                        : `Các khoảnh khắc sẽ xuất hiện ở đây\nkhi tình nguyện viên chia sẻ.`}
+                                </Text>
+                                {showAddBtn && (
+                                    <TouchableOpacity
+                                        style={styles.emptyAction}
+                                        onPress={handleAddMoment}
+                                        activeOpacity={0.85}
+                                    >
+                                        <Ionicons name="camera-outline" size={18} color="#FFFFFF" />
+                                        <Text style={styles.emptyActionText}>Chia sẻ ngay</Text>
+                                    </TouchableOpacity>
+                                )}
                             </View>
                         }
                     />

@@ -326,6 +326,8 @@ export interface VolApplicationItem {
     status: EventApplicationStatus;
     session: VolApplicationSession | null;
     rated?: boolean;
+    claimed?: boolean;
+    honorHour?: number | null;
 }
 
 export interface VolApplicationsResponse {
@@ -411,6 +413,20 @@ export interface SavedEventsResponse {
         totalElements: number;
         totalPages: number;
     };
+}
+
+// ── Volunteer — Claim Event Hours ────────────────────────────────────────────
+
+export interface ClaimEventHourRequest {
+    eventSessionId: string;
+    honorHours: number;
+    reason: string;
+    detailReason: string;
+    evidences: string;
+}
+
+export interface ClaimEventHourResponse {
+    evidencesUploadUrls: string[];
 }
 
 // ── Volunteer — Event Moments ─────────────────────────────────────────────────

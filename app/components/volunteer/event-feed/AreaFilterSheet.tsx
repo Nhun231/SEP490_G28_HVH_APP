@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
     Modal,
     View,
@@ -6,44 +6,16 @@ import {
     TouchableOpacity,
     StyleSheet,
     ScrollView,
+    TextInput,
     Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import wardData from '@/assets/wards/phuong_xa_moi_ha_noi.json';
 
-const HANOI_DISTRICTS = [
-    // 12 nội thành quận
-    'Quận Ba Đình',
-    'Quận Hoàn Kiếm',
-    'Quận Tây Hồ',
-    'Quận Long Biên',
-    'Quận Cầu Giấy',
-    'Quận Đống Đa',
-    'Quận Hai Bà Trưng',
-    'Quận Hoàng Mai',
-    'Quận Thanh Xuân',
-    'Quận Nam Từ Liêm',
-    'Quận Bắc Từ Liêm',
-    'Quận Hà Đông',
-    // 18 huyện / thị xã
-    'Huyện Sóc Sơn',
-    'Huyện Đông Anh',
-    'Huyện Gia Lâm',
-    'Huyện Thanh Trì',
-    'Huyện Thường Tín',
-    'Huyện Phú Xuyên',
-    'Huyện Ứng Hòa',
-    'Huyện Mỹ Đức',
-    'Huyện Chương Mỹ',
-    'Huyện Thanh Oai',
-    'Huyện Hoài Đức',
-    'Huyện Quốc Oai',
-    'Huyện Thạch Thất',
-    'Huyện Phúc Thọ',
-    'Huyện Đan Phượng',
-    'Huyện Mê Linh',
-    'Huyện Ba Vì',
-    'Thị xã Sơn Tây',
-];
+// Extract the sorted list of ward names from the JSON asset
+const ALL_WARDS: string[] = (wardData as { danh_sach_phuong_xa_moi: { stt: number; ten_moi: string }[] })
+    .danh_sach_phuong_xa_moi
+    .map(w => w.ten_moi);
 
 interface Props {
     visible: boolean;
@@ -54,17 +26,27 @@ interface Props {
 
 export default function AreaFilterSheet({ visible, initialSelected, onConfirm, onClose }: Props) {
     const [selected, setSelected] = useState<string[]>(initialSelected);
+    const [searchQuery, setSearchQuery] = useState('');
 
-    // Sync local state when sheet opens
+    // Sync local state when sheet opens/closes
     useEffect(() => {
-        if (visible) setSelected(initialSelected);
+        if (visible) {
+            setSelected(initialSelected);
+            setSearchQuery('');
+        }
     }, [visible]);
 
-    const toggle = (district: string) => {
+    const filteredWards = useMemo(() => {
+        const q = searchQuery.trim().toLowerCase();
+        if (!q) return ALL_WARDS;
+        return ALL_WARDS.filter(w => w.toLowerCase().includes(q));
+    }, [searchQuery]);
+
+    const toggle = (ward: string) => {
         setSelected(prev =>
-            prev.includes(district)
-                ? prev.filter(d => d !== district)
-                : [...prev, district]
+            prev.includes(ward)
+                ? prev.filter(d => d !== ward)
+                : [...prev, ward]
         );
     };
 
@@ -80,7 +62,7 @@ export default function AreaFilterSheet({ visible, initialSelected, onConfirm, o
                 <View style={styles.sheet}>
                     {/* Header */}
                     <View style={styles.header}>
-                        <Text style={styles.headerTitle}>Chọn khu vực</Text>
+                        <Text style={styles.headerTitle}>Chọn phường/xã</Text>
                         <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
                             <Ionicons name="close" size={22} color="#6B7280" />
                         </TouchableOpacity>
@@ -88,38 +70,62 @@ export default function AreaFilterSheet({ visible, initialSelected, onConfirm, o
 
                     <Text style={styles.subTitle}>
                         {selected.length > 0
-                            ? `Đã chọn ${selected.length} khu vực`
-                            : 'Chọn một hoặc nhiều quận/huyện tại Hà Nội'}
+                            ? `Đã chọn ${selected.length} phường/xã`
+                            : 'Chọn một hoặc nhiều phường/xã tại Hà Nội'}
                     </Text>
 
-                    {/* District chips */}
+                    {/* Search box */}
+                    <View style={styles.searchRow}>
+                        <Ionicons name="search" size={16} color="#9CA3AF" style={styles.searchIcon} />
+                        <TextInput
+                            style={styles.searchInput}
+                            placeholder="Tìm phường/xã..."
+                            placeholderTextColor="#9CA3AF"
+                            value={searchQuery}
+                            onChangeText={setSearchQuery}
+                            returnKeyType="search"
+                            autoCorrect={false}
+                        />
+                        {searchQuery.length > 0 && (
+                            <TouchableOpacity onPress={() => setSearchQuery('')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                                <Ionicons name="close-circle" size={16} color="#9CA3AF" />
+                            </TouchableOpacity>
+                        )}
+                    </View>
+
+                    {/* Ward chips */}
                     <ScrollView
                         showsVerticalScrollIndicator={false}
                         contentContainerStyle={styles.chipsContainer}
+                        keyboardShouldPersistTaps="handled"
                     >
-                        {HANOI_DISTRICTS.map(district => {
-                            const isActive = selected.includes(district);
-                            return (
-                                <TouchableOpacity
-                                    key={district}
-                                    style={[styles.chip, isActive && styles.chipActive]}
-                                    onPress={() => toggle(district)}
-                                    activeOpacity={0.7}
-                                >
-                                    {isActive && (
-                                        <Ionicons
-                                            name="checkmark"
-                                            size={13}
-                                            color="#FFFFFF"
-                                            style={{ marginRight: 4 }}
-                                        />
-                                    )}
-                                    <Text style={[styles.chipText, isActive && styles.chipTextActive]}>
-                                        {district}
-                                    </Text>
-                                </TouchableOpacity>
-                            );
-                        })}
+                        {filteredWards.length === 0 ? (
+                            <Text style={styles.emptyText}>Không tìm thấy phường/xã phù hợp</Text>
+                        ) : (
+                            filteredWards.map(ward => {
+                                const isActive = selected.includes(ward);
+                                return (
+                                    <TouchableOpacity
+                                        key={ward}
+                                        style={[styles.chip, isActive && styles.chipActive]}
+                                        onPress={() => toggle(ward)}
+                                        activeOpacity={0.7}
+                                    >
+                                        {isActive && (
+                                            <Ionicons
+                                                name="checkmark"
+                                                size={13}
+                                                color="#FFFFFF"
+                                                style={{ marginRight: 4 }}
+                                            />
+                                        )}
+                                        <Text style={[styles.chipText, isActive && styles.chipTextActive]}>
+                                            {ward}
+                                        </Text>
+                                    </TouchableOpacity>
+                                );
+                            })
+                        )}
                     </ScrollView>
 
                     {/* Footer */}
@@ -128,7 +134,9 @@ export default function AreaFilterSheet({ visible, initialSelected, onConfirm, o
                             <Text style={styles.clearBtnText}>Xóa lựa chọn</Text>
                         </TouchableOpacity>
                         <TouchableOpacity style={styles.confirmBtn} onPress={handleConfirm}>
-                            <Text style={styles.confirmBtnText}>Xác nhận</Text>
+                            <Text style={styles.confirmBtnText}>
+                                {selected.length > 0 ? `Xác nhận (${selected.length})` : 'Xác nhận'}
+                            </Text>
                         </TouchableOpacity>
                     </View>
                 </View>
@@ -147,7 +155,7 @@ const styles = StyleSheet.create({
         backgroundColor: '#FFFFFF',
         borderTopLeftRadius: 24,
         borderTopRightRadius: 24,
-        maxHeight: '85%',
+        maxHeight: '88%',
         paddingBottom: Platform.OS === 'ios' ? 34 : 20,
     },
 
@@ -180,7 +188,28 @@ const styles = StyleSheet.create({
         color: '#6B7280',
         paddingHorizontal: 20,
         paddingTop: 12,
-        paddingBottom: 10,
+        paddingBottom: 6,
+    },
+
+    /* Search */
+    searchRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginHorizontal: 16,
+        marginBottom: 8,
+        backgroundColor: '#F3F4F6',
+        borderRadius: 10,
+        paddingHorizontal: 10,
+        paddingVertical: 7,
+    },
+    searchIcon: {
+        marginRight: 6,
+    },
+    searchInput: {
+        flex: 1,
+        fontSize: 14,
+        color: '#1F2937',
+        padding: 0,
     },
 
     /* Chips */
@@ -213,6 +242,11 @@ const styles = StyleSheet.create({
     chipTextActive: {
         color: '#FFFFFF',
         fontWeight: '600',
+    },
+    emptyText: {
+        fontSize: 14,
+        color: '#9CA3AF',
+        padding: 16,
     },
 
     /* Footer */

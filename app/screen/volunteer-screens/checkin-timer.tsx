@@ -257,6 +257,7 @@ const CheckinTimerScreen = () => {
                         router.push({
                             pathname: '/screen/volunteer-screens/event-moments-feed',
                             params: {
+                                mode: 'event',
                                 eventName: params.eventName ?? '',
                                 sessionId: params.sessionId ?? '',
                                 applicationId: params.applicationId ?? '',

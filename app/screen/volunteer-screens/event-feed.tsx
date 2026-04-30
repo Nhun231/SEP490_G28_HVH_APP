@@ -269,8 +269,8 @@ const EventFeed = () => {
                             selectedDistricts.length > 0 && styles.filterChipTextActive,
                         ]}>
                             {selectedDistricts.length > 0
-                                ? `Khu vực (${selectedDistricts.length})`
-                                : 'Tất cả khu vực'}
+                                ? `Phường/xã (${selectedDistricts.length})`
+                                : 'Tất cả phường/xã'}
                         </Text>
                         <Ionicons
                             name="chevron-down"

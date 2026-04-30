@@ -102,6 +102,7 @@ interface ApplicationCardProps {
     onPress: () => void;
     onCancel: (item: VolApplicationItem) => void;
     onRate: (item: VolApplicationItem) => void;
+    onClaim: (item: VolApplicationItem) => void;
 }
 
 /** Returns true if this application can still be cancelled by the volunteer */
@@ -119,7 +120,7 @@ function isCancellable(item: VolApplicationItem): boolean {
     return true;
 }
 
-function ApplicationEventCard({ item, onPress, onCancel, onRate }: ApplicationCardProps) {
+function ApplicationEventCard({ item, onPress, onCancel, onRate, onClaim }: ApplicationCardProps) {
     const cfg = STATUS_CONFIG[item.status] ?? { label: item.status, color: '#6B7280', bg: '#F3F4F6', icon: 'help-circle-outline' };
     const imageUri = getFullImageUrl(item.imageUrl);
     const fullAddress = buildFullAddress(item.address, item.detailAddress);
@@ -131,13 +132,22 @@ function ApplicationEventCard({ item, onPress, onCancel, onRate }: ApplicationCa
     const isCompleted = item.status === 'COMPLETED';
     const canRate = isCompleted && !item.rated;
 
+    // Claim window: within 7 days after session endDateTime
+    const canClaim = isCompleted && !item.claimed && (() => {
+        if (!item.session?.endDateTime) return false;
+        const sessionEnd = new Date(item.session.endDateTime);
+        const now = new Date();
+        const diffDays = (now.getTime() - sessionEnd.getTime()) / (1000 * 60 * 60 * 24);
+        return diffDays <= 7;
+    })();
+
+    const hasActionRow = canRate || canClaim;
+
     return (
         <TouchableOpacity style={cardStyles.card} onPress={onPress} activeOpacity={0.75}>
-            {/* Colored stripe at top indicating status */}
             <View style={[cardStyles.statusStripe, { backgroundColor: cfg.color }]} />
 
             <View style={cardStyles.cardBody}>
-                {/* Thumbnail */}
                 <Image
                     source={imageUri}
                     style={cardStyles.thumbnail}
@@ -193,17 +203,6 @@ function ApplicationEventCard({ item, onPress, onCancel, onRate }: ApplicationCa
                             </TouchableOpacity>
                         )}
 
-                        {canRate && (
-                            <TouchableOpacity
-                                style={cardStyles.rateBtn}
-                                onPress={() => onRate(item)}
-                                activeOpacity={0.75}
-                            >
-                                <Ionicons name="star-outline" size={14} color="#FFFFFF" />
-                                <Text style={cardStyles.rateBtnText}>Đánh giá</Text>
-                            </TouchableOpacity>
-                        )}
-
                         {isCompleted && item.rated && (
                             <View style={cardStyles.ratedBadge}>
                                 <Ionicons name="star" size={13} color="#F59E0B" />
@@ -213,6 +212,33 @@ function ApplicationEventCard({ item, onPress, onCancel, onRate }: ApplicationCa
                     </View>
                 </View>
             </View>
+
+            {/* ── Action row: Đánh giá + Khiếu nại giờ ── */}
+            {hasActionRow && (
+                <View style={cardStyles.actionRow}>
+                    {canRate && (
+                        <TouchableOpacity
+                            style={[cardStyles.actionBtn, cardStyles.rateActionBtn]}
+                            onPress={() => onRate(item)}
+                            activeOpacity={0.75}
+                        >
+                            <Ionicons name="star-outline" size={14} color="#FFFFFF" />
+                            <Text style={cardStyles.actionBtnText}>Đánh giá</Text>
+                        </TouchableOpacity>
+                    )}
+
+                    {canClaim && (
+                        <TouchableOpacity
+                            style={[cardStyles.actionBtn, cardStyles.claimActionBtn]}
+                            onPress={() => onClaim(item)}
+                            activeOpacity={0.75}
+                        >
+                            <Ionicons name="alert-circle-outline" size={14} color="#FFFFFF" />
+                            <Text style={cardStyles.actionBtnText}>Khiếu nại giờ</Text>
+                        </TouchableOpacity>
+                    )}
+                </View>
+            )}
         </TouchableOpacity>
     );
 }
@@ -354,6 +380,44 @@ const cardStyles = StyleSheet.create({
         fontSize: 12,
         fontWeight: '600',
         color: '#D97706',
+    },
+    // ── Shared action row (below card body for completed cards) ──
+    actionRow: {
+        flexDirection: 'row',
+        borderTopWidth: 1,
+        borderTopColor: '#F3F4F6',
+        paddingHorizontal: 12,
+        paddingVertical: 8,
+        gap: 8,
+    },
+    actionBtn: {
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 5,
+        paddingVertical: 8,
+        borderRadius: 20,
+        elevation: 2,
+    },
+    rateActionBtn: {
+        backgroundColor: '#42A4F5',
+        shadowColor: '#42A4F5',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.35,
+        shadowRadius: 4,
+    },
+    claimActionBtn: {
+        backgroundColor: '#F59E0B',
+        shadowColor: '#F59E0B',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.35,
+        shadowRadius: 4,
+    },
+    actionBtnText: {
+        fontSize: 12,
+        fontWeight: '700',
+        color: '#FFFFFF',
     },
 });
 
@@ -521,6 +585,19 @@ const MyApplications = () => {
         } as any);
     }, []);
 
+    const handleClaimApplication = useCallback((item: VolApplicationItem) => {
+        router.push({
+            pathname: '/screen/volunteer-screens/claim-hours',
+            params: {
+                applicationId: item.id,
+                eventSessionId: item.session?.id ?? '',
+                eventName: item.name,
+                honorHour: String(item.honorHour ?? 0),
+                sessionEndDateTime: item.session?.endDateTime ?? '',
+            },
+        } as any);
+    }, []);
+
     const handleGoBack = () => {
         if (router.canGoBack()) router.back();
         else router.replace('/(vol-tabs)/home');
@@ -580,6 +657,7 @@ const MyApplications = () => {
                                 onPress={() => handleCardPress(item)}
                                 onCancel={handleCancelApplication}
                                 onRate={handleRateEvent}
+                                onClaim={handleClaimApplication}
                             />
                         )}
                         contentContainerStyle={styles.listContent}

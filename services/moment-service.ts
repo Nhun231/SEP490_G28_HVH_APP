@@ -1,8 +1,5 @@
 /**
  * moment-service.ts
- * Event-moment APIs.
- *   POST /api/v1/vol/event-moments          (VOL, auth required)
- *   GET  /api/v1/event-moments/feed         (public)
  */
 
 import baseAxios from '@/lib/baseAxios'
@@ -27,7 +24,8 @@ export const shareMoment = async (payload: {
 }
 
 /**
- * Fetch the public moments feed.
+ * Fetch the public moments feed (all events, no auth required).
+ * GET /api/v1/event-moments/feed
  * `eventName` is an optional partial-name search filter.
  */
 export const getEventMomentsFeed = async (
@@ -41,4 +39,36 @@ export const getEventMomentsFeed = async (
     const url = `${API_BASE}/api/v1/event-moments/feed?${query.toString()}`
     const response = await baseAxios.get<MomentFeedResponse>(url)
     return response.data
+}
+
+/**
+ * Fetch the current volunteer's own moments (auth: VOL).
+ * GET /api/v1/vol/event-moments/my-moments
+ *
+ * NOTE: BE returns a Spring Page<EventMomentFeedDetailsResponse>:
+ *   { content: [...], last: boolean, totalElements, totalPages, ... }
+ * This is mapped to the MomentFeedResponse shape used by the feed screen.
+ */
+export const getMyMomentsFeed = async (
+    params: ShareMomentParams = {}
+): Promise<MomentFeedResponse> => {
+    const query = new URLSearchParams()
+    query.append('pageNumber', String(params.pageNumber ?? 0))
+    query.append('pageSize', String(params.pageSize ?? 10))
+    if (params.eventName) query.append('eventName', params.eventName)
+
+    const url = `${API_BASE}/api/v1/vol/event-moments/my-moments?${query.toString()}`
+    const response = await baseAxios.get<{
+        content: MomentFeedResponse['eventMoments']
+        last: boolean
+        totalElements: number
+        totalPages: number
+    }>(url)
+
+    const page = response.data
+    return {
+        eventMoments: page.content ?? [],
+        hasMore: !page.last,
+        nextCursor: null,
+    }
 }

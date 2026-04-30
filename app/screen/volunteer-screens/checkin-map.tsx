@@ -105,7 +105,7 @@ const CheckinMapScreen = () => {
 
             // 3. Call quickCheckIn API to create the CheckInLog on the BE
             await quickCheckInApi({
-                applicationId: params.applicationId,
+                eventSessionId: params.eventSessionId,
                 deviceId,
                 apVersion,
                 osVersion,

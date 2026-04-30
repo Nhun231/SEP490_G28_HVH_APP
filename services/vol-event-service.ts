@@ -122,3 +122,15 @@ export const getSavedEvents = async (
     const response = await baseAxios.get<SavedEventsResponse>(url)
     return response.data
 }
+
+/**
+ * Submit a claim for additional volunteer hours on a completed event session.
+ * POST /api/v1/vol/event-claims
+ */
+export const claimEventHour = async (
+    request: import('./event-types').ClaimEventHourRequest
+): Promise<import('./event-types').ClaimEventHourResponse> => {
+    const url = `${API_BASE}/api/v1/vol/event-claims`
+    const response = await baseAxios.post<import('./event-types').ClaimEventHourResponse>(url, request)
+    return response.data
+}
