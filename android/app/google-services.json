@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "809975906417",
+    "project_id": "sep490-hvh",
+    "storage_bucket": "sep490-hvh.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:809975906417:android:078f73f6ba1c088dd79bd0",
+        "android_client_info": {
+          "package_name": "com.sep490.hvhapp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBrC_kW5BqXhgFA5BLBTKZXpi0aRS7f39Q"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
