@@ -64,8 +64,17 @@ const CheckinTab = () => {
             <ScrollView showsVerticalScrollIndicator={false}>
                 {/* Header */}
                 <View style={styles.header}>
-                    <Text style={styles.headerTitle}>Điểm danh</Text>
-                    <Text style={styles.headerSub}>Ghi nhận thời gian tình nguyện của bạn</Text>
+                    <View style={{ width: 36 }} />
+                    <View>
+                        <Text style={styles.headerTitle}>Điểm danh</Text>
+                        <Text style={styles.headerSub}>Ghi nhận thời gian tình nguyện của bạn</Text>
+                    </View>
+                    <TouchableOpacity
+                        style={styles.headerIconBtn}
+                        onPress={() => router.push('/screen/volunteer-screens/notifications' as any)}
+                    >
+                        <Ionicons name="notifications-outline" size={24} color="#42A4F5" />
+                    </TouchableOpacity>
                 </View>
 
                 {/* Hero Card */}
@@ -163,9 +172,15 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
     },
     header: {
-        paddingHorizontal: 20,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingHorizontal: 16,
         paddingTop: 8,
         paddingBottom: 16,
+    },
+    headerIconBtn: {
+        width: 36, height: 36, alignItems: 'center', justifyContent: 'center',
     },
     headerTitle: {
         fontSize: 26,

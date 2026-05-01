@@ -120,8 +120,11 @@ export default function Personal() {
                         <TouchableOpacity style={styles.iconBtn}>
                             <Ionicons name="arrow-back" size={24} color="#fff" />
                         </TouchableOpacity>
-                        <TouchableOpacity style={styles.iconBtn}>
-                            <Ionicons name="chatbubble-outline" size={24} color="#fff" />
+                        <TouchableOpacity
+                            style={styles.iconBtn}
+                            onPress={() => router.push('/screen/volunteer-screens/notifications' as any)}
+                        >
+                            <Ionicons name="notifications-outline" size={24} color="#fff" />
                         </TouchableOpacity>
                     </View>
 
