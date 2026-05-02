@@ -16,10 +16,19 @@
 
 import { claimEventHour } from '@/services/vol-event-service';
 import { getApiErrorMessage } from '@/services/api-helpers';
+import { uploadImageToSupabase } from '@/services/upload-service';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
-import { router, useLocalSearchParams } from 'expo-router';
+import { router, Stack, useLocalSearchParams } from 'expo-router';
 import React, { useMemo, useState } from 'react';
+
+const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL ?? ''
+function resolveUploadUrl(url: string): string {
+    if (url.startsWith('http')) return url
+    if (url.startsWith('/storage/v1')) return `${SUPABASE_URL}${url}`
+    if (url.startsWith('/object/')) return `${SUPABASE_URL}/storage/v1${url}`
+    return `${SUPABASE_URL}${url}`
+}
 import {
     ActivityIndicator,
     Alert,
@@ -41,7 +50,7 @@ const MAX_DETAIL = 300;
 
 interface EvidenceImage {
     uri: string;
-    extension: string; // e.g. "jpg"
+    extension: string; 
     mimeType: string;
 }
 
@@ -110,11 +119,12 @@ export default function ClaimHours() {
             quality: 0.85,
         });
         if (!result.canceled && result.assets.length > 0) {
-            const newImages: EvidenceImage[] = result.assets.map(asset => ({
-                uri: asset.uri,
-                extension: getExtensionFromUri(asset.uri, asset.mimeType),
-                mimeType: asset.mimeType ?? 'image/jpeg',
-            }));
+    const newImages: EvidenceImage[] = result.assets.map(asset => {
+                const mime = asset.mimeType ?? 'image/jpeg'
+                const raw = asset.uri.split('.').pop()?.toLowerCase() ?? 'jpg'
+                const ext = raw === 'jpeg' ? '.jpg' : `.${raw}`
+                return { uri: asset.uri, extension: ext, mimeType: mime };
+            });
             setImages(prev => [...prev, ...newImages].slice(0, MAX_IMAGES));
         }
     };
@@ -150,7 +160,9 @@ export default function ClaimHours() {
         setSubmitting(true);
         try {
             // Phase 1: POST claim → get signed upload URLs
-            const evidencesString = images.map(img => img.extension).join(' ');
+            const evidencesString = images.map(img =>
+                img.extension.startsWith('.') ? img.extension : `.${img.extension}`
+            ).join(' ');
             const response = await claimEventHour({
                 eventSessionId: eventSessionId!,
                 honorHours: parseInt(hours, 10),
@@ -159,16 +171,18 @@ export default function ClaimHours() {
                 evidences: evidencesString,
             });
 
-            // Phase 2: PUT each evidence image to its signed URL
-            const uploadPromises = response.evidencesUploadUrls.map((url, i) => {
-                const img = images[i];
-                return fetch(url, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': img.mimeType },
-                    body: { uri: img.uri } as any,
-                });
-            });
-            await Promise.all(uploadPromises);
+            // Phase 2: upload each evidence to its signed Supabase URL
+            await Promise.all(
+                response.evidencesUploadUrls.map((url, i) => {
+                    const img = images[i];
+                    if (!url || !img) return Promise.resolve();
+                    const resolvedUrl = resolveUploadUrl(url);
+                    return uploadImageToSupabase(resolvedUrl, {
+                        uri: img.uri,
+                        mimeType: img.mimeType,
+                    });
+                })
+            );
 
             Alert.alert(
                 'Khiếu nại thành công!',
@@ -184,6 +198,7 @@ export default function ClaimHours() {
 
     return (
         <SafeAreaView style={styles.safe} edges={['top']}>
+            <Stack.Screen options={{ headerShown: false }} />
             {/* ── Header ── */}
             <View style={styles.header}>
                 <TouchableOpacity onPress={() => router.back()} style={styles.headerBtn}>
@@ -673,11 +688,11 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
         gap: 8,
-        backgroundColor: '#16A34A',
+        backgroundColor: '#42A4F5',
         borderRadius: 14,
         paddingVertical: 15,
         elevation: 3,
-        shadowColor: '#16A34A',
+        shadowColor: '#42A4F5',
         shadowOffset: { width: 0, height: 3 },
         shadowOpacity: 0.3,
         shadowRadius: 6,
