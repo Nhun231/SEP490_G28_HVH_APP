@@ -336,8 +336,11 @@ const Benefit = () => {
             <View style={styles.header}>
                 <View style={styles.headerBtn} />
                 <Text style={styles.headerTitle}>Tìm kiếm tổ chức</Text>
-                <TouchableOpacity style={styles.headerBtn} onPress={handleSearch}>
-                    <Ionicons name="search" size={22} color="#FFFFFF" />
+                <TouchableOpacity
+                    style={styles.headerBtn}
+                    onPress={() => router.push('/screen/volunteer-screens/notifications' as any)}
+                >
+                    <Ionicons name="notifications-outline" size={22} color="#FFFFFF" />
                 </TouchableOpacity>
             </View>
 

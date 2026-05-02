@@ -14,6 +14,7 @@ const SERVICES = [
     { icon: 'share-social-outline', label: 'Khoảnh\nkhắc của tôi', color: '#8B5CF6', bg: '#F3EEFF' },
     { icon: 'card-outline', label: 'Thẻ dịch vụ công của tôi', color: '#3B82F6', bg: '#EBF2FF' },
     { icon: 'chatbubble-outline', label: 'Đánh giá\ncủa tôi', color: '#A855F7', bg: '#F5F0FF' },
+    { icon: 'ribbon-outline', label: 'Chứng chỉ\ncủa tôi', color: '#F59E0B', bg: '#FFFBEB' },
     { icon: 'lock-closed-outline', label: 'Đổi mật\nkhẩu', color: '#8B5CF6', bg: '#F3EEFF' },
 ] as const
 
@@ -103,24 +104,26 @@ export default function Personal() {
     }
 
     return (
-        <>
-            <SafeAreaView style={styles.safeArea} edges={['top']}>
-                <ScrollView
-                    style={styles.scroll}
-                    showsVerticalScrollIndicator={false}
-                    contentContainerStyle={styles.scrollContent}
-                >
-                    {/* ── Teal gradient header ──────────────────────────── */}
-                    <View style={styles.header}>
-                        {/* Top row: back + chat */}
-                        <View style={styles.headerTopRow}>
-                            <TouchableOpacity style={styles.iconBtn}>
-                                <Ionicons name="arrow-back" size={24} color="#fff" />
-                            </TouchableOpacity>
-                            <TouchableOpacity style={styles.iconBtn}>
-                                <Ionicons name="chatbubble-outline" size={24} color="#fff" />
-                            </TouchableOpacity>
-                        </View>
+        <SafeAreaView style={styles.safeArea} edges={['top']}>
+            <ScrollView
+                style={styles.scroll}
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={styles.scrollContent}
+            >
+                {/* ── Teal gradient header ──────────────────────────── */}
+                <View style={styles.header}>
+                    {/* Top row: back + chat */}
+                    <View style={styles.headerTopRow}>
+                        <TouchableOpacity style={styles.iconBtn}>
+                            <Ionicons name="arrow-back" size={24} color="#fff" />
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                            style={styles.iconBtn}
+                            onPress={() => router.push('/screen/volunteer-screens/notifications' as any)}
+                        >
+                            <Ionicons name="notifications-outline" size={24} color="#fff" />
+                        </TouchableOpacity>
+                    </View>
 
                         {/* Profile row */}
                         <View style={styles.profileRow}>
@@ -138,21 +141,25 @@ export default function Personal() {
                     </View>
 
 
-                    {/* ── Card 2: Certificate store ─────────────────────── */}
-                    <View style={styles.section}>
-                        <TouchableOpacity style={styles.card} activeOpacity={0.8}>
-                            <View style={styles.certRow}>
-                                <View style={styles.certIcon}>
-                                    <Ionicons name="ribbon" size={22} color="#fff" />
-                                </View>
-                                <View style={styles.certInfo}>
-                                    <Text style={styles.certTitle}>Kho chứng chỉ</Text>
-                                    <Text style={styles.certSub}>Bạn đã nhận được 0 chứng chỉ</Text>
-                                </View>
-                                <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
+                {/* ── Card 2: Certificate store ─────────────────────────── */}
+                <View style={styles.section}>
+                    <TouchableOpacity
+                        style={styles.card}
+                        activeOpacity={0.8}
+                        onPress={() => router.push('/screen/volunteer-screens/my-certificates' as any)}
+                    >
+                        <View style={styles.certRow}>
+                            <View style={styles.certIcon}>
+                                <Ionicons name="ribbon" size={22} color="#fff" />
                             </View>
-                        </TouchableOpacity>
-                    </View>
+                            <View style={styles.certInfo}>
+                                <Text style={styles.certTitle}>Kho chứng chỉ</Text>
+                                <Text style={styles.certSub}>Nhấn để xem chứng chỉ của bạn</Text>
+                            </View>
+                            <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
+                        </View>
+                    </TouchableOpacity>
+                </View>
 
                     {/* ── Card 3: Services grid ─────────────────────────── */}
                     <View style={styles.section}>
@@ -180,7 +187,11 @@ export default function Personal() {
                                             } else if (idx === 7) {
                                                 // Change Password
                                                 setShowChangePassword(true);
-                                            }
+                                            } else if (idx === 6) {
+                                            // "Chứng chỉ của tôi"
+                                            router.push('/screen/volunteer-screens/my-certificates' as any);
+                                        }
+                                            
                                         }}
                                     >
                                         <View style={[styles.serviceIconWrap, { backgroundColor: svc.bg }]}>
@@ -205,13 +216,12 @@ export default function Personal() {
 
                     <View style={{ height: 24 }} />
                 </ScrollView>
-            </SafeAreaView>
 
             <ChangePasswordModal
                 visible={showChangePassword}
                 onClose={() => setShowChangePassword(false)}
             />
-        </>
+        </SafeAreaView>
     )
 }
 

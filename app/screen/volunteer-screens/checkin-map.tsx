@@ -51,9 +51,6 @@ const CheckinMapScreen = () => {
     const lng = parseFloat(params.lng ?? '0')
     const radiusMeters = parseFloat(params.radiusMeters ?? '200')
 
-    // const userLocation = await Location.getCurrentPositionAsync({})
-    const userLocation = { latitude: lat, longitude: lng }
-
     const mapRef = useRef<MapView>(null)
     const [mapReady, setMapReady] = useState(false)
     const [checkingIn, setCheckingIn] = useState(false)
@@ -81,11 +78,7 @@ const CheckinMapScreen = () => {
                 Alert.alert('Thiếu quyền', 'Cần cấp quyền vị trí để điểm danh.')
                 return
             }
-            // const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High })
-
-            // [TESTING] Mock location to exactly the event's check-in centre so BE radius check passes
-            const mockLat = lat   // same as event's latCheckInLocation
-            const mockLng = lng   // same as event's lngCheckInLocation
+            const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High })
 
             // 2. Gather device metadata (Android vs iOS)
             let deviceId: string
@@ -109,8 +102,8 @@ const CheckinMapScreen = () => {
                 deviceId,
                 apVersion,
                 osVersion,
-                currentPlaceLat: mockLat,   // TODO: replace with loc.coords.latitude
-                currentPlaceLng: mockLng,   // TODO: replace with loc.coords.longitude
+                currentPlaceLat: loc.coords.latitude,
+                currentPlaceLng: loc.coords.longitude,
             })
 
             // 4. Navigate to timer — check-in log is now saved
@@ -185,7 +178,7 @@ const CheckinMapScreen = () => {
                         style={styles.map}
                         initialRegion={initialRegion}
                         onMapReady={() => setMapReady(true)}
-                        showsUserLocation={false}
+                        showsUserLocation={true}
                         showsMyLocationButton={false}
                         mapType="standard"
                     >
@@ -209,16 +202,7 @@ const CheckinMapScreen = () => {
                             </View>
                         </Marker>
 
-                        {/* User location marker (orange dot) */}
-                        <Marker
-                            coordinate={userLocation}
-                            title="Vị trí của bạn"
-                            anchor={{ x: 0.5, y: 0.5 }}
-                        >
-                            <View style={styles.userMarkerOuter}>
-                                <View style={styles.userMarkerInner} />
-                            </View>
-                        </Marker>
+
                     </MapView>
 
                     {!mapReady && (

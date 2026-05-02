@@ -108,17 +108,11 @@ const CheckinTimerScreen = () => {
         try {
 
             // 1. Get current GPS position (required by BE to verify radius)
-            // [TESTING] Permission + real GPS commented out — using mocked coords instead
-            // const { status } = await Location.requestForegroundPermissionsAsync()
-            // if (status !== 'granted') {
-            //     throw new Error('Cần cấp quyền vị trí để check-out.')
-            // }
-            // const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High })
-
-            // [TESTING] Mock location to exactly the event's check-in centre so BE radius check passes
-            // TODO: restore permission check + replace mockLat/mockLng with loc.coords.latitude/longitude
-            const mockLat = parseFloat(params.checkinLat ?? '0')
-            const mockLng = parseFloat(params.checkinLng ?? '0')
+            const { status } = await Location.requestForegroundPermissionsAsync()
+            if (status !== 'granted') {
+                throw new Error('Cần cấp quyền vị trí để check-out.')
+            }
+            const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High })
 
             // 2. Gather device metadata (Android vs iOS)
             let deviceId: string
@@ -142,8 +136,8 @@ const CheckinTimerScreen = () => {
                 deviceId,
                 apVersion,
                 osVersion,
-                currentPlaceLat: mockLat,   // TODO: replace with loc.coords.latitude
-                currentPlaceLng: mockLng,   // TODO: replace with loc.coords.longitude
+                currentPlaceLat: loc.coords.latitude,
+                currentPlaceLng: loc.coords.longitude,
             })
 
             // 4. Navigate to rating screen immediately after successful checkout
