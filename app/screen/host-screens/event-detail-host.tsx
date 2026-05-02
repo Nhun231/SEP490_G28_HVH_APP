@@ -243,10 +243,9 @@ const EventDetailScreen = () => {
     });
 
     const handleParticipants = () => setSessionModalVisible(true);
-    const handleCheckin = () => setShowCheckinCode(prev => !prev);
     const handleReviews = () => router.push({ pathname: '/screen/host-screens/event-rating' as any, params: { eventId: event.id } });
     const handleMoments = () => router.push({ pathname: '/screen/host-screens/event-moments' as any, params: { eventId: event.id } });
-    const handleComplaint = () => console.log('Complain about points', event.id);
+    const handleComplaint = () => router.push({ pathname: '/screen/host-screens/honor-hour-requests' as any, params: { eventId: event.id } });
     const handleAnnounce = () => router.push({
         pathname: '/screen/host-screens/announce-volunteers' as any,
         params: { eventId: event.id },

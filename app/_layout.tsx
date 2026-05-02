@@ -44,6 +44,7 @@ export default function RootLayout() {
           <Stack.Screen name="screen/host-screens/event-rating" options={{ headerShown: false }} />
           <Stack.Screen name="screen/host-screens/event-moments" options={{ headerShown: false }} />
           <Stack.Screen name="screen/host-screens/event-moment-detail" options={{ headerShown: false }} />
+          <Stack.Screen name="screen/host-screens/honor-hour-requests" options={{ headerShown: false }} />
           {/* Tab groups — disable swipe-back: tab screens are root-level, should not be dismissable */}
           <Stack.Screen name="(vol-tabs)" options={{ headerShown: false, gestureEnabled: false }} />
           <Stack.Screen name="(host-tabs)" options={{ headerShown: false, gestureEnabled: false }} />

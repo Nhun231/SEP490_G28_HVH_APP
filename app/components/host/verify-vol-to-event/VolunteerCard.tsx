@@ -16,7 +16,7 @@ export interface VolunteerApplication {
     honorScore: number;
     address: string;
     createdAt: string;
-    status: 'PENDING' | 'APPROVED';
+    status: 'PENDING' | 'APPROVED' | 'COMPLETED';
 }
 
 interface VolunteerCardProps {
@@ -86,11 +86,11 @@ const VolunteerCard: React.FC<VolunteerCardProps> = ({ item, onApprove, onReject
         <>
             <TouchableOpacity
                 style={styles.card}
-                activeOpacity={item.status === 'APPROVED' && !!onReview ? 0.75 : 1}
-                onPress={item.status === 'APPROVED' && onReview ? () => onReview(item) : undefined}
+                activeOpacity={item.status === 'COMPLETED' && !!onReview ? 0.75 : 1}
+                onPress={item.status === 'COMPLETED' && onReview ? () => onReview(item) : undefined}
             >
-                {/* Review badge for APPROVED */}
-                {item.status === 'APPROVED' && !!onReview && (
+                {/* Review badge — only for COMPLETED (checked out) */}
+                {item.status === 'COMPLETED' && !!onReview && (
                     <View style={styles.reviewBadge}>
                         <Ionicons name="star-outline" size={11} color="#42A4F5" />
                         <Text style={styles.reviewBadgeText}>Đánh giá</Text>
@@ -120,14 +120,14 @@ const VolunteerCard: React.FC<VolunteerCardProps> = ({ item, onApprove, onReject
                             <Ionicons name="location-outline" size={14} color="#64748B" />
                             <Text style={styles.infoText} numberOfLines={1}>Địa chỉ: {displayAddress}</Text>
                         </View>
-                        {item.status === 'APPROVED' && item.email && (
+                        {['APPROVED', 'COMPLETED'].includes(item.status) && item.email && (
                             <View style={styles.infoRow}>
                                 <Ionicons name="mail-outline" size={14} color="#64748B" />
                                 <Text style={styles.infoText} numberOfLines={1}>Email: {item.email}</Text>
                             </View>
                         )}
 
-                        {item.status === 'APPROVED' && item.phone && (
+                        {['APPROVED', 'COMPLETED'].includes(item.status) && item.phone && (
                             <View style={styles.infoRow}>
                                 <Ionicons name="call-outline" size={14} color="#64748B" />
                                 <Text style={styles.infoText} numberOfLines={1}>SĐT: {item.phone}</Text>
@@ -135,7 +135,7 @@ const VolunteerCard: React.FC<VolunteerCardProps> = ({ item, onApprove, onReject
                         )}
 
                         {/* Attendance badge — for ONGOING, ENDED, COMPLETED events */}
-                        {item.status === 'APPROVED' && ['ONGOING', 'ENDED', 'COMPLETED'].includes(eventStatus ?? '') && (() => {
+                        {['APPROVED', 'COMPLETED'].includes(item.status) && ['ONGOING', 'ENDED', 'COMPLETED'].includes(eventStatus ?? '') && (() => {
                             const checkedIn = !!item.checkInTime &&
                                 (!sessionStartTime ||
                                     new Date(item.checkInTime) >= new Date(sessionStartTime));

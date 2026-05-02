@@ -2,14 +2,7 @@ import { useAuth } from '@/context/AuthContext'
 import { Ionicons } from '@expo/vector-icons'
 import { useRouter } from 'expo-router'
 import React, { useState } from 'react'
-import {
-    Alert,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
-} from 'react-native'
+import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import ChangePasswordModal from '@/app/components/host/profile/ChangePasswordModal'
 
@@ -25,7 +18,7 @@ const SERVICES = [
 ] as const
 
 export default function Personal() {
-    const { logout, session, isLoggedIn } = useAuth()
+    const { logout, isLoggedIn } = useAuth()
     const router = useRouter()
     const [showChangePassword, setShowChangePassword] = useState(false)
 
@@ -111,123 +104,121 @@ export default function Personal() {
 
     return (
         <>
-        <SafeAreaView style={styles.safeArea} edges={['top']}>
-            <ScrollView
-                style={styles.scroll}
-                showsVerticalScrollIndicator={false}
-                contentContainerStyle={styles.scrollContent}
-            >
-                {/* ── Teal gradient header ──────────────────────────── */}
-                <View style={styles.header}>
-                    {/* Top row: back + chat */}
-                    <View style={styles.headerTopRow}>
-                        <TouchableOpacity style={styles.iconBtn}>
-                            <Ionicons name="arrow-back" size={24} color="#fff" />
-                        </TouchableOpacity>
-                        <TouchableOpacity style={styles.iconBtn}>
-                            <Ionicons name="chatbubble-outline" size={24} color="#fff" />
-                        </TouchableOpacity>
-                    </View>
+            <SafeAreaView style={styles.safeArea} edges={['top']}>
+                <ScrollView
+                    style={styles.scroll}
+                    showsVerticalScrollIndicator={false}
+                    contentContainerStyle={styles.scrollContent}
+                >
+                    {/* ── Teal gradient header ──────────────────────────── */}
+                    <View style={styles.header}>
+                        {/* Top row: back + chat */}
+                        <View style={styles.headerTopRow}>
+                            <TouchableOpacity style={styles.iconBtn}>
+                                <Ionicons name="arrow-back" size={24} color="#fff" />
+                            </TouchableOpacity>
+                            <TouchableOpacity style={styles.iconBtn}>
+                                <Ionicons name="chatbubble-outline" size={24} color="#fff" />
+                            </TouchableOpacity>
+                        </View>
 
-                    {/* Profile row */}
-                    <View style={styles.profileRow}>
-                        {/* Avatar placeholder */}
-                        <View style={styles.avatarRing}>
-                            <View style={styles.avatar}>
-                                <Ionicons name="person" size={32} color="#42A4F5" />
+                        {/* Profile row */}
+                        <View style={styles.profileRow}>
+                            {/* Avatar placeholder */}
+                            <View style={styles.avatarRing}>
+                                <View style={styles.avatar}>
+                                    <Ionicons name="person" size={32} color="#42A4F5" />
+                                </View>
+                            </View>
+                            <View style={styles.profileInfo}>
+                                <Text style={styles.profileName}>Tình nguyện viên</Text>
+                                <Text style={styles.profileMotto}>Làm công ích sống, sống ý nghĩa công ích</Text>
                             </View>
                         </View>
-                        <View style={styles.profileInfo}>
-                            <Text style={styles.profileName}>Tình nguyện viên</Text>
-                            <Text style={styles.profileMotto}>Làm công ích sống, sống ý nghĩa công ích</Text>
-                        </View>
                     </View>
-                </View>
 
 
-                {/* ── Card 2: Certificate store ─────────────────────── */}
-                <View style={styles.section}>
-                    <TouchableOpacity style={styles.card} activeOpacity={0.8}>
-                        <View style={styles.certRow}>
-                            <View style={styles.certIcon}>
-                                <Ionicons name="ribbon" size={22} color="#fff" />
+                    {/* ── Card 2: Certificate store ─────────────────────── */}
+                    <View style={styles.section}>
+                        <TouchableOpacity style={styles.card} activeOpacity={0.8}>
+                            <View style={styles.certRow}>
+                                <View style={styles.certIcon}>
+                                    <Ionicons name="ribbon" size={22} color="#fff" />
+                                </View>
+                                <View style={styles.certInfo}>
+                                    <Text style={styles.certTitle}>Kho chứng chỉ</Text>
+                                    <Text style={styles.certSub}>Bạn đã nhận được 0 chứng chỉ</Text>
+                                </View>
+                                <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
                             </View>
-                            <View style={styles.certInfo}>
-                                <Text style={styles.certTitle}>Kho chứng chỉ</Text>
-                                <Text style={styles.certSub}>Bạn đã nhận được 0 chứng chỉ</Text>
-                            </View>
-                            <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
-                        </View>
-                    </TouchableOpacity>
-                </View>
-
-                {/* ── Card 3: Services grid ─────────────────────────── */}
-                <View style={styles.section}>
-                    <View style={styles.card}>
-                        <Text style={styles.sectionTitle}>Dịch vụ của tôi</Text>
-                        <View style={styles.serviceGrid}>
-                            {SERVICES.map((svc, idx) => (
-                                <TouchableOpacity
-                                    key={idx}
-                                    style={styles.serviceItem}
-                                    activeOpacity={0.7}
-                                    onPress={() => {
-                                        if (idx === 0) {
-                                            // "Thông tin cá nhân"
-                                            router.push('/screen/volunteer-screens/vol-profile' as any);
-                                        } else if (idx === 1) {
-                                            // "Hoạt động đã đăng ký"
-                                            router.push('/screen/volunteer-screens/my-applications' as any);
-                                        } else if (idx === 2) {
-                                            // "Hoạt động đã điểm danh"
-                                            router.push({ pathname: '/screen/volunteer-screens/my-applications', params: { mode: 'checked-in' } } as any);
-                                        } else if (idx === 3) {
-                                            // "Sự kiện đã lưu"
-                                            router.push('/screen/volunteer-screens/saved-events' as any);
-                                        } else if (idx === 7) {
-                                            // "Đổi mật khẩu"
-                                            setShowChangePassword(true);
-                                        }
-                                    }}
-                                >
-                                    <View style={[styles.serviceIconWrap, { backgroundColor: svc.bg }]}>
-                                        <Ionicons name={svc.icon as any} size={24} color={svc.color} />
-                                    </View>
-                                    <Text style={styles.serviceLabel}>{svc.label}</Text>
-                                </TouchableOpacity>
-                            ))}
-                        </View>
-                    </View>
-                </View>
-
-                {/* ── Card 4: Logout ────────────────────────────────── */}
-                <View style={styles.section}>
-                    <View style={styles.card}>
-                        <TouchableOpacity style={styles.logoutRow} onPress={handleLogout} activeOpacity={0.7}>
-                            <Ionicons name="log-out-outline" size={22} color="#EF4444" />
-                            <Text style={styles.logoutText}>Đăng xuất</Text>
                         </TouchableOpacity>
                     </View>
-                </View>
 
-                <View style={{ height: 24 }} />
-            </ScrollView>
-        </SafeAreaView>
+                    {/* ── Card 3: Services grid ─────────────────────────── */}
+                    <View style={styles.section}>
+                        <View style={styles.card}>
+                            <Text style={styles.sectionTitle}>Dịch vụ của tôi</Text>
+                            <View style={styles.serviceGrid}>
+                                {SERVICES.map((svc, idx) => (
+                                    <TouchableOpacity
+                                        key={idx}
+                                        style={styles.serviceItem}
+                                        activeOpacity={0.7}
+                                        onPress={() => {
+                                            if (idx === 0) {
+                                                // Profile
+                                                router.push('/screen/volunteer-screens/vol-profile' as any);
+                                            } else if (idx === 1) {
+                                                // Registered Events
+                                                router.push('/screen/volunteer-screens/my-applications' as any);
+                                            } else if (idx === 2) {
+                                                // Checked-in Events
+                                                router.push({ pathname: '/screen/volunteer-screens/my-applications', params: { mode: 'checked-in' } } as any);
+                                            } else if (idx === 3) {
+                                                // Saved Events
+                                                router.push('/screen/volunteer-screens/saved-events' as any);
+                                            } else if (idx === 7) {
+                                                // Change Password
+                                                setShowChangePassword(true);
+                                            }
+                                        }}
+                                    >
+                                        <View style={[styles.serviceIconWrap, { backgroundColor: svc.bg }]}>
+                                            <Ionicons name={svc.icon as any} size={24} color={svc.color} />
+                                        </View>
+                                        <Text style={styles.serviceLabel}>{svc.label}</Text>
+                                    </TouchableOpacity>
+                                ))}
+                            </View>
+                        </View>
+                    </View>
 
-        <ChangePasswordModal
-            visible={showChangePassword}
-            onClose={() => setShowChangePassword(false)}
-        />
-    </>
+                    {/* ── Card 4: Logout ────────────────────────────────── */}
+                    <View style={styles.section}>
+                        <View style={styles.card}>
+                            <TouchableOpacity style={styles.logoutRow} onPress={handleLogout} activeOpacity={0.7}>
+                                <Ionicons name="log-out-outline" size={22} color="#EF4444" />
+                                <Text style={styles.logoutText}>Đăng xuất</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+
+                    <View style={{ height: 24 }} />
+                </ScrollView>
+            </SafeAreaView>
+
+            <ChangePasswordModal
+                visible={showChangePassword}
+                onClose={() => setShowChangePassword(false)}
+            />
+        </>
     )
 }
-
-const TEAL = '#42A4F5'
 
 const styles = StyleSheet.create({
     safeArea: {
         flex: 1,
-        backgroundColor: TEAL,
+        backgroundColor: '#42A4F5',
     },
     scroll: {
         flex: 1,
@@ -261,7 +252,7 @@ const styles = StyleSheet.create({
     },
 
     header: {
-        backgroundColor: TEAL,
+        backgroundColor: '#42A4F5',
         paddingHorizontal: 16,
         paddingBottom: 24,
     },

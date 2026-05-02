@@ -9,8 +9,8 @@ import {
     RegisteredParticipant,
     ActualParticipant,
 } from '@/services/event-types';
-import { getRegisteredParticipants, getActualParticipants } from '@/services/host-event-service';
-import { getApiErrorMessage } from '@/services/api-helpers';
+import { getRegisteredParticipants, getActualParticipants, getCompletedApplications } from '@/services/host-event-service';
+import { getApiErrorMessage, resolveSupabaseUrl } from '@/services/api-helpers';
 
 type AppTab = 'PENDING' | 'APPROVED';
 
@@ -27,7 +27,7 @@ function fromPending(p: RegisteredParticipant): VolunteerApplication {
         id: p.applicationId,
         name: p.name,
         nickName: p.nickName,
-        avatarUrl: p.avatarUrl ?? null,
+        avatarUrl: p.avatarUrl ? (resolveSupabaseUrl(p.avatarUrl) ?? null) : null,
         creditScore: p.creditScore,
         honorScore: p.honorScore,
         address: p.address ?? '',
@@ -37,8 +37,10 @@ function fromPending(p: RegisteredParticipant): VolunteerApplication {
 }
 
 // Map approved API participant → VolunteerApplication
-// checkInTime is used as createdAt fallback; if null use current time
+// Status derived from API field: COMPLETED (checked out) | APPROVED (not yet checked out)
 function fromApproved(p: ActualParticipant): VolunteerApplication {
+    const status: VolunteerApplication['status'] =
+        p.status === 'COMPLETED' ? 'COMPLETED' : 'APPROVED';
     return {
         id: p.eventApplicationId,
         name: p.fullName,
@@ -47,13 +49,19 @@ function fromApproved(p: ActualParticipant): VolunteerApplication {
         phone: p.phone,
         checkInTime: p.checkInTime,
         checkOutTime: p.checkOutTime,
-        avatarUrl: p.avatarUrl ?? null,
+        avatarUrl: p.avatarUrl ? (resolveSupabaseUrl(p.avatarUrl) ?? null) : null,
         creditScore: p.creditScore,
         honorScore: p.honorScore,
         address: p.address ?? '',
         createdAt: p.checkInTime ?? new Date().toISOString(),
-        status: 'APPROVED',
+        status,
     };
+}
+
+// Map completed API participant → VolunteerApplication with forced COMPLETED status.
+// CompletedApplicationResponse has no status field, so we cannot derive it from p.status.
+function fromCompleted(p: ActualParticipant): VolunteerApplication {
+    return { ...fromApproved(p), status: 'COMPLETED' };
 }
 
 const EventApplicationsScreen = () => {
@@ -109,12 +117,19 @@ const EventApplicationsScreen = () => {
         }
     }, [sessionId]);
 
-    // Fetch approved participants (page-based — hasMore derived from totalPages)
+    // Fetch approved/completed participants depending on event status:
+    //   ENDED   → /completed-applications  (COMPLETED status — checked out)
+    //   others  → /actual-participants      (APPROVED status — checked in)
     const fetchApproved = useCallback(async (page: number, replace: boolean) => {
         if (!sessionId) return;
         try {
-            const res = await getActualParticipants(sessionId, page, PAGE_SIZE);
-            const mapped = res.content.map(fromApproved);
+            const isEnded = eventStatus === 'ENDED';
+            const res = isEnded
+                ? await getCompletedApplications(sessionId, page, PAGE_SIZE)
+                : await getActualParticipants(sessionId, page, PAGE_SIZE);
+            // Use fromCompleted for ENDED events: backend DTO has no status field,
+            // so we must force COMPLETED status to display the review badge correctly.
+            const mapped = res.content.map(isEnded ? fromCompleted : fromApproved);
             if (replace) {
                 setApprovedList(mapped);
             } else {
@@ -125,7 +140,7 @@ const EventApplicationsScreen = () => {
         } catch (err) {
             console.error('[EventApplications] fetchApproved error:', getApiErrorMessage(err));
         }
-    }, [sessionId]);
+    }, [sessionId, eventStatus]);
 
     // Initial load — both tabs in parallel
     useEffect(() => {
@@ -336,16 +351,9 @@ const EventApplicationsScreen = () => {
                                     onApprove={handleRemoveFromList}
                                     onReject={handleRemoveFromList}
                                     onReview={
-                                        // Only reviewable when:
-                                        // 1. Tab is APPROVED
-                                        // 2. Event is ENDED
-                                        // 3. Volunteer has checked in AND checked out
-                                        masterTab === 'APPROVED' &&
-                                            eventStatus === 'ENDED' &&
-                                            !!item.checkInTime &&
-                                            !!item.checkOutTime
-                                            ? handleReview
-                                            : undefined
+                                        // For ENDED events: all items from completed-applications
+                                        // are guaranteed COMPLETED (checked in + checked out)
+                                        eventStatus === 'ENDED' ? handleReview : undefined
                                     }
                                     eventStatus={eventStatus}
                                     sessionStartTime={sessionStartTime}

@@ -109,6 +109,23 @@ export const getActualParticipants = async (
 }
 
 /**
+ * Fetch completed (checked-out) applications for an ENDED event session.
+ * GET /api/v1/host/event-sessions/{sessionId}/completed-applications
+ */
+export const getCompletedApplications = async (
+    sessionId: string,
+    pageNumber: number = 0,
+    pageSize: number = 10,
+): Promise<ActualParticipantsResponse> => {
+    const endpoint = `${API_BASE}/api/v1/host/event-sessions/${sessionId}/completed-applications`
+    const response = await baseAxios.get<ActualParticipantsResponse>(endpoint, {
+        params: { pageNumber, pageSize },
+    })
+    console.log('[HostEventService] getCompletedApplications:', JSON.stringify(response.data, null, 2))
+    return response.data
+}
+
+/**
  * Approve a volunteer application.
  * PUT /api/v1/host/event-applications/{id}/approve
  */

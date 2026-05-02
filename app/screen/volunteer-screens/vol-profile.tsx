@@ -102,12 +102,17 @@ export default function VolProfileScreen() {
     const startEditing = () => {
         if (!profile) return;
         setEditForm({
-            nickName: profile.nickname ?? '', fullName: profile.fullName ?? '',
-            bio: profile.bio ?? '', gender: profile.gender ?? true,
+            nickName: profile.nickname ?? '',
+            fullName: profile.fullName ?? '',
+            bio: profile.bio ?? '',
+            gender: profile.gender ?? true,
             dob: profile.dob ? formatDate(profile.dob) : '',
-            address: profile.address ?? '', detailAddress: profile.detailAddress ?? '',
-            employStatus: profile.employStatus ?? '', workAddress: profile.workAddress ?? '',
-            educationLevel: profile.educationLevel ?? '', sid: profile.sid ?? '',
+            address: profile.address ?? '',
+            detailAddress: profile.detailAddress ?? '',
+            employStatus: profile.employStatus ?? '',
+            workAddress: profile.workAddress ?? '',
+            educationLevel: profile.educationLevel ?? '',
+            sid: profile.sid ?? '',
         });
         setIsEditing(true);
     };
@@ -124,12 +129,18 @@ export default function VolProfileScreen() {
         setSaving(true);
         try {
             await updateVolunteerProfile({
-                nickName: editForm.nickName, fullName: editForm.fullName,
-                bio: editForm.bio, gender: editForm.gender, dob,
+                nickName: editForm.nickName,
+                fullName: editForm.fullName,
+                bio: editForm.bio,
+                gender: editForm.gender,
+                dob,
                 avatarExtension: null,
-                address: editForm.address, detailAddress: editForm.detailAddress,
-                employStatus: editForm.employStatus, workAddress: editForm.workAddress,
-                educationLevel: editForm.educationLevel, sid: editForm.sid,
+                address: editForm.address,
+                detailAddress: editForm.detailAddress,
+                employStatus: editForm.employStatus,
+                workAddress: editForm.workAddress,
+                educationLevel: editForm.educationLevel,
+                sid: editForm.sid,
             });
             await fetchProfile();
             setIsEditing(false);
@@ -140,9 +151,22 @@ export default function VolProfileScreen() {
     };
 
     const handlePickAvatar = async () => {
-        const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-        if (status !== 'granted') { Alert.alert('Quyền truy cập', 'Vui lòng cấp quyền truy cập thư viện ảnh.'); return; }
-        const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, allowsEditing: true, aspect: [1, 1], quality: 0.85 });
+        // On iOS the system picker handles permissions internally;
+        // calling requestMediaLibraryPermissionsAsync() before launchImageLibraryAsync()
+        // causes a duplicate permission/photo-selection flow on iOS 14+.
+        if (Platform.OS === 'android') {
+            const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+            if (status !== 'granted') {
+                Alert.alert('Quyền truy cập', 'Vui lòng cấp quyền truy cập thư viện ảnh.');
+                return;
+            }
+        }
+        const result = await ImagePicker.launchImageLibraryAsync({
+            mediaTypes: ImagePicker.MediaTypeOptions.Images,
+            allowsEditing: true,
+            aspect: [1, 1],
+            quality: 0.85
+        });
         if (result.canceled || !result.assets[0]) return;
         const asset = result.assets[0];
         setLocalAvatarUri(asset.uri);
@@ -150,16 +174,25 @@ export default function VolProfileScreen() {
         try {
             const ext = getFileExtension(asset.uri, asset.mimeType);
             const updateRes = await updateVolunteerProfile({
-                nickName: profile?.nickname ?? '', fullName: profile?.fullName ?? '',
-                bio: profile?.bio ?? '', gender: profile?.gender ?? true,
-                dob: profile?.dob ?? '', avatarExtension: ext,
-                address: profile?.address ?? '', detailAddress: profile?.detailAddress ?? '',
-                employStatus: profile?.employStatus ?? '', workAddress: profile?.workAddress ?? '',
-                educationLevel: profile?.educationLevel ?? '', sid: profile?.sid ?? '',
+                nickName: profile?.nickname ?? '',
+                fullName: profile?.fullName ?? '',
+                bio: profile?.bio ?? '',
+                gender: profile?.gender ?? true,
+                dob: profile?.dob ?? '',
+                avatarExtension: ext,
+                address: profile?.address ?? '',
+                detailAddress: profile?.detailAddress ?? '',
+                employStatus: profile?.employStatus ?? '',
+                workAddress: profile?.workAddress ?? '',
+                educationLevel: profile?.educationLevel ?? '',
+                sid: profile?.sid ?? '',
             });
             const uploadPath = updateRes.avatarUploadUrl;
             if (!uploadPath) throw new Error('Không nhận được URL upload từ server.');
-            await uploadImageToSupabase(resolveSupabaseUrl(uploadPath)!, { uri: asset.uri, mimeType: getMimeType(ext) });
+            await uploadImageToSupabase(resolveSupabaseUrl(uploadPath)!, {
+                uri: asset.uri,
+                mimeType: getMimeType(ext)
+            });
             await fetchProfile();
             Alert.alert('Thành công', 'Ảnh đại diện đã được cập nhật.');
         } catch (e: any) {
@@ -226,7 +259,7 @@ export default function VolProfileScreen() {
                         <View style={styles.statDivider} />
                         <StatCard value={profile?.avgRating?.toFixed(1) ?? '—'} label="Đánh giá" icon="star" color="#F59E0B" />
                         <View style={styles.statDivider} />
-                        <StatCard value={profile?.activityCount ?? 0} label="Hoạt động" icon="checkmark-circle" color={'#42A4F5'} />
+                        <StatCard value={profile?.activityCount ?? 0} label="Hoạt động" icon="checkmark-circle" color='#42A4F5' />
                     </View>
 
                     {/* IDENTITY & SYSTEM */}

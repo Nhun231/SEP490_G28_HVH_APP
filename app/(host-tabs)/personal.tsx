@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, ActivityIndicator, Alert, RefreshControl } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, ActivityIndicator, Alert, RefreshControl, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -11,6 +11,15 @@ import { getHostProfile, updateHostProfile } from '@/services/profile-service';
 import type { HostProfileResponse } from '@/services/profile-types';
 import InfoRow from '@/app/components/host/profile/InfoRow';
 import ChangePasswordModal from '@/app/components/host/profile/ChangePasswordModal';
+import BottomSheetPicker, { OptionItem } from '@/app/components/host/create-event/BottomSheetPicker';
+import wardData from '@/assets/wards/phuong_xa_moi_ha_noi.json';
+
+// Pre-compute ward option list (module-level, computed once)
+const WARD_OPTIONS: OptionItem[] = wardData.danh_sach_phuong_xa_moi.map(w => ({
+    id: w.stt,
+    label: w.ten_moi,
+    value: w.ten_moi,
+}));
 
 type EditField = 'fullName' | 'gender' | 'dob' | 'address' | 'detailAddress';
 
@@ -57,6 +66,7 @@ export default function HostPersonal() {
     const [editGender, setEditGender] = useState<boolean>(true);
     const [saving, setSaving] = useState(false);
     const [showChangePassword, setShowChangePassword] = useState(false);
+    const [wardPickerVisible, setWardPickerVisible] = useState(false);
 
     const fetchProfile = useCallback(async () => {
         try {
@@ -139,11 +149,38 @@ export default function HostPersonal() {
         }
     };
 
+    /** Save a selected ward directly — no inline text edit involved. */
+    const saveWard = async (ward: string) => {
+        if (!profile) return;
+        setWardPickerVisible(false);
+        setSaving(true);
+        try {
+            await updateHostProfile({
+                fullName: profile.fullName ?? '',
+                gender: profile.gender ?? true,
+                dob: profile.dob ?? '',
+                avatarExtension: null,
+                address: ward,
+                detailAddress: profile.detailAddress ?? '',
+            });
+            await fetchProfile();
+        } catch (e: any) {
+            Alert.alert('Lỗi', e?.message ?? 'Không thể cập nhật. Vui lòng thử lại.');
+        } finally {
+            setSaving(false);
+        }
+    };
+
     const handlePickAvatar = async () => {
-        const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-        if (status !== 'granted') {
-            Alert.alert('Quyền truy cập', 'Vui lòng cấp quyền truy cập thư viện ảnh.');
-            return;
+        // On iOS the system picker handles permissions internally;
+        // calling requestMediaLibraryPermissionsAsync() before launchImageLibraryAsync()
+        // causes a duplicate permission/photo-selection flow on iOS 14+.
+        if (Platform.OS === 'android') {
+            const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+            if (status !== 'granted') {
+                Alert.alert('Quyền truy cập', 'Vui lòng cấp quyền truy cập thư viện ảnh.');
+                return;
+            }
         }
         const result = await ImagePicker.launchImageLibraryAsync({
             mediaTypes: ImagePicker.MediaTypeOptions.Images,
@@ -168,7 +205,6 @@ export default function HostPersonal() {
                 detailAddress: profile?.detailAddress ?? '',
             });
 
-            // BE trả về path tương đối → dùng resolveSupabaseUrl để ghép full URL
             const uploadPath = updateRes.avatarUploadUrl;
             if (!uploadPath) throw new Error('Không nhận được URL upload từ server.');
 
@@ -294,9 +330,9 @@ export default function HostPersonal() {
                     <InfoRow
                         iconName="location-outline" iconColor={'#42A4F5'} iconBg="#E3F2FD"
                         label="KHU VỰC" value={profile?.address ?? '—'}
-                        fieldType="text"
-                        editText={editText} onEditTextChange={setEditText}
-                        {...editProps('address')}
+                        isEditing={false}
+                        onStartEdit={() => setWardPickerVisible(true)}
+                        saving={saving}
                     />
                     <View style={styles.divider} />
                     <InfoRow
@@ -330,6 +366,15 @@ export default function HostPersonal() {
             <ChangePasswordModal
                 visible={showChangePassword}
                 onClose={() => setShowChangePassword(false)}
+            />
+
+            <BottomSheetPicker
+                visible={wardPickerVisible}
+                onClose={() => setWardPickerVisible(false)}
+                title="Chọn khu vực"
+                options={WARD_OPTIONS}
+                selectedId={WARD_OPTIONS.find(w => w.value === profile?.address)?.id}
+                onSelect={item => saveWard(item.value ?? item.label)}
             />
         </SafeAreaView>
     );
