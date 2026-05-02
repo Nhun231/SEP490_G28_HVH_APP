@@ -94,3 +94,15 @@ export const resolveSupabaseUrl = (url: string | null | undefined): string | nul
     if (url.startsWith('http://') || url.startsWith('https://')) return url
     return SUPABASE_URL + '/storage/v1' + url
 }
+
+/**
+ * More comprehensive Supabase URL resolver — handles /storage/v1, /object/, and bare paths.
+ * Use this when the server may return signed URLs with varying path prefixes.
+ */
+export const resolveStorageUrl = (url: string | null | undefined): string | null => {
+    if (!url) return null
+    if (url.startsWith('http://') || url.startsWith('https://')) return url
+    if (url.startsWith('/storage/v1')) return `${SUPABASE_URL}${url}`
+    if (url.startsWith('/object/')) return `${SUPABASE_URL}/storage/v1${url}`
+    return `${SUPABASE_URL}${url}`
+}

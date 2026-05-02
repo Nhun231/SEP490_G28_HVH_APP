@@ -41,7 +41,7 @@ const CRITERIA: RatingCriterion[] = [
     },
 ];
 
-const MAX_COMMENT = 500;
+const MAX_COMMENT = 250;
 
 const getInitials = (name: string): string => {
     const parts = name.trim().split(/\s+/);
@@ -104,7 +104,7 @@ const ReviewVolunteers = () => {
                                 workEffectivenessRating: ratings['efficiency'],
                                 teamworkCommunicationRating: ratings['teamwork'],
                                 adaptabilityProblemSolvingRating: ratings['adaptability'],
-                                comment: comment.trim() || undefined,
+                                comment: comment.trim() || '',
                             });
                             Alert.alert('Thành công', 'Đã gửi đánh giá tình nguyện viên thành công', [
                                 { text: 'OK', onPress: () => router.back() },

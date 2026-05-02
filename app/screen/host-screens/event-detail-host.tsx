@@ -5,7 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams, Stack } from 'expo-router';
 import { MyEventStatus, EventDetailResponse } from '@/services/event-types';
-import { getEventDetailByHost, deleteEvent } from '@/services/host-event-service';
+import { getEventDetailByHost, deleteEvent, getCompletedApplications } from '@/services/host-event-service';
 import { getApiErrorMessage, resolveSupabaseUrl } from '@/services/api-helpers';
 import servedTargetsData from '@/assets/served_targets/doi_tuong_phuc_vu.json';
 import servedPlacesData from '@/assets/served_places/dia_diem_phuc_vu.json';
@@ -78,7 +78,6 @@ const STATUS_CONFIG: Record<EventStatus, { label: string; color: string; bgColor
 const EventDetailScreen = () => {
     const router = useRouter();
     const { id, openSessionModal } = useLocalSearchParams<{ id: string; openSessionModal?: string }>();
-    const [showCheckinCode, setShowCheckinCode] = useState(false);
     const [sessionModalVisible, setSessionModalVisible] = useState(false);
     const [cancelModalVisible, setCancelModalVisible] = useState(false);
     const [imageViewerVisible, setImageViewerVisible] = useState(false);
@@ -93,6 +92,9 @@ const EventDetailScreen = () => {
     // Reverse-geocoded check-in address
     const [checkinAddress, setCheckinAddress] = useState<string | null>(null);
 
+    // Review notification state (ENDED events only)
+    const [unreviewedCount, setUnreviewedCount] = useState<number | null>(null);
+
     const fetchDetail = useCallback(async () => {
         if (!id) return;
         setLoading(true);
@@ -100,6 +102,23 @@ const EventDetailScreen = () => {
         try {
             const data = await getEventDetailByHost(id);
             setEvent(data);
+
+            // Background: fetch review status for ENDED events
+            if (data.status === 'ENDED' && data.eventSessions.length > 0) {
+                Promise.all(
+                    data.eventSessions.map(s =>
+                        getCompletedApplications(s.id, 0, 100).catch(() => null)
+                    )
+                ).then(results => {
+                    let count = 0;
+                    for (const res of results) {
+                        if (res) count += res.content.filter(p => p.reviewed === false).length;
+                    }
+                    setUnreviewedCount(count);
+                });
+            } else {
+                setUnreviewedCount(null);
+            }
 
             if (openSessionModal === 'true') {
                 setSessionModalVisible(true);
@@ -243,10 +262,9 @@ const EventDetailScreen = () => {
     });
 
     const handleParticipants = () => setSessionModalVisible(true);
-    const handleCheckin = () => setShowCheckinCode(prev => !prev);
     const handleReviews = () => router.push({ pathname: '/screen/host-screens/event-rating' as any, params: { eventId: event.id } });
     const handleMoments = () => router.push({ pathname: '/screen/host-screens/event-moments' as any, params: { eventId: event.id } });
-    const handleComplaint = () => console.log('Complain about points', event.id);
+    const handleComplaint = () => router.push({ pathname: '/screen/host-screens/honor-hour-requests' as any, params: { eventId: event.id } });
     const handleAnnounce = () => router.push({
         pathname: '/screen/host-screens/announce-volunteers' as any,
         params: { eventId: event.id },
@@ -328,6 +346,7 @@ const EventDetailScreen = () => {
                     </View>
                 )}
 
+
                 <ScrollView
                     style={styles.scroll}
                     contentContainerStyle={styles.scrollContent}
@@ -383,6 +402,34 @@ const EventDetailScreen = () => {
                                 </Text>
                             </View>
                         </View>
+
+                        {/* ── Review notification — footer of title card (ENDED events only) ── */}
+                        {event.status === 'ENDED' && unreviewedCount !== null && unreviewedCount > 0 && (() => {
+                            const endMs = Math.max(
+                                ...event.eventSessions.map(s => new Date(s.endDateTime).getTime())
+                            );
+                            // Clamp to 0 to handle UTC offset edge cases where device clock
+                            // shows event not yet ended (negative elapsed time)
+                            const msElapsed = Math.max(0, Date.now() - endMs);
+                            const daysPassed = Math.floor(msElapsed / (1000 * 60 * 60 * 24));
+                            const daysLeft = Math.max(0, 2 - daysPassed);
+                            return (
+                                <View style={styles.reviewNotifBanner}>
+                                    <View style={styles.reviewNotifHeader}>
+                                        <Ionicons name="time-outline" size={15} color="#B45309" />
+                                        <Text style={styles.reviewNotifTitle}>
+                                            Còn {unreviewedCount} tình nguyện viên chưa được đánh giá
+                                        </Text>
+                                    </View>
+                                    <Text style={styles.reviewNotifBody}>
+                                        {daysLeft > 0
+                                            ? `Nếu không đánh giá trong vòng ${daysLeft} ngày tới, hệ thống sẽ tự động đánh giá tất cả các TNV với đầy đủ 5 sao.`
+                                            : `Đã quá 2 ngày kể từ khi sự kiện kết thúc. Hệ thống sẽ sớm tự động đánh giá các TNV chưa được đánh giá với đầy đủ 5 sao.`
+                                        }
+                                    </Text>
+                                </View>
+                            );
+                        })()}
                     </View>
 
                     {/* My services */}
@@ -487,17 +534,6 @@ const EventDetailScreen = () => {
                             value={checkinAddress ?? `${event.latCheckInLocation}, ${event.lngCheckInLocation}`}
                         />
                     </View>
-
-                    {/* Check-in code - display when "Create check-in code" is pressed */}
-                    {showCheckinCode && (
-                        <View style={[styles.card, styles.checkinCard]}>
-                            <View style={styles.checkinLeft}>
-                                <Ionicons name="qr-code-outline" size={20} color={'#42A4F5'} />
-                                <Text style={styles.checkinLabel}>Mã check-in</Text>
-                            </View>
-                            <Text style={styles.checkinCode}>{event.checkInCode}</Text>
-                        </View>
-                    )}
 
                     {/* Detail */}
                     <View style={styles.card}>
@@ -626,6 +662,33 @@ const styles = StyleSheet.create({
         color: '#92400E',
         lineHeight: 18,
         fontWeight: '500',
+    },
+    // Review notification banner — card footer style (ENDED events)
+    reviewNotifBanner: {
+        backgroundColor: '#FFFBEB',
+        borderTopWidth: 1,
+        borderTopColor: '#FDE68A',
+        borderLeftWidth: 3,
+        borderLeftColor: '#F59E0B',
+        paddingHorizontal: 14,
+        paddingVertical: 10,
+        gap: 4,
+    },
+    reviewNotifHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+    },
+    reviewNotifTitle: {
+        flex: 1,
+        fontSize: 13,
+        fontWeight: '700',
+        color: '#92400E',
+    },
+    reviewNotifBody: {
+        fontSize: 12,
+        color: '#78350F',
+        lineHeight: 17,
     },
 
     // Loading / error center

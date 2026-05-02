@@ -285,7 +285,11 @@ export interface ActualParticipant {
     eventApplicationId: string;
     checkInTime: string | null;
     checkOutTime: string | null;
+    status?: string | null;
+    reviewed?: boolean | null;
 }
+
+
 
 export interface ActualParticipantsResponse {
     content: ActualParticipant[];
