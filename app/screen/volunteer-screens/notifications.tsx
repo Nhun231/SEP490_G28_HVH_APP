@@ -9,7 +9,7 @@
 
 import baseAxios from '@/lib/baseAxios'
 import { Ionicons } from '@expo/vector-icons'
-import { router, useFocusEffect } from 'expo-router'
+import { router, Stack, useFocusEffect } from 'expo-router'
 import React, { useCallback, useState } from 'react'
 import {
     ActivityIndicator,
@@ -157,14 +157,14 @@ function NotifFeed({ endpoint }: { endpoint: string }) {
     const handleRefresh = async () => {
         setRefreshing(true)
         try { await fetchPage(0) } catch { /* silent */ }
-        setRefreshing(false)
+        finally { setRefreshing(false) }
     }
 
     const handleLoadMore = async () => {
         if (loadingMore || loading || refreshing || !hasMore) return
         setLoadingMore(true)
         try { await fetchPage(nextPage, true) } catch { /* silent */ }
-        setLoadingMore(false)
+        finally { setLoadingMore(false) }
     }
 
     if (loading) {
@@ -177,6 +177,7 @@ function NotifFeed({ endpoint }: { endpoint: string }) {
 
     return (
         <FlatList
+            style={feedStyles.flatList}
             data={items}
             keyExtractor={item => item.notificationId}
             renderItem={({ item }) => <NotiCard item={item} />}
@@ -193,7 +194,7 @@ function NotifFeed({ endpoint }: { endpoint: string }) {
                 />
             }
             ListFooterComponent={
-                loadingMore
+                loadingMore && hasMore
                     ? <ActivityIndicator style={{ padding: 16 }} size="small" color="#42A4F5" />
                     : null
             }
@@ -211,7 +212,8 @@ function NotifFeed({ endpoint }: { endpoint: string }) {
 }
 
 const feedStyles = StyleSheet.create({
-    list: { paddingTop: 14, paddingBottom: 32 },
+    flatList: { flex: 1 },
+    list: { paddingTop: 14, paddingBottom: 32, flexGrow: 1 },
     center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
     empty: { alignItems: 'center', paddingTop: 80, paddingHorizontal: 32 },
     emptyIcon: {
@@ -234,6 +236,7 @@ export default function NotificationsScreen() {
 
     return (
         <SafeAreaView style={styles.safe} edges={['top']}>
+            <Stack.Screen options={{ headerShown: false }} />
             {/* Header */}
             <View style={styles.header}>
                 <TouchableOpacity

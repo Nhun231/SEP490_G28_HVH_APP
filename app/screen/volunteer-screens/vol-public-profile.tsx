@@ -13,7 +13,7 @@
 
 import { Ionicons } from '@expo/vector-icons'
 import { Image } from 'expo-image'
-import { router, useLocalSearchParams } from 'expo-router'
+import { router, Stack, useLocalSearchParams } from 'expo-router'
 import React, { useCallback, useEffect, useState } from 'react'
 import {
     ActivityIndicator,
@@ -36,11 +36,6 @@ const { width: SCREEN_W } = Dimensions.get('window')
 const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL ?? ''
 const API_BASE = process.env.EXPO_PUBLIC_API_URL || 'https://api.hvh.homes'
 
-/** Resolve the current logged-in volunteer's public vid. */
-async function resolveMyVolunteerId(): Promise<string> {
-    const res = await baseAxios.get<{ vid: string }>(`${API_BASE}/api/v1/vol/volunteers/account-information`)
-    return res.data.vid
-}
 
 function resolveStorageUrl(url: string | null | undefined): string | null {
     if (!url) return null
@@ -152,15 +147,10 @@ export default function VolPublicProfile() {
         setLoading(true)
         setError(null)
         try {
-            // Support 'me' sentinel — resolve the current volunteer's vid first
-            const resolvedId = volunteerId === 'me'
-                ? await resolveMyVolunteerId()
-                : volunteerId
-
-            const res = await fetch(`${API_BASE}/api/v1/volunteers/public-information/${resolvedId}`)
-            if (!res.ok) throw new Error(`HTTP ${res.status}`)
-            const data: VolunteerPublicInfo = await res.json()
-            setProfile(data)
+            const res = await baseAxios.get<VolunteerPublicInfo>(
+                `${API_BASE}/api/v1/volunteers/public-information/${volunteerId}`
+            )
+            setProfile(res.data)
         } catch (e) {
             setError('Không thể tải thông tin tình nguyện viên.')
         } finally {
@@ -182,6 +172,7 @@ export default function VolPublicProfile() {
 
     return (
         <SafeAreaView style={styles.safe} edges={['top']}>
+            <Stack.Screen options={{ headerShown: false }} />
             {/* Header */}
             <View style={styles.header}>
                 <TouchableOpacity onPress={() => router.back()} style={styles.headerBtn}>

@@ -119,7 +119,6 @@ const gridStyles = StyleSheet.create({
 // ─── moment card ──────────────────────────────────────────────────────────────
 
 function MomentCard({ item, showEventChip = false }: { item: EventMomentItem; showEventChip?: boolean }) {
-    console.log('[MomentCard] item.momentPicturesUrls:', item.momentPicturesUrls)
     const name = displayName(item)
     const words = name.trim().split(/\s+/)
     const initials = words.length >= 2
