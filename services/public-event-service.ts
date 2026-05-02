@@ -4,7 +4,6 @@
  * Uses plain fetch() — no auth token injected.
  */
 
-import baseAxios from '@/lib/baseAxios'
 import type {
     ActivityDomain,
     ActivityDomainResponse,
@@ -56,23 +55,27 @@ export const getEventDetails = async (eventId: string): Promise<EventDetailsResp
 }
 
 /**
- * Fetch all activity domains across all pages (uses auth via baseAxios,
- * but domain data is effectively public reference data).
+ * Fetch all activity domains across all pages (public, no auth).
  * GET /api/v1/activity-domains
+ * Backend params: pageNumber (0-based), pageSize
  */
 export const getAllActivityDomains = async (): Promise<ActivityDomain[]> => {
-    const endpoint = `${API_BASE}/api/v1/activity-domains`
-    const firstResponse = await baseAxios.get<ActivityDomainResponse>(endpoint, {
-        params: { page: 0, size: 100 },
-    })
-    const firstData = firstResponse.data
+    const fetchPage = async (pageNumber: number): Promise<ActivityDomainResponse> => {
+        const url = `${API_BASE}/api/v1/activity-domains?pageNumber=${pageNumber}&pageSize=100`
+        const response = await fetch(url)
+        if (!response.ok) {
+            const errorText = await response.text()
+            throw new Error(`API error ${response.status}: ${errorText}`)
+        }
+        return response.json() as Promise<ActivityDomainResponse>
+    }
+
+    const firstData = await fetchPage(0)
     let allDomains = [...firstData.content]
 
     for (let page = 1; page < firstData.page.totalPages; page += 1) {
-        const pageResponse = await baseAxios.get<ActivityDomainResponse>(endpoint, {
-            params: { page, size: 100 },
-        })
-        allDomains = [...allDomains, ...pageResponse.data.content]
+        const pageData = await fetchPage(page)
+        allDomains = [...allDomains, ...pageData.content]
     }
 
     return allDomains

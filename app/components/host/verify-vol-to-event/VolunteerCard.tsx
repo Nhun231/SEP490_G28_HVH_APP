@@ -17,6 +17,8 @@ export interface VolunteerApplication {
     address: string;
     createdAt: string;
     status: 'PENDING' | 'APPROVED' | 'COMPLETED';
+    /** Only present for COMPLETED applications: true = host already reviewed this volunteer */
+    reviewed?: boolean;
 }
 
 interface VolunteerCardProps {
@@ -86,14 +88,21 @@ const VolunteerCard: React.FC<VolunteerCardProps> = ({ item, onApprove, onReject
         <>
             <TouchableOpacity
                 style={styles.card}
-                activeOpacity={item.status === 'COMPLETED' && !!onReview ? 0.75 : 1}
-                onPress={item.status === 'COMPLETED' && onReview ? () => onReview(item) : undefined}
+                activeOpacity={item.status === 'COMPLETED' && !item.reviewed && !!onReview ? 0.75 : 1}
+                onPress={item.status === 'COMPLETED' && !item.reviewed && onReview ? () => onReview(item) : undefined}
             >
-                {/* Review badge — only for COMPLETED (checked out) */}
-                {item.status === 'COMPLETED' && !!onReview && (
+                {/* Review badge — only for COMPLETED not yet reviewed */}
+                {item.status === 'COMPLETED' && !item.reviewed && !!onReview && (
                     <View style={styles.reviewBadge}>
                         <Ionicons name="star-outline" size={11} color="#42A4F5" />
                         <Text style={styles.reviewBadgeText}>Đánh giá</Text>
+                    </View>
+                )}
+                {/* Reviewed indicator — already evaluated */}
+                {item.status === 'COMPLETED' && item.reviewed && (
+                    <View style={[styles.reviewBadge, styles.reviewedBadge]}>
+                        <Ionicons name="checkmark-circle" size={11} color="#16A34A" />
+                        <Text style={[styles.reviewBadgeText, styles.reviewedBadgeText]}>Đã đánh giá</Text>
                     </View>
                 )}
                 <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 12 }}>
@@ -332,5 +341,11 @@ const styles = StyleSheet.create({
         fontSize: 11,
         fontWeight: '700',
         color: '#42A4F5',
+    },
+    reviewedBadge: {
+        backgroundColor: '#DCFCE7',
+    },
+    reviewedBadgeText: {
+        color: '#16A34A',
     },
 });

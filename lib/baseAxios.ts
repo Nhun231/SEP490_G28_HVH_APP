@@ -5,7 +5,7 @@ import axios from 'axios'
  * Token injection is handled by the request interceptor in AuthContext.
  */
 const baseAxios = axios.create({
-    baseURL: process.env.EXPO_PUBLIC_API_URL || 'https://api.hvh.okne.site',
+    baseURL: process.env.EXPO_PUBLIC_API_URL || 'https://api.hvh.homes',
     headers: {
         'Content-Type': 'application/json',
     },

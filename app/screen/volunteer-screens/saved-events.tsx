@@ -2,8 +2,8 @@ import { EventSimpleResponse } from '@/services/event-types'
 import { getSavedEvents, saveEventForVolunteer } from '@/services/vol-event-service'
 import { Ionicons } from '@expo/vector-icons'
 import { Image } from 'expo-image'
-import { router, useFocusEffect } from 'expo-router'
-import React, { useCallback, useRef, useState } from 'react'
+import { router, useFocusEffect, Stack } from 'expo-router'
+import React, { useCallback, useState } from 'react'
 import {
     ActivityIndicator,
     Alert,
@@ -251,8 +251,6 @@ const SavedEvents = () => {
     const [currentPage, setCurrentPage] = useState(0)
     const [totalPages, setTotalPages] = useState(1)
 
-    const hasFetched = useRef(false)
-
     const fetchPage = useCallback(async (page: number, append = false) => {
         const res = await getSavedEvents({ pageNumber: page, pageSize: PAGE_SIZE })
         const content = res.content ?? []
@@ -269,9 +267,6 @@ const SavedEvents = () => {
 
     useFocusEffect(
         useCallback(() => {
-            if (hasFetched.current) return
-            hasFetched.current = true
-
             let active = true;
             (async () => {
                 setLoading(true)
@@ -300,7 +295,7 @@ const SavedEvents = () => {
     const handleCardPress = useCallback((item: EventSimpleResponse) => {
         router.push({
             pathname: '/screen/volunteer-screens/event-detail-vol',
-            params: { eventId: item.id },
+            params: { eventId: item.id, fromSaved: 'true' },
         } as any)
     }, [])
 
@@ -334,6 +329,8 @@ const SavedEvents = () => {
 
     return (
         <SafeAreaView style={styles.safeArea} edges={['top']}>
+            <Stack.Screen options={{ headerShown: false }} />
+
             {/* ═══ HEADER ═══ */}
             <View style={styles.header}>
                 <TouchableOpacity onPress={handleGoBack} style={styles.headerBtn}>

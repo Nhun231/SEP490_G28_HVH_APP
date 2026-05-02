@@ -61,7 +61,7 @@ function fromApproved(p: ActualParticipant): VolunteerApplication {
 // Map completed API participant → VolunteerApplication with forced COMPLETED status.
 // CompletedApplicationResponse has no status field, so we cannot derive it from p.status.
 function fromCompleted(p: ActualParticipant): VolunteerApplication {
-    return { ...fromApproved(p), status: 'COMPLETED' };
+    return { ...fromApproved(p), status: 'COMPLETED', reviewed: p.reviewed ?? false };
 }
 
 const EventApplicationsScreen = () => {
@@ -130,6 +130,8 @@ const EventApplicationsScreen = () => {
             // Use fromCompleted for ENDED events: backend DTO has no status field,
             // so we must force COMPLETED status to display the review badge correctly.
             const mapped = res.content.map(isEnded ? fromCompleted : fromApproved);
+            // For ENDED events: sort unreviewed cards first so hosts can see pending reviews at top
+            if (isEnded) mapped.sort((a, b) => (a.reviewed ? 1 : 0) - (b.reviewed ? 1 : 0));
             if (replace) {
                 setApprovedList(mapped);
             } else {

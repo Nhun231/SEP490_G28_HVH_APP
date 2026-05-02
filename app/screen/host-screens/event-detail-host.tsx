@@ -5,7 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams, Stack } from 'expo-router';
 import { MyEventStatus, EventDetailResponse } from '@/services/event-types';
-import { getEventDetailByHost, deleteEvent } from '@/services/host-event-service';
+import { getEventDetailByHost, deleteEvent, getCompletedApplications } from '@/services/host-event-service';
 import { getApiErrorMessage, resolveSupabaseUrl } from '@/services/api-helpers';
 import servedTargetsData from '@/assets/served_targets/doi_tuong_phuc_vu.json';
 import servedPlacesData from '@/assets/served_places/dia_diem_phuc_vu.json';
@@ -93,6 +93,9 @@ const EventDetailScreen = () => {
     // Reverse-geocoded check-in address
     const [checkinAddress, setCheckinAddress] = useState<string | null>(null);
 
+    // Review notification state (ENDED events only)
+    const [unreviewedCount, setUnreviewedCount] = useState<number | null>(null);
+
     const fetchDetail = useCallback(async () => {
         if (!id) return;
         setLoading(true);
@@ -100,6 +103,23 @@ const EventDetailScreen = () => {
         try {
             const data = await getEventDetailByHost(id);
             setEvent(data);
+
+            // Background: fetch review status for ENDED events
+            if (data.status === 'ENDED' && data.eventSessions.length > 0) {
+                Promise.all(
+                    data.eventSessions.map(s =>
+                        getCompletedApplications(s.id, 0, 100).catch(() => null)
+                    )
+                ).then(results => {
+                    let count = 0;
+                    for (const res of results) {
+                        if (res) count += res.content.filter(p => p.reviewed === false).length;
+                    }
+                    setUnreviewedCount(count);
+                });
+            } else {
+                setUnreviewedCount(null);
+            }
 
             if (openSessionModal === 'true') {
                 setSessionModalVisible(true);
@@ -326,6 +346,32 @@ const EventDetailScreen = () => {
                         <Text style={styles.noteBannerText}>{event.note}</Text>
                     </View>
                 )}
+
+                {/* ── Review notification banner (ENDED events with pending reviews) ── */}
+                {event.status === 'ENDED' && unreviewedCount !== null && unreviewedCount > 0 && (() => {
+                    // Calculate days since event ended (use latest session endDateTime)
+                    const endMs = Math.max(
+                        ...event.eventSessions.map(s => new Date(s.endDateTime).getTime())
+                    );
+                    const daysPassed = Math.floor((Date.now() - endMs) / (1000 * 60 * 60 * 24));
+                    const daysLeft = Math.max(0, 2 - daysPassed);
+                    return (
+                        <View style={styles.reviewNotifBanner}>
+                            <View style={styles.reviewNotifHeader}>
+                                <Ionicons name="time-outline" size={16} color="#B45309" />
+                                <Text style={styles.reviewNotifTitle}>
+                                    Còn {unreviewedCount} tình nguyện viên chưa được đánh giá
+                                </Text>
+                            </View>
+                            <Text style={styles.reviewNotifBody}>
+                                {daysLeft > 0
+                                    ? `⚠️ Nếu không đánh giá trong vòng ${daysLeft} ngày tới, hệ thống sẽ tự động đánh giá tất cả các tình nguyện viên với đầy đủ 5 sao.`
+                                    : `⚠️ Đã quá 2 ngày kể từ khi sự kiện kết thúc. Hệ thống sẽ sớm tự động đánh giá các tình nguyện viên chưa được đánh giá với đầy đủ 5 sao.`
+                                }
+                            </Text>
+                        </View>
+                    );
+                })()}
 
                 <ScrollView
                     style={styles.scroll}
@@ -625,6 +671,33 @@ const styles = StyleSheet.create({
         color: '#92400E',
         lineHeight: 18,
         fontWeight: '500',
+    },
+    // Review notification banner (ENDED events)
+    reviewNotifBanner: {
+        backgroundColor: '#FFFBEB',
+        borderLeftWidth: 4,
+        borderLeftColor: '#F59E0B',
+        marginHorizontal: 16,
+        marginTop: 10,
+        borderRadius: 8,
+        padding: 12,
+        gap: 6,
+    },
+    reviewNotifHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+    },
+    reviewNotifTitle: {
+        flex: 1,
+        fontSize: 13,
+        fontWeight: '700',
+        color: '#92400E',
+    },
+    reviewNotifBody: {
+        fontSize: 12,
+        color: '#78350F',
+        lineHeight: 18,
     },
 
     // Loading / error center

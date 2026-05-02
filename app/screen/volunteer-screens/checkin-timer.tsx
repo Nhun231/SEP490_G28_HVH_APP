@@ -32,12 +32,12 @@ function formatDuration(seconds: number): string {
 
 const CheckinTimerScreen = () => {
     const params = useLocalSearchParams<{
-        code: string
         eventName: string
-        eventId: string
         applicationId: string
         sessionId: string
         sessionEndTime: string
+        /** ISO-8601 timestamp when the volunteer checked in (from checkin log) */
+        checkinTime: string
         /** Event check-in location — forwarded for GPS mock during checkout */
         checkinLat: string
         checkinLng: string
@@ -45,7 +45,12 @@ const CheckinTimerScreen = () => {
 
     const [elapsed, setElapsed] = useState(0)
     const [checkingOut, setCheckingOut] = useState(false)
-    const startTimeRef = useRef<Date>(new Date())
+    // Resolved check-in start time: use the ISO param if available (so timer survives
+    // navigating away and coming back), otherwise fall back to "right now".
+    const resolvedCheckinTime = params.checkinTime
+        ? new Date(params.checkinTime)
+        : new Date()
+    const startTimeRef = useRef<Date>(resolvedCheckinTime)
     const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
     const pulseAnim = useRef(new Animated.Value(1)).current
 
@@ -61,12 +66,14 @@ const CheckinTimerScreen = () => {
         return () => pulse.stop()
     }, [])
 
-    // Ticker
+    // Ticker — initialise once based on the resolved check-in timestamp
     useEffect(() => {
-        startTimeRef.current = new Date()
+        // Compute initial elapsed from the real check-in time (not mount time)
+        const computeElapsed = () =>
+            Math.floor((new Date().getTime() - startTimeRef.current.getTime()) / 1000)
+        setElapsed(computeElapsed())
         intervalRef.current = setInterval(() => {
-            const diff = Math.floor((new Date().getTime() - startTimeRef.current.getTime()) / 1000)
-            setElapsed(diff)
+            setElapsed(computeElapsed())
         }, 1000)
         return () => {
             if (intervalRef.current) clearInterval(intervalRef.current)
@@ -240,8 +247,30 @@ const CheckinTimerScreen = () => {
                 </View>
             )}
 
-            {/* Checkout button */}
+            {/* Checkout + Share row */}
             <View style={styles.checkoutContainer}>
+                {/* Share moments button */}
+                <TouchableOpacity
+                    style={styles.shareBtn}
+                    activeOpacity={0.85}
+                    onPress={() => {
+                        router.push({
+                            pathname: '/screen/volunteer-screens/event-moments-feed',
+                            params: {
+                                mode: 'event',
+                                eventName: params.eventName ?? '',
+                                sessionId: params.sessionId ?? '',
+                                applicationId: params.applicationId ?? '',
+                            },
+                        } as any)
+                    }}
+                >
+                    <Ionicons name="images-outline" size={20} color="#42A4F5" />
+                    <Text style={styles.shareBtnText}>Chia sẻ khoảnh khắc</Text>
+                    <Ionicons name="chevron-forward" size={16} color="#42A4F5" />
+                </TouchableOpacity>
+
+                {/* Checkout button */}
                 <TouchableOpacity
                     style={styles.checkoutBtn}
                     onPress={handleCheckout}
@@ -258,6 +287,7 @@ const CheckinTimerScreen = () => {
                     )}
                 </TouchableOpacity>
             </View>
+
         </View>
     )
 }
@@ -470,7 +500,30 @@ const styles = StyleSheet.create({
         paddingHorizontal: 16,
         paddingBottom: 8,
         marginTop: 'auto',
+        gap: 10,
     },
+    shareBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 8,
+        backgroundColor: '#FFFFFF',
+        borderRadius: 14,
+        paddingVertical: 14,
+        borderWidth: 1.5,
+        borderColor: '#42A4F5',
+        elevation: 2,
+        shadowColor: '#42A4F5',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.15,
+        shadowRadius: 4,
+    },
+    shareBtnText: {
+        fontSize: 15,
+        fontWeight: '700',
+        color: '#42A4F5',
+    },
+
     checkoutBtn: {
         flexDirection: 'row',
         alignItems: 'center',

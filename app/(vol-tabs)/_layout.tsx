@@ -1,22 +1,32 @@
 import { Ionicons } from '@expo/vector-icons'
 import { Tabs } from "expo-router"
 import React from 'react'
+import { Platform } from 'react-native'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
+
+const TAB_BAR_BASE_HEIGHT = 40
+const TAB_CONTENT_PADDING = 2
 
 const TabLayout = () => {
+    const insets = useSafeAreaInsets()
+    // On Android gesture nav, bottom inset is the nav-bar height.
+    // On iOS, it's the home-indicator height.
+    const bottomInset = insets.bottom
+
     return (
         <Tabs
             initialRouteName="home"
             screenOptions={{
                 headerShown: false,
-                tabBarActiveTintColor: '#42A4F5', // primary color from theme
+                tabBarActiveTintColor: '#42A4F5',
                 tabBarInactiveTintColor: '#9CA3AF',
                 tabBarStyle: {
                     backgroundColor: '#FFFFFF',
                     borderTopWidth: 1,
                     borderTopColor: '#E5E7EB',
-                    height: 60,
-                    paddingBottom: 8,
-                    paddingTop: 8,
+                    height: TAB_BAR_BASE_HEIGHT + bottomInset,
+                    paddingBottom: TAB_CONTENT_PADDING + bottomInset,
+                    paddingTop: TAB_CONTENT_PADDING,
                 },
                 tabBarLabelStyle: {
                     fontSize: 10,

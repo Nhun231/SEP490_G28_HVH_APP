@@ -88,8 +88,7 @@ export default function MenuIcons() {
             </TouchableOpacity>
 
             {/* BUTTON 5: VOLUNTEER MOMENTS */}
-            {/* Change logic onPress later */}
-            <TouchableOpacity onPress={() => {}} activeOpacity={0.85}>
+            <TouchableOpacity onPress={() => router.push({ pathname: '/screen/volunteer-screens/event-moments-feed', params: { mode: 'public' } } as any)} activeOpacity={0.85}>
                 <View style={[styles.buttonContainer, { marginRight: 0 }]}>
                     <LinearGradient
                         colors={['#F06292', '#E91E63']}
