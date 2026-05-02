@@ -43,6 +43,7 @@ function fromApproved(p: ActualParticipant): VolunteerApplication {
         p.status === 'COMPLETED' ? 'COMPLETED' : 'APPROVED';
     return {
         id: p.eventApplicationId,
+        volunteerId: p.volunteerId,
         name: p.fullName,
         nickName: p.nickName,
         email: p.email,

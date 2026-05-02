@@ -19,7 +19,7 @@ const SERVICES = [
 ] as const
 
 export default function Personal() {
-    const { logout, isLoggedIn } = useAuth()
+    const { logout, session, isLoggedIn } = useAuth()
     const router = useRouter()
     const [showChangePassword, setShowChangePassword] = useState(false)
 
@@ -125,20 +125,20 @@ export default function Personal() {
                         </TouchableOpacity>
                     </View>
 
-                        {/* Profile row */}
-                        <View style={styles.profileRow}>
-                            {/* Avatar placeholder */}
-                            <View style={styles.avatarRing}>
-                                <View style={styles.avatar}>
-                                    <Ionicons name="person" size={32} color="#42A4F5" />
-                                </View>
-                            </View>
-                            <View style={styles.profileInfo}>
-                                <Text style={styles.profileName}>Tình nguyện viên</Text>
-                                <Text style={styles.profileMotto}>Làm công ích sống, sống ý nghĩa công ích</Text>
+                    {/* Profile row */}
+                    <View style={styles.profileRow}>
+                        {/* Avatar placeholder */}
+                        <View style={styles.avatarRing}>
+                            <View style={styles.avatar}>
+                                <Ionicons name="person" size={32} color="#42A4F5" />
                             </View>
                         </View>
+                        <View style={styles.profileInfo}>
+                            <Text style={styles.profileName}>Tình nguyện viên</Text>
+                            <Text style={styles.profileMotto}>Làm công ích sống, sống ý nghĩa công ích</Text>
+                        </View>
                     </View>
+                </View>
 
 
                 {/* ── Card 2: Certificate store ─────────────────────────── */}
@@ -161,61 +161,72 @@ export default function Personal() {
                     </TouchableOpacity>
                 </View>
 
-                    {/* ── Card 3: Services grid ─────────────────────────── */}
-                    <View style={styles.section}>
-                        <View style={styles.card}>
-                            <Text style={styles.sectionTitle}>Dịch vụ của tôi</Text>
-                            <View style={styles.serviceGrid}>
-                                {SERVICES.map((svc, idx) => (
-                                    <TouchableOpacity
-                                        key={idx}
-                                        style={styles.serviceItem}
-                                        activeOpacity={0.7}
-                                        onPress={() => {
-                                            if (idx === 0) {
-                                                // Profile
-                                                router.push('/screen/volunteer-screens/vol-profile' as any);
-                                            } else if (idx === 1) {
-                                                // Registered Events
-                                                router.push('/screen/volunteer-screens/my-applications' as any);
-                                            } else if (idx === 2) {
-                                                // Checked-in Events
-                                                router.push({ pathname: '/screen/volunteer-screens/my-applications', params: { mode: 'checked-in' } } as any);
-                                            } else if (idx === 3) {
-                                                // Saved Events
-                                                router.push('/screen/volunteer-screens/saved-events' as any);
-                                            } else if (idx === 7) {
-                                                // Change Password
-                                                setShowChangePassword(true);
-                                            } else if (idx === 6) {
+                {/* ── Card 3: Services grid ─────────────────────────── */}
+                <View style={styles.section}>
+                    <View style={styles.card}>
+                        <Text style={styles.sectionTitle}>Dịch vụ của tôi</Text>
+                        <View style={styles.serviceGrid}>
+                            {SERVICES.map((svc, idx) => (
+                                <TouchableOpacity
+                                    key={idx}
+                                    style={styles.serviceItem}
+                                    activeOpacity={0.7}
+                                    onPress={() => {
+                                        if (idx === 0) {
+                                            // Profile
+                                            router.push('/screen/volunteer-screens/vol-profile' as any);
+                                        } else if (idx === 1) {
+                                            // Registered Events
+                                            router.push('/screen/volunteer-screens/my-applications' as any);
+                                        } else if (idx === 2) {
+                                            // Checked-in Events
+                                            router.push({ pathname: '/screen/volunteer-screens/my-applications', params: { mode: 'checked-in' } } as any);
+                                        } else if (idx === 3) {
+                                            // Saved Events
+                                            router.push('/screen/volunteer-screens/saved-events' as any);
+                                        } else if (idx === 4) {
+                                            // Moments
+                                        } else if (idx === 5) {
+                                            // Public Service Card
+                                            router.push({
+                                                pathname: '/screen/volunteer-screens/vol-public-profile' as any,
+                                                params: { volunteerId: session?.user?.id }
+                                            });
+                                        } else if (idx === 6) {
+                                            // Rating
+
+                                        } else if (idx === 7) {
                                             // "Chứng chỉ của tôi"
                                             router.push('/screen/volunteer-screens/my-certificates' as any);
+                                        } else if (idx === 8) {
+                                            // Change Password
+                                            setShowChangePassword(true);
                                         }
-                                            
-                                        }}
-                                    >
-                                        <View style={[styles.serviceIconWrap, { backgroundColor: svc.bg }]}>
-                                            <Ionicons name={svc.icon as any} size={24} color={svc.color} />
-                                        </View>
-                                        <Text style={styles.serviceLabel}>{svc.label}</Text>
-                                    </TouchableOpacity>
-                                ))}
-                            </View>
+                                    }
+                                    }
+                                >
+                                    <View style={[styles.serviceIconWrap, { backgroundColor: svc.bg }]}>
+                                        <Ionicons name={svc.icon as any} size={24} color={svc.color} />
+                                    </View>
+                                    <Text style={styles.serviceLabel}>{svc.label}</Text>
+                                </TouchableOpacity>
+                            ))}
                         </View>
                     </View>
+                </View>
 
-                    {/* ── Card 4: Logout ────────────────────────────────── */}
-                    <View style={styles.section}>
-                        <View style={styles.card}>
-                            <TouchableOpacity style={styles.logoutRow} onPress={handleLogout} activeOpacity={0.7}>
-                                <Ionicons name="log-out-outline" size={22} color="#EF4444" />
-                                <Text style={styles.logoutText}>Đăng xuất</Text>
-                            </TouchableOpacity>
-                        </View>
+                {/* ── Card 4: Logout ────────────────────────────────── */}
+                <View style={styles.section}>
+                    <View style={styles.card}>
+                        <TouchableOpacity style={styles.logoutRow} onPress={handleLogout} activeOpacity={0.7}>
+                            <Ionicons name="log-out-outline" size={22} color="#EF4444" />
+                            <Text style={styles.logoutText}>Đăng xuất</Text>
+                        </TouchableOpacity>
                     </View>
+                </View>
 
-                    <View style={{ height: 24 }} />
-                </ScrollView>
+                <View style={{ height: 24 }} />
+            </ScrollView>
 
             <ChangePasswordModal
                 visible={showChangePassword}

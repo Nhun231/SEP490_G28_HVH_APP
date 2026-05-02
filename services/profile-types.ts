@@ -90,3 +90,43 @@ export interface UpdateVolunteerProfileRequest {
 export interface UpdateVolunteerProfileResponse extends VolunteerProfileResponse {
     avatarUploadUrl?: string | null;
 }
+
+/** Response of GET /api/v1/volunteers/public-information/{volunteerId} */
+export interface VolunteerPublicInfo {
+    vid: string;
+    fullName: string;
+    nickname: string | null;
+    bio: string | null;
+    dob: string | null;
+    avatarUrl: string | null;
+    creditScore: number;
+    avgRating: number | null;
+    activityCount: number;
+    certificatesUrls: string[];
+}
+
+/** One review record from GET /api/v1/volunteer-reviews/{volunteerId} */
+export interface VolunteerReview {
+    id: string;
+    eventName: string;
+    sessionStartDateTime: string;   // ISO-8601
+    sessionEndDateTime: string;     // ISO-8601
+    professionalAttitudeRating: number;
+    responsibilityPunctualityRating: number;
+    workEffectivenessRating: number;
+    teamworkCommunicationRating: number;
+    adaptabilityProblemSolvingRating: number;
+    avgRating: number;
+    comment: string | null;
+}
+
+/** Paginated response of GET /api/v1/volunteer-reviews/{volunteerId} */
+export interface VolunteerReviewPage {
+    content: VolunteerReview[];
+    page: {
+        size: number;
+        number: number;
+        totalElements: number;
+        totalPages: number;
+    };
+}

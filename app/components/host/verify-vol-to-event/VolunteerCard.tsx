@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import ApproveRejectModal, { ModalAction } from './ApproveRejectModal';
+import VolunteerProfileModal from './VolunteerProfileModal';
 
 export interface VolunteerApplication {
     id: string;
@@ -17,7 +18,7 @@ export interface VolunteerApplication {
     address: string;
     createdAt: string;
     status: 'PENDING' | 'APPROVED' | 'COMPLETED';
-    /** Only present for COMPLETED applications: true = host already reviewed this volunteer */
+    volunteerId?: string | null;
     reviewed?: boolean;
 }
 
@@ -62,6 +63,7 @@ const formatCheckInTime = (isoString: string): string => {
 const VolunteerCard: React.FC<VolunteerCardProps> = ({ item, onApprove, onReject, onReview, eventStatus, sessionStartTime }) => {
     const [modalVisible, setModalVisible] = useState(false);
     const [pendingAction, setPendingAction] = useState<ModalAction>('approve');
+    const [profileModalVisible, setProfileModalVisible] = useState(false);
 
     const totalHours = item.creditScore + item.honorScore;
     const displayName = item.nickName ? `${item.name} (${item.nickName})` : item.name;
@@ -106,14 +108,20 @@ const VolunteerCard: React.FC<VolunteerCardProps> = ({ item, onApprove, onReject
                     </View>
                 )}
                 <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 12 }}>
-                    {/* Avatar */}
-                    <View style={[styles.avatar, { backgroundColor: '#42A4F5' }]}>
-                        {item.avatarUrl ? (
-                            <Image source={{ uri: item.avatarUrl }} style={styles.avatarImage} />
-                        ) : (
-                            <Text style={styles.avatarText}>{initials}</Text>
-                        )}
-                    </View>
+                    {/* Avatar — tappable to view volunteer public profile */}
+                    <TouchableOpacity
+                        activeOpacity={0.8}
+                        onPress={() => item.volunteerId ? setProfileModalVisible(true) : undefined}
+                        disabled={!item.volunteerId}
+                    >
+                        <View style={[styles.avatar, { backgroundColor: '#42A4F5' }]}>
+                            {item.avatarUrl ? (
+                                <Image source={{ uri: item.avatarUrl }} style={styles.avatarImage} />
+                            ) : (
+                                <Text style={styles.avatarText}>{initials}</Text>
+                            )}
+                        </View>
+                    </TouchableOpacity>
 
                     {/* Info */}
                     <View style={{ flex: 1 }}>
@@ -200,6 +208,13 @@ const VolunteerCard: React.FC<VolunteerCardProps> = ({ item, onApprove, onReject
                 volunteer={item}
                 onCancel={() => setModalVisible(false)}
                 onConfirm={handleConfirm}
+            />
+
+            {/* Volunteer public profile modal — opens on avatar tap */}
+            <VolunteerProfileModal
+                visible={profileModalVisible}
+                volunteerId={item.volunteerId}
+                onClose={() => setProfileModalVisible(false)}
             />
         </>
     );

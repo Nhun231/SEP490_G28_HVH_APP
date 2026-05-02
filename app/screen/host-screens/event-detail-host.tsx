@@ -78,7 +78,6 @@ const STATUS_CONFIG: Record<EventStatus, { label: string; color: string; bgColor
 const EventDetailScreen = () => {
     const router = useRouter();
     const { id, openSessionModal } = useLocalSearchParams<{ id: string; openSessionModal?: string }>();
-    const [showCheckinCode, setShowCheckinCode] = useState(false);
     const [sessionModalVisible, setSessionModalVisible] = useState(false);
     const [cancelModalVisible, setCancelModalVisible] = useState(false);
     const [imageViewerVisible, setImageViewerVisible] = useState(false);
@@ -347,31 +346,6 @@ const EventDetailScreen = () => {
                     </View>
                 )}
 
-                {/* ── Review notification banner (ENDED events with pending reviews) ── */}
-                {event.status === 'ENDED' && unreviewedCount !== null && unreviewedCount > 0 && (() => {
-                    // Calculate days since event ended (use latest session endDateTime)
-                    const endMs = Math.max(
-                        ...event.eventSessions.map(s => new Date(s.endDateTime).getTime())
-                    );
-                    const daysPassed = Math.floor((Date.now() - endMs) / (1000 * 60 * 60 * 24));
-                    const daysLeft = Math.max(0, 2 - daysPassed);
-                    return (
-                        <View style={styles.reviewNotifBanner}>
-                            <View style={styles.reviewNotifHeader}>
-                                <Ionicons name="time-outline" size={16} color="#B45309" />
-                                <Text style={styles.reviewNotifTitle}>
-                                    Còn {unreviewedCount} tình nguyện viên chưa được đánh giá
-                                </Text>
-                            </View>
-                            <Text style={styles.reviewNotifBody}>
-                                {daysLeft > 0
-                                    ? `⚠️ Nếu không đánh giá trong vòng ${daysLeft} ngày tới, hệ thống sẽ tự động đánh giá tất cả các tình nguyện viên với đầy đủ 5 sao.`
-                                    : `⚠️ Đã quá 2 ngày kể từ khi sự kiện kết thúc. Hệ thống sẽ sớm tự động đánh giá các tình nguyện viên chưa được đánh giá với đầy đủ 5 sao.`
-                                }
-                            </Text>
-                        </View>
-                    );
-                })()}
 
                 <ScrollView
                     style={styles.scroll}
@@ -428,6 +402,34 @@ const EventDetailScreen = () => {
                                 </Text>
                             </View>
                         </View>
+
+                        {/* ── Review notification — footer of title card (ENDED events only) ── */}
+                        {event.status === 'ENDED' && unreviewedCount !== null && unreviewedCount > 0 && (() => {
+                            const endMs = Math.max(
+                                ...event.eventSessions.map(s => new Date(s.endDateTime).getTime())
+                            );
+                            // Clamp to 0 to handle UTC offset edge cases where device clock
+                            // shows event not yet ended (negative elapsed time)
+                            const msElapsed = Math.max(0, Date.now() - endMs);
+                            const daysPassed = Math.floor(msElapsed / (1000 * 60 * 60 * 24));
+                            const daysLeft = Math.max(0, 2 - daysPassed);
+                            return (
+                                <View style={styles.reviewNotifBanner}>
+                                    <View style={styles.reviewNotifHeader}>
+                                        <Ionicons name="time-outline" size={15} color="#B45309" />
+                                        <Text style={styles.reviewNotifTitle}>
+                                            Còn {unreviewedCount} tình nguyện viên chưa được đánh giá
+                                        </Text>
+                                    </View>
+                                    <Text style={styles.reviewNotifBody}>
+                                        {daysLeft > 0
+                                            ? `Nếu không đánh giá trong vòng ${daysLeft} ngày tới, hệ thống sẽ tự động đánh giá tất cả các TNV với đầy đủ 5 sao.`
+                                            : `Đã quá 2 ngày kể từ khi sự kiện kết thúc. Hệ thống sẽ sớm tự động đánh giá các TNV chưa được đánh giá với đầy đủ 5 sao.`
+                                        }
+                                    </Text>
+                                </View>
+                            );
+                        })()}
                     </View>
 
                     {/* My services */}
@@ -532,17 +534,6 @@ const EventDetailScreen = () => {
                             value={checkinAddress ?? `${event.latCheckInLocation}, ${event.lngCheckInLocation}`}
                         />
                     </View>
-
-                    {/* Check-in code - display when "Create check-in code" is pressed */}
-                    {showCheckinCode && (
-                        <View style={[styles.card, styles.checkinCard]}>
-                            <View style={styles.checkinLeft}>
-                                <Ionicons name="qr-code-outline" size={20} color={'#42A4F5'} />
-                                <Text style={styles.checkinLabel}>Mã check-in</Text>
-                            </View>
-                            <Text style={styles.checkinCode}>{event.checkInCode}</Text>
-                        </View>
-                    )}
 
                     {/* Detail */}
                     <View style={styles.card}>
@@ -672,16 +663,16 @@ const styles = StyleSheet.create({
         lineHeight: 18,
         fontWeight: '500',
     },
-    // Review notification banner (ENDED events)
+    // Review notification banner — card footer style (ENDED events)
     reviewNotifBanner: {
         backgroundColor: '#FFFBEB',
-        borderLeftWidth: 4,
+        borderTopWidth: 1,
+        borderTopColor: '#FDE68A',
+        borderLeftWidth: 3,
         borderLeftColor: '#F59E0B',
-        marginHorizontal: 16,
-        marginTop: 10,
-        borderRadius: 8,
-        padding: 12,
-        gap: 6,
+        paddingHorizontal: 14,
+        paddingVertical: 10,
+        gap: 4,
     },
     reviewNotifHeader: {
         flexDirection: 'row',
@@ -697,7 +688,7 @@ const styles = StyleSheet.create({
     reviewNotifBody: {
         fontSize: 12,
         color: '#78350F',
-        lineHeight: 18,
+        lineHeight: 17,
     },
 
     // Loading / error center
