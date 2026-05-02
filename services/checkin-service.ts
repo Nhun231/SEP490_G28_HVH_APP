@@ -25,6 +25,7 @@ export interface CheckinEventDetails {
 }
 
 export interface QuickCheckInRequest {
+    eventSessionId: string
     applicationId: string
     deviceId: string
     apVersion: string
