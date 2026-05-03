@@ -465,3 +465,47 @@ export interface ShareMomentParams {
     pageSize?: number;
     eventName?: string;
 }
+
+// ── Event Claims (Honor-hour requests) ────────────────────────────────────────
+
+export interface ClaimItem {
+    id: string;
+    volunteerId: string;
+    nickName: string | null;
+    name: string;
+    avatarUrl: string | null;
+    creditScore: number;
+    honorScore: number;
+    honorHours: number;
+    reason: string;
+    createdAt: string; // ISO-8601
+}
+
+export interface ClaimPage {
+    content: ClaimItem[];
+    page: {
+        size: number;
+        number: number;
+        totalElements: number;
+        totalPages: number;
+    };
+}
+
+export interface ClaimDetail {
+    id: string;
+    sessionId: string;
+    volunteerId: string;
+    email: string | null;
+    phone: string | null;
+    nickName: string | null;
+    name: string;
+    avatarUrl: string | null;
+    address: string | null;
+    creditScore: number;
+    honorScore: number;
+    honorHours: number;
+    reason: string;
+    detailReason: string;
+    evidencesUrls: string[];
+    createdAt: string;
+}

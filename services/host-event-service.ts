@@ -10,6 +10,8 @@ import type {
     AnnounceVolunteersRequest,
     AnnounceVolunteersResponse,
     ApplicationActionResponse,
+    ClaimDetail,
+    ClaimPage,
     EventCreateRequest,
     EventCreateResponse,
     EventDetailResponse,
@@ -201,4 +203,46 @@ export const reviewVolunteer = async (
     const endpoint = `${API_BASE}/api/v1/host/volunteer-reviews`
     const response = await baseAxios.post<VolunteerReviewResponse>(endpoint, body)
     return response.data
+}
+
+/**
+ * Fetch paginated honor-hour claim requests for an event.
+ * GET /api/v1/host/event-claims/{eventId}?pageNumber=&pageSize=
+ */
+export async function getEventClaims(
+    eventId: string,
+    pageNumber = 0,
+    pageSize = 10,
+): Promise<ClaimPage> {
+    const res = await baseAxios.get<ClaimPage>(
+        `${API_BASE}/api/v1/host/event-claims/${eventId}`,
+        { params: { pageNumber, pageSize } },
+    )
+    return res.data
+}
+
+/**
+ * Fetch full detail of a single honor-hour claim.
+ * GET /api/v1/host/event-claims/{claimId}/claim-details
+ */
+export async function getClaimDetail(claimId: string): Promise<ClaimDetail> {
+    const res = await baseAxios.get<ClaimDetail>(
+        `${API_BASE}/api/v1/host/event-claims/${claimId}/claim-details`,
+    )
+    return res.data
+}
+
+/**
+ * Approve or reject a single honor-hour claim.
+ * POST /api/v1/host/event-claims/{claimId}/verify
+ * Body: { approve: boolean }
+ */
+export async function verifyClaimHour(
+    claimId: string,
+    approve: boolean,
+): Promise<void> {
+    await baseAxios.post(
+        `${API_BASE}/api/v1/host/event-claims/${claimId}/verify`,
+        { approve },
+    )
 }
