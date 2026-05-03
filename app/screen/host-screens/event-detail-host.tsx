@@ -166,7 +166,13 @@ const EventDetailScreen = () => {
                             <Ionicons name="arrow-back" size={22} color="#FFFFFF" />
                         </TouchableOpacity>
                         <Text style={styles.headerTitle}>Chi tiết sự kiện</Text>
-                        <View style={styles.bellBtn} />
+                        <TouchableOpacity
+                            style={styles.bellBtn}
+                            onPress={() => router.push('/screen/host-screens/notification' as any)}
+                            activeOpacity={0.7}
+                        >
+                            <Ionicons name="notifications-outline" size={22} color="#FFFFFF" />
+                        </TouchableOpacity>
                     </View>
                     <View style={styles.centerBox}>
                         <ActivityIndicator size="large" color={'#42A4F5'} />
@@ -187,7 +193,13 @@ const EventDetailScreen = () => {
                             <Ionicons name="arrow-back" size={22} color="#FFFFFF" />
                         </TouchableOpacity>
                         <Text style={styles.headerTitle}>Chi tiết sự kiện</Text>
-                        <View style={styles.bellBtn} />
+                        <TouchableOpacity
+                            style={styles.bellBtn}
+                            onPress={() => router.push('/screen/host-screens/notification' as any)}
+                            activeOpacity={0.7}
+                        >
+                            <Ionicons name="notifications-outline" size={22} color="#FFFFFF" />
+                        </TouchableOpacity>
                     </View>
                     <View style={styles.centerBox}>
                         <Ionicons name="cloud-offline-outline" size={52} color="#CBD5E1" />
@@ -336,6 +348,13 @@ const EventDetailScreen = () => {
                         <Ionicons name="arrow-back" size={22} color="#FFFFFF" />
                     </TouchableOpacity>
                     <Text style={styles.headerTitle}>Chi tiết sự kiện</Text>
+                    <TouchableOpacity
+                        style={styles.bellBtn}
+                        onPress={() => router.push('/screen/host-screens/notification' as any)}
+                        activeOpacity={0.7}
+                    >
+                        <Ionicons name="notifications-outline" size={22} color="#FFFFFF" />
+                    </TouchableOpacity>
                 </View>
 
                 {/* ── Note warning banner (hiển thị ngay dưới header khi có lỗi) ── */}

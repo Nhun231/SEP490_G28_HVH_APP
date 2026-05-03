@@ -58,6 +58,37 @@ interface VolunteerPublicInfo {
     certificatesUrls: string[]
 }
 
+interface VolunteerReview {
+    id: string
+    eventName: string
+    sessionStartDateTime: string
+    sessionEndDateTime: string
+    professionalAttitudeRating: number
+    responsibilityPunctualityRating: number
+    workEffectivenessRating: number
+    teamworkCommunicationRating: number
+    adaptabilityProblemSolvingRating: number
+    avgRating: number
+    comment: string | null
+}
+
+// ─── Review helpers ───────────────────────────────────────────────
+const fmtDate = (iso: string) => {
+    const d = new Date(iso)
+    return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`
+}
+const fmtTime = (iso: string) => {
+    const d = new Date(iso)
+    return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
+}
+const CRITERIA: { key: keyof VolunteerReview; label: string }[] = [
+    { key: 'professionalAttitudeRating', label: 'Thái độ chuyên nghiệp' },
+    { key: 'responsibilityPunctualityRating', label: 'Trách nhiệm & đúng giờ' },
+    { key: 'workEffectivenessRating', label: 'Hiệu quả công việc' },
+    { key: 'teamworkCommunicationRating', label: 'Làm việc nhóm' },
+    { key: 'adaptabilityProblemSolvingRating', label: 'Linh hoạt & xử lý vấn đề' },
+]
+
 // ─── Star Rating ──────────────────────────────────────────────────────────────
 
 function StarRating({ rating }: { rating: number }) {
@@ -142,6 +173,14 @@ export default function VolPublicProfile() {
     const [certViewerOpen, setCertViewerOpen] = useState(false)
     const [certStartIdx, setCertStartIdx] = useState(0)
 
+    // Reviews
+    const [reviews, setReviews] = useState<VolunteerReview[]>([])
+    const [reviewsTotal, setReviewsTotal] = useState(0)
+    const [reviewsPage, setReviewsPage] = useState(0)
+    const [hasMoreReviews, setHasMoreReviews] = useState(false)
+    const [reviewsLoading, setReviewsLoading] = useState(false)
+    const [loadingMoreReviews, setLoadingMoreReviews] = useState(false)
+
     const load = useCallback(async () => {
         if (!volunteerId) return
         setLoading(true)
@@ -158,7 +197,29 @@ export default function VolPublicProfile() {
         }
     }, [volunteerId])
 
-    useEffect(() => { load() }, [load])
+    const loadReviews = useCallback(async (page = 0) => {
+        if (!volunteerId) return
+        page === 0 ? setReviewsLoading(true) : setLoadingMoreReviews(true)
+        try {
+            const res = await baseAxios.get<{
+                content: VolunteerReview[]
+                page: { totalElements: number; totalPages: number }
+            }>(
+                `${API_BASE}/api/v1/volunteer-reviews/${volunteerId}`,
+                { params: { pageNumber: page, pageSize: 5 } }
+            )
+            setReviews(prev => page === 0 ? res.data.content : [...prev, ...res.data.content])
+            setReviewsTotal(res.data.page.totalElements)
+            setReviewsPage(page)
+            setHasMoreReviews(page + 1 < res.data.page.totalPages)
+        } catch {
+            // silently ignore — profile still usable
+        } finally {
+            page === 0 ? setReviewsLoading(false) : setLoadingMoreReviews(false)
+        }
+    }, [volunteerId])
+
+    useEffect(() => { load(); loadReviews(0) }, [load, loadReviews])
 
     const avatarUrl = resolveStorageUrl(profile?.avatarUrl)
     const displayName = profile?.nickname || profile?.fullName || 'Tình nguyện viên'
@@ -291,6 +352,84 @@ export default function VolPublicProfile() {
                         </View>
                     )}
 
+                    {/* ── Reviews ── */}
+                    <View style={styles.section}>
+                        <View style={styles.sectionHeader}>
+                            <Ionicons name="star" size={17} color="#F59E0B" />
+                            <Text style={styles.sectionTitle}>Đánh giá</Text>
+                            {reviewsTotal > 0 && (
+                                <Text style={styles.certCount}>{reviewsTotal} đánh giá</Text>
+                            )}
+                        </View>
+
+                        {reviewsLoading ? (
+                            <ActivityIndicator size="small" color="#42A4F5" style={{ marginVertical: 12 }} />
+                        ) : reviews.length === 0 ? (
+                            <Text style={styles.noCert}>Chưa có đánh giá nào</Text>
+                        ) : (
+                            <>
+                                {reviews.map((review, idx) => (
+                                    <View
+                                        key={review.id}
+                                        style={[
+                                            styles.reviewCard,
+                                            idx < reviews.length - 1 && styles.reviewCardDivider,
+                                        ]}
+                                    >
+                                        <Text style={styles.reviewEventName} numberOfLines={2}>
+                                            {review.eventName}
+                                        </Text>
+                                        <Text style={styles.reviewDate}>
+                                            {fmtDate(review.sessionStartDateTime)}
+                                        </Text>
+
+                                        <View style={styles.reviewRatingRow}>
+                                            <StarRating rating={review.avgRating} />
+                                            <Text style={styles.reviewAvgScore}>
+                                                {Number(review.avgRating).toFixed(1)}
+                                            </Text>
+                                        </View>
+
+                                        <View style={styles.criteriaGrid}>
+                                            {CRITERIA.map(({ key, label }) => (
+                                                <View key={key} style={styles.criteriaRow}>
+                                                    <Text style={styles.criteriaLabel} numberOfLines={1}>{label}</Text>
+                                                    <View style={{ flexDirection: 'row', gap: 2 }}>
+                                                        {[1, 2, 3, 4, 5].map(i => (
+                                                            <Ionicons
+                                                                key={i}
+                                                                name={i <= (review[key] as number) ? 'star' : 'star-outline'}
+                                                                size={11}
+                                                                color="#F59E0B"
+                                                            />
+                                                        ))}
+                                                    </View>
+                                                </View>
+                                            ))}
+                                        </View>
+
+                                        {!!review.comment && (
+                                            <Text style={styles.reviewComment}>“{review.comment}”</Text>
+                                        )}
+                                    </View>
+                                ))}
+
+                                {hasMoreReviews && (
+                                    <TouchableOpacity
+                                        style={styles.loadMoreBtn}
+                                        onPress={() => loadReviews(reviewsPage + 1)}
+                                        disabled={loadingMoreReviews}
+                                    >
+                                        {loadingMoreReviews
+                                            ? <ActivityIndicator size="small" color="#42A4F5" />
+                                            : <Text style={styles.loadMoreText}>Xem thêm đánh giá</Text>
+                                        }
+                                    </TouchableOpacity>
+                                )}
+                            </>
+                        )}
+                    </View>
+
                     <View style={{ height: 40 }} />
                 </ScrollView>
             ) : null}
@@ -403,4 +542,69 @@ const styles = StyleSheet.create({
         padding: 6,
     },
     noCert: { fontSize: 13, color: '#9CA3AF', textAlign: 'center', paddingVertical: 8 },
+
+    /* Reviews */
+    reviewCard: {
+        paddingVertical: 12,
+    },
+    reviewCardDivider: {
+        borderBottomWidth: 1,
+        borderBottomColor: '#F3F4F6',
+    },
+    reviewEventName: {
+        fontSize: 13,
+        fontWeight: '700',
+        color: '#111827',
+        marginBottom: 2,
+    },
+    reviewDate: {
+        fontSize: 11,
+        color: '#9CA3AF',
+        marginBottom: 6,
+    },
+    reviewRatingRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        marginBottom: 8,
+    },
+    reviewAvgScore: {
+        fontSize: 14,
+        fontWeight: '800',
+        color: '#F59E0B',
+    },
+    criteriaGrid: {
+        gap: 4,
+        marginBottom: 6,
+    },
+    criteriaRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+    },
+    criteriaLabel: {
+        fontSize: 11,
+        color: '#6B7280',
+        flex: 1,
+        marginRight: 8,
+    },
+    reviewComment: {
+        fontSize: 12,
+        color: '#374151',
+        fontStyle: 'italic',
+        marginTop: 4,
+        lineHeight: 18,
+    },
+    loadMoreBtn: {
+        alignItems: 'center',
+        paddingVertical: 10,
+        marginTop: 4,
+        borderTopWidth: 1,
+        borderTopColor: '#F3F4F6',
+    },
+    loadMoreText: {
+        fontSize: 13,
+        color: '#42A4F5',
+        fontWeight: '600',
+    },
 })
