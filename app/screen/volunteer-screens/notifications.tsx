@@ -145,11 +145,11 @@ function NotifFeed({ endpoint }: { endpoint: string }) {
     useFocusEffect(
         useCallback(() => {
             let active = true
-            ;(async () => {
-                setLoading(true)
-                try { await fetchPage(0) } catch { if (active) setItems([]) }
-                finally { if (active) setLoading(false) }
-            })()
+                ; (async () => {
+                    setLoading(true)
+                    try { await fetchPage(0) } catch { if (active) setItems([]) }
+                    finally { if (active) setLoading(false) }
+                })()
             return () => { active = false }
         }, [fetchPage])
     )
@@ -228,7 +228,7 @@ const feedStyles = StyleSheet.create({
 
 const TABS = [
     { label: 'Của tôi', endpoint: '/api/v1/notifications/user' },
-    { label: 'Chung',   endpoint: '/api/v1/notifications/user-topics' },
+    { label: 'Chung', endpoint: '/api/v1/notifications/user-topics' },
 ]
 
 export default function NotificationsScreen() {

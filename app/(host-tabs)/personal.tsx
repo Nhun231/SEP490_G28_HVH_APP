@@ -259,7 +259,13 @@ export default function HostPersonal() {
                     <Ionicons name="arrow-back" size={22} color="#fff" />
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>Thông tin cá nhân</Text>
-                <View style={{ width: 38 }} />
+                <TouchableOpacity
+                    style={styles.backBtn}
+                    onPress={() => router.push('/screen/host-screens/notification' as any)}
+                    activeOpacity={0.7}
+                >
+                    <Ionicons name="notifications-outline" size={22} color="#fff" />
+                </TouchableOpacity>
             </View>
 
             <ScrollView

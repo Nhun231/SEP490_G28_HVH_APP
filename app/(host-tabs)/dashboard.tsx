@@ -45,7 +45,6 @@ const STAT_FETCH: Array<[StatKey, MyEventStatus | null]> = [
     ['REJECTED_BY_MNG', 'REJECTED_BY_MNG'],
     ['REJECTED_BY_AD', 'REJECTED_BY_AD'],
     ['CANCELLED', 'CANCELLED'],
-    // ['VOLUNTEERS', ???]  ← separate API – handled below
 ];
 
 type StatCounts = Record<StatKey, number | null>;
@@ -97,10 +96,12 @@ const QUICK_ACTIONS = [
     },
     {
         key: 'profile',
-        label: 'Cập nhật\nthông tin\ncá nhân',
+        label: 'Thông tin\ncá nhân',
         icon: 'person-circle' as const,
         color: '#F5A623',
-        onPress: () => { /* TODO */ },
+        onPress: (router: ReturnType<typeof useRouter>) => {
+            router.push('/(host-tabs)/personal' as any);
+        },
     },
 ];
 
@@ -115,12 +116,11 @@ const STAT_GRID: StatCell[][] = [
     [
         { key: 'ENDED', label: 'Sự kiện đã kết thúc' },
         { key: 'EDITING', label: 'Sự kiện đã tạo' },
-        { key: 'VOLUNTEERS', label: 'Tình nguyện viên đã\nđược đánh giá' },
+        { key: 'CANCELLED', label: 'Sự kiện đã hủy' },
     ],
     [
-        { key: 'REJECTED_BY_MNG', label: 'Sự kiện bị tổ chức\ntừ chối' },
         { key: 'REJECTED_BY_AD', label: 'Sự kiện bị quản trị\nviên từ chối' },
-        { key: 'CANCELLED', label: 'Sự kiện đã hủy' },
+        { key: 'REJECTED_BY_MNG', label: 'Sự kiện bị tổ chức\ntừ chối' },
     ],
 ];
 
@@ -154,7 +154,8 @@ const Dashboard = () => {
             // VOLUNTEERS stays null until a dedicated API is integrated
 
             setCounts(newCounts);
-        } catch (e) {            setError('Không thể tải dữ liệu tổng quan');
+        } catch (e) {
+            setError('Không thể tải dữ liệu tổng quan');
         } finally {
             setLoading(false);
             setRefreshing(false);
@@ -195,6 +196,26 @@ const Dashboard = () => {
                     >
                         <Path d={wavePath} fill={WAVE_COLOR} />
                     </Svg>
+
+                    {/* Bell notification button — top-right */}
+                    <TouchableOpacity
+                        style={{
+                            position: 'absolute',
+                            top: 12,
+                            right: 16,
+                            zIndex: 10,
+                            width: 38,
+                            height: 38,
+                            borderRadius: 19,
+                            backgroundColor: 'rgba(255,255,255,0.25)',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                        }}
+                        onPress={() => router.push('/screen/host-screens/notification' as any)}
+                        activeOpacity={0.8}
+                    >
+                        <Ionicons name="notifications-outline" size={22} color="#FFFFFF" />
+                    </TouchableOpacity>
 
                     {/* Logo centred horizontally at the S-curve crossover (y = HEADER_FLAT_H) */}
                     <View

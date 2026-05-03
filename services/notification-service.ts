@@ -2,6 +2,34 @@ import * as Notifications from 'expo-notifications'
 import { Platform, NativeModules } from 'react-native'
 import * as Application from 'expo-application'
 import baseAxios from '@/lib/baseAxios'
+import type { NotificationPage } from './notification-types'
+
+const API_BASE = process.env.EXPO_PUBLIC_API_URL || 'https://api.hvh.homes'
+const DEFAULT_PAGE_SIZE = 15
+
+// ─── REST: fetch paginated notification lists ─────────────────────────────────
+
+/** GET /api/v1/notifications/user  — personal notifications (all roles) */
+export async function getUserNotifications(
+    page: number,
+    pageSize = DEFAULT_PAGE_SIZE
+): Promise<NotificationPage> {
+    const res = await baseAxios.get<NotificationPage>(
+        `${API_BASE}/api/v1/notifications/user?pageNumber=${page}&pageSize=${pageSize}`
+    )
+    return res.data
+}
+
+/** GET /api/v1/notifications/user-topics — broadcast/topic notifications */
+export async function getUserTopicNotifications(
+    page: number,
+    pageSize = DEFAULT_PAGE_SIZE
+): Promise<NotificationPage> {
+    const res = await baseAxios.get<NotificationPage>(
+        `${API_BASE}/api/v1/notifications/user-topics?pageNumber=${page}&pageSize=${pageSize}`
+    )
+    return res.data
+}
 
 Notifications.setNotificationHandler({
     handleNotification: async () => ({
@@ -31,7 +59,7 @@ export async function requestNotificationPermission(): Promise<boolean> {
             const { status } = await Notifications.requestPermissionsAsync()
             return status === 'granted'
         }
-        return true 
+        return true
     } catch (error) {
         console.error('[Notification] Permission request failed:', error)
         return false
@@ -84,7 +112,7 @@ export async function unregisterFcmToken(token: string): Promise<void> {
 // Show in-app banner for FCM messages received while app is foregrounded
 // Call once from root layout; returns cleanup function
 export function setupForegroundMessageHandler(): () => void {
-    if (!isFirebaseAvailable()) return () => {}
+    if (!isFirebaseAvailable()) return () => { }
 
     const messaging = require('@react-native-firebase/messaging').default
     const unsubscribe = messaging().onMessage(async (remoteMessage: any) => {
@@ -106,5 +134,5 @@ export function setupBackgroundMessageHandler(): void {
     if (!isFirebaseAvailable()) return
 
     const messaging = require('@react-native-firebase/messaging').default
-    messaging().setBackgroundMessageHandler(async (_remoteMessage: any) => {})
+    messaging().setBackgroundMessageHandler(async (_remoteMessage: any) => { })
 }

@@ -104,7 +104,7 @@ const ReviewVolunteers = () => {
                                 workEffectivenessRating: ratings['efficiency'],
                                 teamworkCommunicationRating: ratings['teamwork'],
                                 adaptabilityProblemSolvingRating: ratings['adaptability'],
-                                comment: comment.trim() || '',
+                                comment: comment.trim() || undefined,
                             });
                             Alert.alert('Thành công', 'Đã gửi đánh giá tình nguyện viên thành công', [
                                 { text: 'OK', onPress: () => router.back() },
