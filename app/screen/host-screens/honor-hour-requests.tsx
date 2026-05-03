@@ -18,12 +18,21 @@ function fmtDateTime(iso: string): string {
     return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
+function getInitials(name: string): string {
+    const words = name.trim().split(/\s+/).filter(Boolean);
+    if (words.length === 0) return '?';
+    if (words.length === 1) return words[0].charAt(0).toUpperCase();
+    const last = words[words.length - 1].charAt(0);
+    const secondLast = words[words.length - 2].charAt(0);
+    return (secondLast + last).toUpperCase();
+}
+
 // ─── Sub-components ───────────────────────────────────────────────────────────
 const Avatar = ({ uri, name, size = 48 }: { uri: string | null; name: string; size?: number }) => (
-    <View style={[aStyles.wrap, { width: size, height: size, borderRadius: size / 2 }]}>
+    <View style={[styles.avatarWrap, { width: size, height: size, borderRadius: size / 2 }]}>
         {uri
             ? <Image source={{ uri }} style={{ width: size, height: size, borderRadius: size / 2 }} />
-            : <Text style={[aStyles.initials, { fontSize: size * 0.36 }]}>{name.charAt(0).toUpperCase()}</Text>
+            : <Text style={[styles.avatarInitials, { fontSize: size * 0.30 }]}>{getInitials(name)}</Text>
         }
     </View>
 );
@@ -371,120 +380,352 @@ export default function HonorHourRequestsScreen() {
     );
 }
 
-
-// ─── Avatar styles ────────────────────────────────────────────────────────────
-const aStyles = StyleSheet.create({
-    wrap: { backgroundColor: '#DBEAFE', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
-    initials: { fontWeight: '700', color: '#42A4F5' },
-});
-
 // ─── Main styles ──────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
-    safeArea: { flex: 1, backgroundColor: '#42A4F5' },
+    safeArea: {
+        flex: 1,
+        backgroundColor: '#42A4F5'
+    },
+
+    // ── Avatar ─────────────────────────────────────────────────
+    avatarWrap: {
+        backgroundColor: '#DBEAFE',
+        alignItems: 'center',
+        justifyContent: 'center',
+        overflow: 'hidden',
+    },
+    avatarInitials: {
+        fontWeight: '700',
+        color: '#42A4F5',
+    },
 
     header: {
         backgroundColor: '#42A4F5',
-        flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-        paddingHorizontal: 16, paddingVertical: 12,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingHorizontal: 16,
+        paddingVertical: 12,
     },
     backBtn: {
-        width: 38, height: 38, borderRadius: 19,
+        width: 38, height: 38,
+        borderRadius: 19,
         backgroundColor: 'rgba(255,255,255,0.2)',
-        alignItems: 'center', justifyContent: 'center',
+        alignItems: 'center',
+        justifyContent: 'center',
     },
-    headerTitle: { fontSize: 17, fontWeight: '700', color: '#fff' },
+    headerTitle: {
+        fontSize: 17,
+        fontWeight: '700',
+        color: '#fff'
+    },
 
     summaryBar: {
-        flexDirection: 'row', alignItems: 'center', gap: 6,
-        backgroundColor: '#EBF5FF', paddingHorizontal: 16, paddingVertical: 10,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+        backgroundColor: '#EBF5FF',
+        paddingHorizontal: 16,
+        paddingVertical: 10,
     },
-    summaryText: { fontSize: 13, color: '#1E40AF', fontWeight: '600' },
+    summaryText: {
+        fontSize: 13,
+        color: '#1E40AF',
+        fontWeight: '600'
+    },
 
-    listContent: { padding: 14, gap: 14, backgroundColor: '#F3F4F6', flexGrow: 1 },
+    listContent: {
+        padding: 14,
+        gap: 14,
+        backgroundColor: '#F3F4F6',
+        flexGrow: 1
+    },
 
-    center: { flex: 1, backgroundColor: '#F3F4F6', alignItems: 'center', justifyContent: 'center', gap: 12 },
-    loadingText: { fontSize: 14, color: '#94A3B8' },
-    errorText: { fontSize: 14, color: '#EF4444', textAlign: 'center', paddingHorizontal: 32 },
-    retryBtn: { backgroundColor: '#42A4F5', borderRadius: 10, paddingHorizontal: 24, paddingVertical: 10 },
-    retryBtnText: { color: '#fff', fontSize: 14, fontWeight: '700' },
-    emptyWrap: { flex: 1, backgroundColor: '#F3F4F6', alignItems: 'center', justifyContent: 'center', gap: 12 },
-    emptyText: { fontSize: 15, color: '#94A3B8', fontWeight: '500' },
+    center: {
+        flex: 1,
+        backgroundColor: '#F3F4F6',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 12
+    },
+    loadingText: {
+        fontSize: 14,
+        color: '#94A3B8'
+    },
+    errorText: {
+        fontSize: 14,
+        color: '#EF4444',
+        textAlign: 'center',
+        paddingHorizontal: 32
+    },
+    retryBtn: {
+        backgroundColor: '#42A4F5',
+        borderRadius: 10,
+        paddingHorizontal: 24,
+        paddingVertical: 10
+    },
+    retryBtnText: {
+        color: '#fff',
+        fontSize: 14,
+        fontWeight: '700'
+    },
+    emptyWrap: {
+        flex: 1,
+        backgroundColor: '#F3F4F6',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 12
+    },
+    emptyText: {
+        fontSize: 15,
+        color: '#94A3B8',
+        fontWeight: '500'
+    },
 
     // ── Card ───────────────────────────────────────────────────
     card: {
-        backgroundColor: '#fff', borderRadius: 16, padding: 16,
-        shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.07, shadowRadius: 8, elevation: 3,
+        backgroundColor: '#fff',
+        borderRadius: 16,
+        padding: 16,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.07,
+        shadowRadius: 8,
+        elevation: 3,
     },
-    cardHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
-    cardName: { fontSize: 15, fontWeight: '700', color: '#1E293B' },
-    cardDate: { fontSize: 12, color: '#94A3B8', marginTop: 2 },
-    statusChip: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 },
-    statusChipText: { fontSize: 11, fontWeight: '700' },
+    cardHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 12
+    },
+    cardName: {
+        fontSize: 15,
+        fontWeight: '700',
+        color: '#1E293B'
+    },
+    cardDate: {
+        fontSize: 12,
+        color: '#94A3B8',
+        marginTop: 2
+    },
+    statusChip: {
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+        borderRadius: 20
+    },
+    statusChipText: {
+        fontSize: 11,
+        fontWeight: '700'
+    },
 
     // Hour badge
     hourBadge: {
-        flexDirection: 'row', alignItems: 'center', gap: 12,
-        backgroundColor: '#EBF5FF', borderRadius: 12, padding: 12, marginBottom: 10,
-        borderWidth: 1, borderColor: '#BFDBFE',
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+        backgroundColor: '#EBF5FF',
+        borderRadius: 12,
+        padding: 12,
+        marginBottom: 10,
+        borderWidth: 1,
+        borderColor: '#BFDBFE',
     },
     hourIconWrap: {
-        width: 42, height: 42, borderRadius: 21,
-        backgroundColor: '#42A4F5', alignItems: 'center', justifyContent: 'center',
+        width: 42,
+        height: 42,
+        borderRadius: 21,
+        backgroundColor: '#42A4F5',
+        alignItems: 'center',
+        justifyContent: 'center',
     },
-    hourBadgeLabel: { fontSize: 11, color: '#42A4F5', fontWeight: '600', marginBottom: 2 },
-    hourBadgeValue: { fontSize: 18, fontWeight: '800', color: '#1E40AF' },
+    hourBadgeLabel: {
+        fontSize: 11,
+        color: '#42A4F5',
+        fontWeight: '600',
+        marginBottom: 2
+    },
+    hourBadgeValue: {
+        fontSize: 18,
+        fontWeight: '800',
+        color: '#1E40AF'
+    },
 
-    attachRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 12 },
-    attachText: { fontSize: 12, color: '#64748B', flex: 1 },
+    attachRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+        marginBottom: 12
+    },
+    attachText: {
+        fontSize: 12,
+        color: '#64748B',
+        flex: 1
+    },
 
-    actionRow: { flexDirection: 'row', gap: 8, alignItems: 'center' },
+    actionRow: {
+        flexDirection: 'row',
+        gap: 8,
+        alignItems: 'center'
+    },
     detailBtn: {
-        flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-        gap: 6, backgroundColor: '#3B82F6', borderRadius: 10, paddingVertical: 11,
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 6,
+        backgroundColor: '#3B82F6',
+        borderRadius: 10,
+        paddingVertical: 11,
     },
-    detailBtnText: { fontSize: 14, fontWeight: '700', color: '#fff' },
-    approveBtn: { width: 44, height: 44, borderRadius: 10, backgroundColor: '#22C55E', alignItems: 'center', justifyContent: 'center' },
-    rejectBtn: { width: 44, height: 44, borderRadius: 10, backgroundColor: '#EF4444', alignItems: 'center', justifyContent: 'center' },
+    detailBtnText: {
+        fontSize: 14,
+        fontWeight: '700',
+        color: '#fff'
+    },
+    approveBtn: {
+        width: 44,
+        height: 44,
+        borderRadius: 10,
+        backgroundColor: '#22C55E',
+        alignItems: 'center',
+        justifyContent: 'center'
+    },
+    rejectBtn: {
+        width: 44,
+        height: 44,
+        borderRadius: 10,
+        backgroundColor: '#EF4444',
+        alignItems: 'center',
+        justifyContent: 'center'
+    },
 
     // ── Detail Modal ───────────────────────────────────────────
-    detailOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
-    detailSheet: { backgroundColor: '#F3F4F6', borderTopLeftRadius: 24, borderTopRightRadius: 24, maxHeight: '90%' },
+    detailOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.4)',
+        justifyContent: 'flex-end'
+    },
+    detailSheet: {
+        backgroundColor: '#F3F4F6',
+        borderTopLeftRadius: 24,
+        borderTopRightRadius: 24,
+        maxHeight: '90%'
+    },
     detailHeader: {
-        backgroundColor: '#42A4F5', borderTopLeftRadius: 24, borderTopRightRadius: 24,
-        flexDirection: 'row', alignItems: 'center',
-        paddingHorizontal: 16, paddingVertical: 14, gap: 12,
+        backgroundColor: '#42A4F5',
+        borderTopLeftRadius: 24,
+        borderTopRightRadius: 24,
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 16,
+        paddingVertical: 14,
+        gap: 12,
     },
     detailCloseBtn: {
-        width: 32, height: 32, borderRadius: 16,
+        width: 32,
+        height: 32,
+        borderRadius: 16,
         backgroundColor: 'rgba(255,255,255,0.25)',
-        alignItems: 'center', justifyContent: 'center',
+        alignItems: 'center',
+        justifyContent: 'center',
     },
-    detailHeaderTitle: { fontSize: 16, fontWeight: '700', color: '#fff' },
-    detailContent: { padding: 16, gap: 12, paddingBottom: 32 },
+    detailHeaderTitle: {
+        fontSize: 16,
+        fontWeight: '700',
+        color: '#fff'
+    },
+    detailContent: {
+        padding: 16,
+        gap: 12,
+        paddingBottom: 32
+    },
 
-    detailPersonRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', borderRadius: 14, padding: 14 },
-    detailName: { fontSize: 16, fontWeight: '700', color: '#1E293B' },
-    detailDate: { fontSize: 12, color: '#94A3B8', marginTop: 3 },
+    detailPersonRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#fff',
+        borderRadius: 14,
+        padding: 14
+    },
+    detailName: {
+        fontSize: 16,
+        fontWeight: '700',
+        color: '#1E293B'
+    },
+    detailDate: {
+        fontSize: 12,
+        color: '#94A3B8',
+        marginTop: 3
+    },
 
     infoBox: {
-        backgroundColor: '#FFF1F2', borderRadius: 14, padding: 14,
-        borderWidth: 1, borderColor: '#FEC5C8', gap: 10,
+        backgroundColor: '#FFF1F2',
+        borderRadius: 14,
+        padding: 14,
+        borderWidth: 1,
+        borderColor: '#FEC5C8',
+        gap: 10,
     },
-    infoBoxHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 2 },
-    infoBoxTitle: { fontSize: 15, fontWeight: '700', color: '#1E293B' },
-    infoLabel: { fontSize: 13, fontWeight: '600', color: '#475569' },
-    infoField: { backgroundColor: '#fff', borderRadius: 10, padding: 12, borderWidth: 1, borderColor: '#E2E8F0' },
-    infoFieldText: { fontSize: 14, color: '#334155', lineHeight: 20 },
+    infoBoxHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        marginBottom: 2
+    },
+    infoBoxTitle: {
+        fontSize: 15,
+        fontWeight: '700',
+        color: '#1E293B'
+    },
+    infoLabel: {
+        fontSize: 13,
+        fontWeight: '600',
+        color: '#475569'
+    },
+    infoField: {
+        backgroundColor: '#fff',
+        borderRadius: 10,
+        padding: 12,
+        borderWidth: 1,
+        borderColor: '#E2E8F0'
+    },
+    infoFieldText: {
+        fontSize: 14,
+        color: '#334155',
+        lineHeight: 20
+    },
 
-    evidenceGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-    evidenceImg: { width: 140, height: 100, borderRadius: 10, backgroundColor: '#E2E8F0' },
+    evidenceGrid: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: 8
+    },
+    evidenceImg: {
+        width: 140,
+        height: 100,
+        borderRadius: 10,
+        backgroundColor: '#E2E8F0'
+    },
 
-    detailActions: { flexDirection: 'row', gap: 12, marginTop: 8 },
+    detailActions: {
+        flexDirection: 'row',
+        gap: 12,
+        marginTop: 8
+    },
     detailActionBtn: {
-        flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-        gap: 8, borderRadius: 12, paddingVertical: 14,
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 8,
+        borderRadius: 12,
+        paddingVertical: 14,
     },
-    detailActionBtnText: { fontSize: 15, fontWeight: '700', color: '#fff' },
+    detailActionBtnText: {
+        fontSize: 15,
+        fontWeight: '700',
+        color: '#fff'
+    },
 
     // ── Inline Confirm Overlay (inside detail modal) ────────────
     inlineConfirmOverlay: {
@@ -498,20 +739,65 @@ const styles = StyleSheet.create({
         zIndex: 10,
     },
     confirmCard: {
-        backgroundColor: '#fff', borderRadius: 24, padding: 28,
-        alignItems: 'center', gap: 12, width: '100%',
-        shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.15, shadowRadius: 24, elevation: 12,
+        backgroundColor: '#fff',
+        borderRadius: 24,
+        padding: 28,
+        alignItems: 'center',
+        gap: 12,
+        width: '100%',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.15,
+        shadowRadius: 24,
+        elevation: 12,
     },
-    confirmIconWrap: { width: 72, height: 72, borderRadius: 36, alignItems: 'center', justifyContent: 'center' },
-    confirmTitle: { fontSize: 18, fontWeight: '800', color: '#1E293B' },
-    confirmMsg: { fontSize: 14, color: '#64748B', textAlign: 'center', lineHeight: 21 },
-    confirmActions: { flexDirection: 'row', gap: 12, marginTop: 8, width: '100%' },
+    confirmIconWrap: {
+        width: 72,
+        height: 72,
+        borderRadius: 36,
+        alignItems: 'center',
+        justifyContent: 'center'
+    },
+    confirmTitle: {
+        fontSize: 18,
+        fontWeight: '800',
+        color: '#1E293B'
+    },
+    confirmMsg: {
+        fontSize: 14,
+        color: '#64748B',
+        textAlign: 'center',
+        lineHeight: 21
+    },
+    confirmActions: {
+        flexDirection: 'row',
+        gap: 12,
+        marginTop: 8,
+        width: '100%'
+    },
     confirmCancelBtn: {
-        flex: 1, paddingVertical: 14, borderRadius: 12,
-        borderWidth: 1.5, borderColor: '#E2E8F0', alignItems: 'center',
+        flex: 1,
+        paddingVertical: 14,
+        borderRadius: 12,
+        borderWidth: 1.5,
+        borderColor: '#E2E8F0',
+        alignItems: 'center',
     },
-    confirmCancelText: { fontSize: 15, fontWeight: '600', color: '#64748B' },
-    confirmOkBtn: { flex: 1, paddingVertical: 14, borderRadius: 12, alignItems: 'center' },
-    confirmOkText: { fontSize: 15, fontWeight: '700', color: '#fff' },
+    confirmCancelText: {
+        fontSize: 15,
+        fontWeight: '600',
+        color: '#64748B'
+    },
+    confirmOkBtn: {
+        flex: 1,
+        paddingVertical: 14,
+        borderRadius: 12,
+        alignItems: 'center'
+    },
+    confirmOkText: {
+        fontSize: 15,
+        fontWeight: '700',
+        color: '#fff'
+    },
 });
 
