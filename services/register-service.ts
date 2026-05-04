@@ -58,7 +58,7 @@ export interface UploadProgressCallback {
  * @param email - User's email address
  * @throws Error if the request fails
  */
-const API_BASE = process.env.EXPO_PUBLIC_API_URL || 'https://api.hvh.okne.site'
+const API_BASE = process.env.EXPO_PUBLIC_API_URL || 'https://api.hvh.homes'
 
 // A plain axios instance with NO auth interceptors — for public (unauthenticated) endpoints
 const publicAxios = axios.create({

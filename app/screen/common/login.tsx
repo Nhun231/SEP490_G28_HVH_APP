@@ -29,9 +29,13 @@ export default function Auth() {
             const role = payload?.app_metadata?.role
 
             if (role === 'VOL') {
-                router.replace('/(vol-tabs)/home')
+                Alert.alert('Đăng nhập thành công', 'Chào mừng bạn trở lại!', [
+                    { text: 'OK', onPress: () => router.replace('/(vol-tabs)/home') },
+                ])
             } else if (role === 'HOST') {
-                router.replace('/(host-tabs)/dashboard' as any)
+                Alert.alert('Đăng nhập thành công', 'Chào mừng bạn trở lại!', [
+                    { text: 'OK', onPress: () => router.replace('/(host-tabs)/dashboard' as any) },
+                ])
             } else {
                 Alert.alert(
                     'Tài khoản chưa có vai trò',

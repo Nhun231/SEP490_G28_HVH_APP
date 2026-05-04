@@ -141,14 +141,25 @@ const CheckinTimerScreen = () => {
             })
 
             // 4. Navigate to rating screen immediately after successful checkout
-            router.replace({
-                pathname: '/screen/volunteer-screens/rating-event',
-                params: {
-                    applicationId: params.applicationId,
-                    eventName: params.eventName,
-                    fromCheckout: 'true',
-                },
-            } as any)
+            const ratingParams = {
+                applicationId: params.applicationId,
+                eventName: params.eventName,
+                fromCheckout: 'true',
+            }
+            Alert.alert(
+                '🎉 Check-out thành công!',
+                `Bạn đã hoàn thành ${formatDuration(elapsed)} tình nguyện cho sự kiện "${params.eventName || 'Sự kiện tình nguyện'}".\n\nCảm ơn bạn đã đóng góp! ❤️`,
+                [
+                    {
+                        text: 'Tiếp tục',
+                        onPress: () => router.replace({
+                            pathname: '/screen/volunteer-screens/rating-event',
+                            params: ratingParams,
+                        } as any),
+                    },
+                ],
+                { cancelable: false }
+            )
         } catch (err: unknown) {
             // Resume timer if checkout fails
             startTimeRef.current = new Date(new Date().getTime() - elapsed * 1000)
@@ -192,27 +203,6 @@ const CheckinTimerScreen = () => {
                     <Text style={styles.eventName} numberOfLines={2}>
                         {params.eventName || 'Sự kiện tình nguyện'}
                     </Text>
-                </View>
-            </View>
-
-            {/* Stats row */}
-            <View style={styles.statsRow}>
-                <View style={styles.statCard}>
-                    <Ionicons name="time-outline" size={24} color="#42A4F5" />
-                    <Text style={styles.statValue}>{padTwo(Math.floor(elapsed / 3600))}</Text>
-                    <Text style={styles.statLabel}>Giờ</Text>
-                </View>
-                <View style={styles.statDivider} />
-                <View style={styles.statCard}>
-                    <Ionicons name="timer-outline" size={24} color="#42A4F5" />
-                    <Text style={styles.statValue}>{padTwo(Math.floor((elapsed % 3600) / 60))}</Text>
-                    <Text style={styles.statLabel}>Phút</Text>
-                </View>
-                <View style={styles.statDivider} />
-                <View style={styles.statCard}>
-                    <Ionicons name="stopwatch-outline" size={24} color="#42A4F5" />
-                    <Text style={styles.statValue}>{padTwo(elapsed % 60)}</Text>
-                    <Text style={styles.statLabel}>Giây</Text>
                 </View>
             </View>
 
@@ -297,7 +287,7 @@ const styles = StyleSheet.create({
     timerHeader: {
         backgroundColor: '#42A4F5',
         paddingTop: 80,
-        paddingBottom: 28,
+        paddingBottom: 36,
         alignItems: 'center',
     },
     timerHeaderTop: {
@@ -319,7 +309,7 @@ const styles = StyleSheet.create({
         letterSpacing: 2,
     },
     timerDisplay: {
-        fontSize: 64,
+        fontSize: 80,
         fontWeight: '800',
         color: '#FFFFFF',
         letterSpacing: -2,
@@ -410,41 +400,7 @@ const styles = StyleSheet.create({
         color: '#42A4F5',
     },
 
-    /* Stats */
-    statsRow: {
-        flexDirection: 'row',
-        marginHorizontal: 16,
-        marginTop: 12,
-        backgroundColor: '#FFFFFF',
-        borderRadius: 16,
-        overflow: 'hidden',
-        elevation: 2,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.08,
-        shadowRadius: 4,
-    },
-    statCard: {
-        flex: 1,
-        alignItems: 'center',
-        paddingVertical: 16,
-        gap: 4,
-    },
-    statDivider: {
-        width: 1,
-        backgroundColor: '#E5E7EB',
-        marginVertical: 12,
-    },
-    statValue: {
-        fontSize: 32,
-        fontWeight: '800',
-        color: '#42A4F5',
-        fontVariant: ['tabular-nums'],
-    },
-    statLabel: {
-        fontSize: 11,
-        color: '#9CA3AF',
-    },
+
 
     /* Note */
     noteBox: {

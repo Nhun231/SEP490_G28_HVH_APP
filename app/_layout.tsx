@@ -34,11 +34,13 @@ export default function RootLayout() {
           <Stack.Screen name="screen/volunteer-screens/org-detail" options={{ headerShown: false }} />
           <Stack.Screen name="screen/volunteer-screens/org-events" options={{ headerShown: false }} />
           <Stack.Screen name="screen/volunteer-screens/checkin-code" options={{ headerShown: false }} />
+          <Stack.Screen name="screen/volunteer-screens/checkin-map" options={{ headerShown: false }} />
           <Stack.Screen name="screen/volunteer-screens/checkin-timer" options={{ headerShown: false }} />
           <Stack.Screen name="screen/volunteer-screens/rating-event" options={{ headerShown: false }} />
           <Stack.Screen name="screen/volunteer-screens/register-face" options={{ headerShown: false }} />
           <Stack.Screen name="screen/volunteer-screens/event-moments-feed" options={{ headerShown: false }} />
           <Stack.Screen name="screen/volunteer-screens/add-moment" options={{ headerShown: false }} />
+          <Stack.Screen name="screen/volunteer-screens/my-certificates" options={{ headerShown: false }} />
           {/* Host screens */}
           <Stack.Screen name="screen/host-screens/event-detail-host" options={{ headerShown: false }} />
           <Stack.Screen name="screen/host-screens/create-event" options={{ headerShown: false }} />
@@ -47,6 +49,17 @@ export default function RootLayout() {
           <Stack.Screen name="screen/host-screens/event-moments" options={{ headerShown: false }} />
           <Stack.Screen name="screen/host-screens/event-moment-detail" options={{ headerShown: false }} />
           <Stack.Screen name="screen/host-screens/honor-hour-requests" options={{ headerShown: false }} />
+          <Stack.Screen name="screen/host-screens/update-event" options={{ headerShown: false }} />
+          <Stack.Screen name="screen/host-screens/announce-volunteers" options={{ headerShown: false }} />
+          <Stack.Screen name="screen/host-screens/review-volunteers" options={{ headerShown: false }} />
+          <Stack.Screen name="screen/host-screens/notification" options={{ headerShown: false }} />
+          {/* Volunteer screens*/}
+          <Stack.Screen name="screen/volunteer-screens/notifications" options={{ headerShown: false }} />
+          <Stack.Screen name="screen/volunteer-screens/face-checkin-guide" options={{ headerShown: false }} />
+          <Stack.Screen name="screen/volunteer-screens/face-checkin-camera" options={{ headerShown: false }} />
+          <Stack.Screen name="screen/volunteer-screens/claim-hours" options={{ headerShown: false }} />
+          <Stack.Screen name="screen/volunteer-screens/vol-public-profile" options={{ headerShown: false }} />
+          <Stack.Screen name="screen/volunteer-screens/saved-events" options={{ headerShown: false }} />
           {/* Tab groups — disable swipe-back: tab screens are root-level, should not be dismissable */}
           <Stack.Screen name="(vol-tabs)" options={{ headerShown: false, gestureEnabled: false }} />
           <Stack.Screen name="(host-tabs)" options={{ headerShown: false, gestureEnabled: false }} />

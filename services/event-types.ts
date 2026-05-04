@@ -70,6 +70,9 @@ export interface EventFeedParams {
     startDate?: string;
     endDate?: string;
     activitySubDomainIds?: number[];
+    lat?: number;
+    lng?: number;
+    radiusMeters?: number;
 }
 
 // ── Shared Session / Detail ───────────────────────────────────────────────────
@@ -159,6 +162,7 @@ export interface MyEventItem {
     recruitmentEndDate: string;
     createdAt: string;
     updatedAt: string;
+    status: MyEventStatus;
 }
 
 export interface MyEventsResponse {
@@ -508,4 +512,15 @@ export interface ClaimDetail {
     detailReason: string;
     evidencesUrls: string[];
     createdAt: string;
+}
+
+// ── Volunteer — Rate Event ────────────────────────────────────────────────────
+
+export interface RateEventRequest {
+    eventApplicationId: string
+    organizationQualityRating: number
+    professionalismRating: number
+    workEnvironmentRating: number
+    valueImpactRating: number
+    supportConnectionRating: number
 }

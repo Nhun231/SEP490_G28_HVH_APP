@@ -1,69 +1,44 @@
 import React from 'react';
-import { View, Text, Image, Dimensions, ScrollView } from 'react-native';
+import { View, Text, Dimensions, ScrollView, StyleSheet } from 'react-native';
+import { Image } from 'expo-image';
+import { EventSimpleResponse } from '@/services/event-types';
 
 const { width } = Dimensions.get('window');
 
-interface BannerItem {
-    id: string;
-    name: string;
-    start_date: string;
-    org_id: string; //temporary using string
-    image: any;
-    status: 'upcoming';
+// Fallback solid colours when an event has no imageUrl
+const PLACEHOLDER_COLORS = ['#64B5F6', '#42A4F5', '#1E88E5', '#1565C0'];
+
+/** Resolves relative Supabase storage paths to full URLs — identical to EventCard. */
+function getFullImageUrl(path: string | null | undefined): string | null {
+    if (!path) return null;
+    if (path.startsWith('http')) return path;
+
+    const supabaseUrl =
+        process.env.EXPO_PUBLIC_SUPABASE_URL || 'https://kbmxlrqkzgjbtkmlbaei.supabase.co';
+
+    if (path.startsWith('/storage/v1')) return `${supabaseUrl}${path}`;
+    if (path.startsWith('/object/')) return `${supabaseUrl}/storage/v1${path}`;
+
+    return `${supabaseUrl}/storage/v1/object/public/hvh-bucket/${path}`;
 }
 
 interface BannerProps {
-    items?: BannerItem[];
+    /** Up to 4 real EventSimpleResponse items fetched by the parent. */
+    events?: EventSimpleResponse[];
 }
 
-export default function Banner({ items }: BannerProps) {
+export default function Banner({ events = [] }: BannerProps) {
     const [activeIndex, setActiveIndex] = React.useState(0);
-
-    // mock data
-    const defaultItems: BannerItem[] = [
-        {
-            id: '1',
-            name: 'Chiến dịch Xuân 2025 - Tình nguyện vì cộng đồng',
-            start_date: '15/03/2025',
-            org_id: 'Hội Chữ thập đỏ Việt Nam', //temporary using string
-            image: 'https://images.unsplash.com/photo-1559027615-cd4628902d4a?w=800&h=400&fit=crop',
-            status: 'upcoming',
-        },
-        {
-            id: '2',
-            name: 'Bảo vệ trẻ em - Tương lai tươi sáng',
-            start_date: '20/03/2025',
-            org_id: 'Quỹ Bảo trợ trẻ em Việt Nam', //temporary using string
-            image: 'https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?w=400&h=200&fit=crop',
-            status: 'upcoming',
-        },
-        {
-            id: '3',
-            name: 'Làm sạch môi trường - Bảo vệ biển đảo',
-            start_date: '25/03/2025',
-            org_id: 'Trung tâm Bảo vệ môi trường', //temporary using string
-            image: 'https://images.unsplash.com/photo-1593113598332-cd288d649433?w=400&h=200&fit=crop',
-            status: 'upcoming',
-        },
-        {
-            id: '4',
-            name: 'Hiến máu nhân đạo - Giọt hồng yêu thương',
-            start_date: '28/03/2025',
-            org_id: 'Viện Huyết học Truyền máu', //temporary using string
-            image: 'https://images.unsplash.com/photo-1615461066159-fea0960485d5?w=400&h=200&fit=crop',
-            status: 'upcoming',
-        },
-    ];
-
-    const bannerItems = items || defaultItems;
 
     const onScroll = (event: any) => {
         const slideIndex = Math.round(event.nativeEvent.contentOffset.x / width);
         setActiveIndex(slideIndex);
     };
 
+    if (events.length === 0) return null;
+
     return (
-        <View className="px-4 py-4">
+        <View style={styles.wrapper}>
             <ScrollView
                 horizontal
                 pagingEnabled
@@ -71,41 +46,72 @@ export default function Banner({ items }: BannerProps) {
                 onScroll={onScroll}
                 scrollEventThrottle={16}
             >
-                {bannerItems.map((item) => (
-                    <View
-                        key={item.id}
-                        style={{ width: width - 32 }}
-                        className="rounded-2xl overflow-hidden"
-                    >
-                        <Image
-                            source={{uri: item.image}}
-                            className="w-full h-48"
-                            resizeMode="cover"
-                        />
-                        <View className="absolute bottom-0 left-0 right-0 bg-black/40 p-4">
-                            <Text className="text-white text-xl font-bold">
-                                {item.name}
-                            </Text>
-                            <Text className="text-white text-sm mt-1">
-                                {item.start_date}
-                            </Text>
+                {events.map((item, i) => {
+                    const imageUri = getFullImageUrl(item.imageUrl);
+                    return (
+                        <View key={item.id} style={[styles.slide, { width: width - 32 }]}>
+                            {imageUri ? (
+                                <Image
+                                    source={imageUri}
+                                    style={styles.image}
+                                    contentFit="cover"
+                                    transition={200}
+                                />
+                            ) : (
+                                <View style={[styles.image, { backgroundColor: PLACEHOLDER_COLORS[i % 4] }]} />
+                            )}
+                            <View style={styles.overlay}>
+                                <Text style={styles.name} numberOfLines={2}>
+                                    {item.name}
+                                </Text>
+                                <Text style={styles.date}>
+                                    {item.startDate
+                                        ? new Date(item.startDate).toLocaleDateString('vi-VN', {
+                                              day: '2-digit',
+                                              month: '2-digit',
+                                              year: 'numeric',
+                                          })
+                                        : ''}
+                                    {item.orgName ? `  •  ${item.orgName}` : ''}
+                                </Text>
+                            </View>
                         </View>
-                    </View>
-                ))}
+                    );
+                })}
             </ScrollView>
-            {/* Pagination Dots */}
-            <View className="flex-row justify-center mt-3">
-                {bannerItems.map((_, index) => (
+
+            {/* Pagination dots */}
+            <View style={styles.dots}>
+                {events.map((_, index) => (
                     <View
                         key={index}
-                        className={`h-2 rounded-full mx-1 ${
-                            index === activeIndex
-                                ? 'bg-[#42A5F5] w-6'
-                                : 'bg-[#90CAF9] w-2'
-                        }`}
+                        style={[
+                            styles.dot,
+                            index === activeIndex ? styles.dotActive : styles.dotInactive,
+                        ]}
                     />
                 ))}
             </View>
         </View>
     );
 }
+
+const styles = StyleSheet.create({
+    wrapper: { paddingHorizontal: 16, paddingVertical: 16 },
+    slide: { borderRadius: 16, overflow: 'hidden' },
+    image: { width: '100%', height: 192 },
+    overlay: {
+        position: 'absolute',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        backgroundColor: 'rgba(0,0,0,0.40)',
+        padding: 16,
+    },
+    name: { color: '#FFFFFF', fontSize: 18, fontWeight: '700', lineHeight: 24 },
+    date: { color: '#FFFFFF', fontSize: 12, marginTop: 4, opacity: 0.9 },
+    dots: { flexDirection: 'row', justifyContent: 'center', marginTop: 12 },
+    dot: { height: 8, borderRadius: 4, marginHorizontal: 4 },
+    dotActive: { width: 24, backgroundColor: '#42A5F5' },
+    dotInactive: { width: 8, backgroundColor: '#90CAF9' },
+});

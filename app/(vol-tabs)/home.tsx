@@ -55,7 +55,7 @@ const Home = () => {
             </View>
 
             <ScrollView showsVerticalScrollIndicator={false} style={styles.scroll}>
-                <Banner />
+                <Banner events={events.slice(0, 4)} />
                 <MenuIcons />
                 <SectionHeader title="Sự kiện mới nhất" onSeeMore={handleSeeMore} />
                 <View style={{ paddingBottom: 16 }}>

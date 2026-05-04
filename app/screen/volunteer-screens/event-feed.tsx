@@ -18,6 +18,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import EventCard from '../../components/home/EventCard';
 import AreaFilterSheet from '../../components/volunteer/event-feed/AreaFilterSheet';
 import DomainFilterSheet from '../../components/volunteer/event-feed/DomainFilterSheet';
+import NearbyFilterSheet, { NearbyFilter } from '../../components/volunteer/event-feed/NearbyFilterSheet';
 
 const VIETNAMESE_DAYS = ['CN', 'Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7'];
 
@@ -47,8 +48,10 @@ const EventFeed = () => {
 
     const [areaSheetVisible, setAreaSheetVisible] = useState(false);
     const [domainSheetVisible, setDomainSheetVisible] = useState(false);
+    const [nearbySheetVisible, setNearbySheetVisible] = useState(false);
     const [selectedDistricts, setSelectedDistricts] = useState<string[]>([]);
     const [selectedSubdomainIds, setSelectedSubdomainIds] = useState<number[]>([]);
+    const [nearbyFilter, setNearbyFilter] = useState<NearbyFilter | null>(null);
 
     const dates = useMemo(() => generateDates(7), []);
 
@@ -59,8 +62,9 @@ const EventFeed = () => {
         name?: string;
         address?: string;
         subdomainIds?: number[];
+        nearby?: NearbyFilter | null;
     }) => {
-        const { dateIso, page = 0, name, address, subdomainIds } = opts;
+        const { dateIso, page = 0, name, address, subdomainIds, nearby } = opts;
         return getEventFeeds({
             pageNumber: page,
             pageSize: 20,
@@ -69,6 +73,7 @@ const EventFeed = () => {
             ...(name && { name }),
             ...(address && { address }),
             ...(subdomainIds?.length && { activitySubDomainIds: subdomainIds }),
+            ...(nearby && { lat: nearby.lat, lng: nearby.lng, radiusMeters: nearby.radiusMeters }),
         });
     }, []);
 
@@ -80,6 +85,7 @@ const EventFeed = () => {
         name?: string;
         districts?: string[];
         subdomainIds?: number[];
+        nearby?: NearbyFilter | null;
     }) => {
         const { districts = [], page = 0, ...rest } = opts;
         if (districts.length === 0) {
@@ -127,6 +133,7 @@ const EventFeed = () => {
         name?: string;
         districts?: string[];
         subdomainIds?: number[];
+        nearby?: NearbyFilter | null;
     } = {}) => {
         setLoading(true);
         try {
@@ -146,8 +153,9 @@ const EventFeed = () => {
             name: searchText || undefined,
             districts: selectedDistricts,
             subdomainIds: selectedSubdomainIds,
+            nearby: nearbyFilter,
         });
-    }, [dates, searchText, selectedDistricts, selectedSubdomainIds, applyFilters]);
+    }, [dates, searchText, selectedDistricts, selectedSubdomainIds, nearbyFilter, applyFilters]);
 
     // pull-to-refresh
     const handleRefresh = useCallback(async () => {
@@ -158,10 +166,11 @@ const EventFeed = () => {
                 name: searchText || undefined,
                 districts: selectedDistricts,
                 subdomainIds: selectedSubdomainIds,
+                nearby: nearbyFilter,
             }, 0);
         } catch { /* silent */ }
         setRefreshing(false);
-    }, [selectedDateIndex, dates, applyAndSet, searchText, selectedDistricts, selectedSubdomainIds]);
+    }, [selectedDateIndex, dates, applyAndSet, searchText, selectedDistricts, selectedSubdomainIds, nearbyFilter]);
 
     // load more — only works when districts is empty (pagination meaningful)
     const loadMoreEvents = useCallback(async () => {
@@ -173,10 +182,11 @@ const EventFeed = () => {
                 name: searchText || undefined,
                 districts: [],
                 subdomainIds: selectedSubdomainIds,
+                nearby: nearbyFilter,
             }, pageNumber + 1);
         } catch { /* silent */ }
         setLoadingMore(false);
-    }, [hasMore, loadingMore, loading, refreshing, selectedDateIndex, dates, pageNumber, applyAndSet, searchText, selectedDistricts, selectedSubdomainIds]);
+    }, [hasMore, loadingMore, loading, refreshing, selectedDateIndex, dates, pageNumber, applyAndSet, searchText, selectedDistricts, selectedSubdomainIds, nearbyFilter]);
 
     const handleGoBack = () => {
         if (router.canGoBack()) router.back();
@@ -189,8 +199,9 @@ const EventFeed = () => {
             name: searchText || undefined,
             districts: selectedDistricts,
             subdomainIds: selectedSubdomainIds,
+            nearby: nearbyFilter,
         });
-    }, [searchText, selectedDateIndex, dates, selectedDistricts, selectedSubdomainIds, applyFilters]);
+    }, [searchText, selectedDateIndex, dates, selectedDistricts, selectedSubdomainIds, nearbyFilter, applyFilters]);
 
     const handleAreaConfirm = async (districts: string[]) => {
         setSelectedDistricts(districts);
@@ -200,6 +211,31 @@ const EventFeed = () => {
             name: searchText || undefined,
             districts,
             subdomainIds: selectedSubdomainIds,
+            nearby: nearbyFilter,
+        });
+    };
+
+    const handleNearbyConfirm = async (filter: NearbyFilter) => {
+        setNearbyFilter(filter);
+        setNearbySheetVisible(false);
+        await applyFilters({
+            dateIso: selectedDateIndex !== null ? dates[selectedDateIndex].iso : undefined,
+            name: searchText || undefined,
+            districts: selectedDistricts,
+            subdomainIds: selectedSubdomainIds,
+            nearby: filter,
+        });
+    };
+
+    const handleNearbyClear = async () => {
+        setNearbyFilter(null);
+        setNearbySheetVisible(false);
+        await applyFilters({
+            dateIso: selectedDateIndex !== null ? dates[selectedDateIndex].iso : undefined,
+            name: searchText || undefined,
+            districts: selectedDistricts,
+            subdomainIds: selectedSubdomainIds,
+            nearby: null,
         });
     };
 
@@ -211,6 +247,7 @@ const EventFeed = () => {
             name: searchText || undefined,
             districts: selectedDistricts,
             subdomainIds: ids,
+            nearby: nearbyFilter,
         });
     };
 
@@ -315,13 +352,49 @@ const EventFeed = () => {
 
                     <View style={styles.chipDivider} />
 
+                    {/* Nearby chip */}
+                    <TouchableOpacity
+                        style={[
+                            styles.filterChip,
+                            nearbyFilter != null && styles.filterChipActive,
+                        ]}
+                        onPress={() => setNearbySheetVisible(true)}
+                        activeOpacity={0.7}
+                    >
+                        <Ionicons
+                            name="navigate-outline"
+                            size={13}
+                            color={nearbyFilter != null ? '#42A4F5' : '#6B7280'}
+                            style={{ marginRight: 3 }}
+                        />
+                        <Text style={[
+                            styles.filterChipText,
+                            nearbyFilter != null && styles.filterChipTextActive,
+                        ]}>
+                            {nearbyFilter != null
+                                ? nearbyFilter.radiusMeters >= 1000
+                                    ? `${nearbyFilter.radiusMeters / 1000} km`
+                                    : `${nearbyFilter.radiusMeters} m`
+                                : 'Gần tôi'}
+                        </Text>
+                        <Ionicons
+                            name="chevron-down"
+                            size={12}
+                            color={nearbyFilter != null ? '#42A4F5' : '#6B7280'}
+                            style={{ marginLeft: 2 }}
+                        />
+                    </TouchableOpacity>
+
+                    <View style={styles.chipDivider} />
+
                     {/* Clear all — only shown when any filter is active */}
-                    {(selectedDistricts.length > 0 || selectedSubdomainIds.length > 0) ? (
+                    {(selectedDistricts.length > 0 || selectedSubdomainIds.length > 0 || nearbyFilter != null) ? (
                         <TouchableOpacity
                             style={styles.filterChip}
                             onPress={async () => {
                                 setSelectedDistricts([]);
                                 setSelectedSubdomainIds([]);
+                                setNearbyFilter(null);
                                 await applyFilters({
                                     dateIso: selectedDateIndex !== null ? dates[selectedDateIndex].iso : undefined,
                                     name: searchText || undefined,
@@ -431,6 +504,13 @@ const EventFeed = () => {
                 initialSelectedIds={selectedSubdomainIds}
                 onConfirm={handleDomainConfirm}
                 onClose={() => setDomainSheetVisible(false)}
+            />
+            <NearbyFilterSheet
+                visible={nearbySheetVisible}
+                initial={nearbyFilter}
+                onConfirm={handleNearbyConfirm}
+                onClear={handleNearbyClear}
+                onClose={() => setNearbySheetVisible(false)}
             />
         </SafeAreaView>
     );

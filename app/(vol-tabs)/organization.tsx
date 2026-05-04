@@ -128,22 +128,10 @@ const sheet = StyleSheet.create({
 });
 
 
-// Mock ratings per org (until BE adds rating)
-const MOCK_RATINGS: Record<string, { rating: number; total: number }> = {};
-function getMockRating(id: string) {
-    if (!MOCK_RATINGS[id]) {
-        const seed = id.charCodeAt(0) + id.charCodeAt(id.length - 1);
-        MOCK_RATINGS[id] = {
-            rating: parseFloat((3.5 + (seed % 30) / 20).toFixed(1)),
-            total: 100 + (seed * 17) % 2200,
-        };
-    }
-    return MOCK_RATINGS[id];
-}
 
 function OrgCard({ org, onPress }: { org: OrganizationSimpleResponse; onPress: () => void }) {
     const typeLabel = org.orgType ? (ORG_TYPE_SHORT_LABELS[org.orgType] ?? org.orgType) : 'Khác';
-    const mock = getMockRating(org.id);
+    const hasRating = org.avgRating != null;
 
     return (
         <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.75}>
@@ -166,7 +154,14 @@ function OrgCard({ org, onPress }: { org: OrganizationSimpleResponse; onPress: (
 
             {/* Star rating row */}
             <View style={styles.ratingRow}>
-                <StarRating rating={mock.rating} totalRatings={mock.total} />
+                {hasRating ? (
+                    <StarRating
+                        rating={org.avgRating!}
+                        totalRatings={org.totalRatings ?? undefined}
+                    />
+                ) : (
+                    <Text style={styles.noRatingText}>Chưa có đánh giá</Text>
+                )}
             </View>
 
             {/* Stats */}
@@ -220,7 +215,7 @@ const Benefit = () => {
     const filteredOrgs = useMemo(() => {
         let list = orgs;
         if (selectedRating !== null) {
-            list = list.filter((o) => getMockRating(o.id).rating >= selectedRating);
+            list = list.filter((o) => (o.avgRating ?? 0) >= selectedRating);
         }
         if (selectedHour !== null) {
             list = list.filter((o) => o.creditHour >= selectedHour);
@@ -611,6 +606,7 @@ const styles = StyleSheet.create({
 
     /* Rating row */
     ratingRow: { marginTop: 10, marginBottom: 2 },
+    noRatingText: { fontSize: 12, color: '#9CA3AF', fontStyle: 'italic' },
 
     /* Stats */
     statsRow: {

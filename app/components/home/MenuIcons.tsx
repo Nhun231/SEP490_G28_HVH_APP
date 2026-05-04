@@ -9,6 +9,14 @@ export default function MenuIcons() {
         router.push('/screen/volunteer-screens/event-feed' as any);
     };
 
+    const handleFindOrg = () => {
+        router.replace('/(vol-tabs)/organization' as any);
+    };
+
+    const handleCertificate = () => {
+        router.push('/screen/volunteer-screens/my-certificates' as any);
+    };
+
     return (
         <ScrollView
             horizontal
@@ -34,8 +42,7 @@ export default function MenuIcons() {
             </TouchableOpacity>
 
             {/* BUTTON 2: SEARCH ORGANIZATION */}
-            {/* Change logic onPress later */}
-            <TouchableOpacity onPress={() => {}} activeOpacity={0.85}>
+            <TouchableOpacity onPress={handleFindOrg} activeOpacity={0.85}>
                 <View style={styles.buttonContainer}>
                     <LinearGradient
                         colors={['#66BB6A', '#43A047']}
@@ -52,8 +59,7 @@ export default function MenuIcons() {
             </TouchableOpacity>
 
             {/* BUTTON 3: CERTIFICATE */}
-            {/* Change logic onPress later */}
-            <TouchableOpacity onPress={() => {}} activeOpacity={0.85}>
+            <TouchableOpacity onPress={handleCertificate} activeOpacity={0.85}>
                 <View style={styles.buttonContainer}>
                     <LinearGradient
                         colors={['#FFA726', '#FB8C00']}
@@ -69,8 +75,8 @@ export default function MenuIcons() {
                 </View>
             </TouchableOpacity>
 
-            {/* BUTTON 4: CERTIFICATE */}
-            {/* Change logic onPress later */}
+            {/* BUTTON 4: REGISTER ORGANIZATION — disabled pending feature development */}
+            {/*
             <TouchableOpacity onPress={() => {}} activeOpacity={0.85}>
                 <View style={styles.buttonContainer}>
                     <LinearGradient
@@ -86,6 +92,7 @@ export default function MenuIcons() {
                     </View>
                 </View>
             </TouchableOpacity>
+            */}
 
             {/* BUTTON 5: VOLUNTEER MOMENTS */}
             <TouchableOpacity onPress={() => router.push({ pathname: '/screen/volunteer-screens/event-moments-feed', params: { mode: 'public' } } as any)} activeOpacity={0.85}>

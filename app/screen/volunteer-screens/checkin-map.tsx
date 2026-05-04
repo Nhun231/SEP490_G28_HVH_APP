@@ -108,22 +108,33 @@ const CheckinMapScreen = () => {
             })
 
             // 4. Navigate to timer — check-in log is now saved
-            router.replace({
-                pathname: '/screen/volunteer-screens/checkin-timer' as any,
-                params: {
-                    code: params.code,
-                    applicationId: params.applicationId ?? '',
-                    eventName: params.name ?? '',
-                    eventId: params.eventId ?? '',
-                    sessionId: params.eventSessionId ?? '',
-                    sessionEndTime: params.sessionEndTime ?? '',
-                    // Pass event check-in coords for GPS mock during checkout
-                    checkinLat: String(lat),
-                    checkinLng: String(lng),
-                    // Capture the exact check-in moment so the timer survives screen re-entries
-                    checkinTime: new Date().toISOString(),
-                },
-            })
+            const timerParams = {
+                code: params.code,
+                applicationId: params.applicationId ?? '',
+                eventName: params.name ?? '',
+                eventId: params.eventId ?? '',
+                sessionId: params.eventSessionId ?? '',
+                sessionEndTime: params.sessionEndTime ?? '',
+                // Pass event check-in coords for GPS mock during checkout
+                checkinLat: String(lat),
+                checkinLng: String(lng),
+                // Capture the exact check-in moment so the timer survives screen re-entries
+                checkinTime: new Date().toISOString(),
+            }
+            Alert.alert(
+                'Điểm danh thành công!',
+                `Bạn đã điểm danh cho sự kiện:\n"${params.name || 'Sự kiện tình nguyện'}"\n\nThời gian tình nguyện đang được ghi nhận.`,
+                [
+                    {
+                        text: 'Bắt đầu',
+                        onPress: () => router.replace({
+                            pathname: '/screen/volunteer-screens/checkin-timer' as any,
+                            params: timerParams,
+                        }),
+                    },
+                ],
+                { cancelable: false }
+            )
         } catch (err: unknown) {
             const msg = getApiErrorMessage(err) || 'Điểm danh thất bại. Vui lòng thử lại.'
             Alert.alert('Lỗi điểm danh', msg)

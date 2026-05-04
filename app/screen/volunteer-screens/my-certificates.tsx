@@ -133,21 +133,21 @@ function CertCard({ item, onCopyCode, onView }: CertCardProps) {
                             </Text>
                         </View>
 
-                        {/* Code row */}
-                        <View style={certStyles.codeRow}>
-                            <View style={certStyles.codeChip}>
-                                <Ionicons name="qr-code-outline" size={12} color={BLUE} />
-                                <Text style={certStyles.codeText}>{shortCode(item.certCode)}</Text>
-                            </View>
-                            <TouchableOpacity
-                                style={certStyles.copyBtn}
-                                onPress={() => onCopyCode(item.certCode)}
-                                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                            >
-                                <Ionicons name="copy-outline" size={14} color={BLUE} />
-                                <Text style={certStyles.copyText}>Sao chép</Text>
-                            </TouchableOpacity>
-                        </View>
+                        {/*/!* Code row *!/*/}
+                        {/*<View style={certStyles.codeRow}>*/}
+                        {/*    <View style={certStyles.codeChip}>*/}
+                        {/*        <Ionicons name="qr-code-outline" size={12} color={BLUE} />*/}
+                        {/*        <Text style={certStyles.codeText}>{shortCode(item.certCode)}</Text>*/}
+                        {/*    </View>*/}
+                        {/*    <TouchableOpacity*/}
+                        {/*        style={certStyles.copyBtn}*/}
+                        {/*        onPress={() => onCopyCode(item.certCode)}*/}
+                        {/*        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}*/}
+                        {/*    >*/}
+                        {/*        <Ionicons name="copy-outline" size={14} color={BLUE} />*/}
+                        {/*        <Text style={certStyles.copyText}>Sao chép</Text>*/}
+                        {/*    </TouchableOpacity>*/}
+                        {/*</View>*/}
                     </View>
                 </View>
 
@@ -158,7 +158,6 @@ function CertCard({ item, onCopyCode, onView }: CertCardProps) {
                         onPress={() => onView(item)}
                         activeOpacity={0.8}
                     >
-                        <Ionicons name="eye-outline" size={15} color="#fff" />
                         <Text style={certStyles.viewBtnText}>Xem chứng chỉ</Text>
                         <Ionicons name="chevron-forward" size={15} color="#fff" />
                     </TouchableOpacity>

@@ -34,7 +34,9 @@ export default function Personal() {
                     style: 'destructive',
                     onPress: async () => {
                         await logout()
-                        router.replace('/(vol-tabs)/home' as any)
+                        Alert.alert('Đã đăng xuất', 'Hẹn gặp lại bạn!', [
+                            { text: 'OK', onPress: () => router.replace('/screen/common/login' as any) },
+                        ])
                     },
                 },
             ]
@@ -186,6 +188,10 @@ export default function Personal() {
                                             router.push('/screen/volunteer-screens/saved-events' as any);
                                         } else if (idx === 4) {
                                             // Moments
+                                            router.push({
+                                                pathname: '/screen/volunteer-screens/event-moments-feed' as any,
+                                                params: { mode: 'my' },
+                                            } as any);
                                         } else if (idx === 5) {
                                             // Public Service Card
                                             router.push({

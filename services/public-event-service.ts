@@ -30,6 +30,9 @@ export const getEventFeeds = async (params: EventFeedParams = {}): Promise<Event
     if (params.activitySubDomainIds?.length) {
         params.activitySubDomainIds.forEach(id => query.append('activitySubDomainIds', String(id)))
     }
+    if (params.lat != null) query.append('lat', String(params.lat))
+    if (params.lng != null) query.append('lng', String(params.lng))
+    if (params.radiusMeters != null) query.append('radiusMeters', String(params.radiusMeters))
 
     const url = `${API_BASE}/api/v1/events/feeds?${query.toString()}`
     const response = await fetch(url)

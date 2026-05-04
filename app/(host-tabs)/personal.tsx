@@ -227,7 +227,12 @@ export default function HostPersonal() {
             { text: 'Hủy', style: 'cancel' },
             {
                 text: 'Đăng xuất', style: 'destructive',
-                onPress: async () => { await logout(); router.replace('/screen/common/login' as any); },
+                onPress: async () => {
+                    await logout()
+                    Alert.alert('Đã đăng xuất', 'Hẹn gặp lại bạn!', [
+                        { text: 'OK', onPress: () => router.replace('/screen/common/login' as any) },
+                    ])
+                },
             },
         ],
     );

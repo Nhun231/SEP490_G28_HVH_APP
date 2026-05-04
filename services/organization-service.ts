@@ -5,7 +5,7 @@
 import baseAxios from '@/lib/baseAxios';
 import type { EventSimpleResponse } from './event-types';
 
-const API_BASE = process.env.EXPO_PUBLIC_API_URL || 'https://api.hvh.okne.site';
+const API_BASE = process.env.EXPO_PUBLIC_API_URL || 'https://api.hvh.homes';
 
 
 export type EOrgType =
@@ -61,6 +61,10 @@ export interface OrganizationSimpleResponse {
     orgType: EOrgType | null;
     numberOfHostedEvents: number;
     creditHour: number;
+    /** Average star rating returned by BE (null if no ratings yet) */
+    avgRating: number | null;
+    /** Total number of ratings (null if BE doesn't return it yet) */
+    totalRatings: number | null;
 }
 
 export interface OrgListResponse {

@@ -138,7 +138,7 @@ function ApplicationEventCard({ item, onPress, onCancel, onRate, onClaim }: Appl
         const sessionEnd = new Date(item.session.endDateTime);
         const now = new Date();
         const diffDays = (now.getTime() - sessionEnd.getTime()) / (1000 * 60 * 60 * 24);
-        return diffDays <= 7;
+        return diffDays > 0 && diffDays <= 7;
     })();
 
     const hasActionRow = canRate || canClaim;
